@@ -29,7 +29,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId }: Props)
     for (const e of vals) {
       const p: [number, number] = [e.latitude!, e.longitude!];
       bounds.extend(p);
-      const color = e.dependencia_administrativa === "Privada" ? "#6366f1" : "#10b981";
+      const color = e.dependencia_administrativa === "Privada" ? "#3b82f6" : "#22c55e";
       const h = hoveredId === e.id;
       const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: "#fff", weight: h ? 3 : 2, fillOpacity: h ? 1 : 0.8 });
       m._eid = e.id;

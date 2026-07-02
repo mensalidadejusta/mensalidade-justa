@@ -158,8 +158,10 @@ function BuscaContent() {
     if (data) {
       let filtrado = [...data];
       // Filtro público/privado
-      if (tipoFilter) {
-        filtrado = filtrado.filter((e: any) => e.dependencia_administrativa === tipoFilter);
+      if (tipoFilter === "Privada") {
+        filtrado = filtrado.filter((e: any) => e.dependencia_administrativa === "Privada");
+      } else if (tipoFilter && tipoFilter.charAt(0) === 'P') {
+        filtrado = filtrado.filter((e: any) => e.dependencia_administrativa !== "Privada");
       }
       // Filtro preço máximo
       if (maxPrice && !isNaN(Number(maxPrice))) {
@@ -261,9 +263,9 @@ function BuscaContent() {
             <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
             <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
-              className={`badge transition-all ${tipoFilter === "Privada" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
-            <button onClick={() => setTipoFilter(tipoFilter === "Pública" ? "" : "Pública")}
-              className={`badge transition-all ${tipoFilter === "Pública" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
+              className={`badge transition-all ${tipoFilter === "Privada" ? "bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600" : ""}`}>🏢 Privadas</button>
+            <button onClick={() => setTipoFilter(tipoFilter && tipoFilter.charAt(0) === 'P' ? "" : "Pública")}
+              className={`badge transition-all ${tipoFilter && tipoFilter.charAt(0) === 'P' ? "bg-green-100 text-green-700 border-green-400 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600" : ""}`}>🏛️ Públicas</button>
 
             <div className="relative min-w-[100px]">
               <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
@@ -340,9 +342,9 @@ function BuscaContent() {
               <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
               <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
-                className={`badge transition-all ${tipoFilter === "Privada" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
-              <button onClick={() => setTipoFilter(tipoFilter === "Pública" ? "" : "Pública")}
-                className={`badge transition-all ${tipoFilter === "Pública" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
+                className={`badge transition-all ${tipoFilter === "Privada" ? "bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600" : ""}`}>🏢 Privadas</button>
+              <button onClick={() => setTipoFilter(tipoFilter && tipoFilter.charAt(0) === 'P' ? "" : "P\u00fablica")}
+                className={`badge transition-all ${tipoFilter && tipoFilter.charAt(0) === 'P' ? "bg-green-100 text-green-700 border-green-400 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600" : ""}`}>🏛️ Públicas</button>
 
               <div className="relative min-w-[100px]">
                 <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
@@ -409,8 +411,8 @@ function ResultList({ results, hoveredId, onHover }: {
               </div>
               <span className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-lg ${
                 escola.dependencia_administrativa === "Privada"
-                  ? "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
-                  : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                  : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400"
               }`}>
                 {escola.dependencia_administrativa === "Privada" ? "Privada" : "Pública"}
               </span>

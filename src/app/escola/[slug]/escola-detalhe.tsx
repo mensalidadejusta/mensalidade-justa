@@ -136,7 +136,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               <div>
                 <dt className="text-[var(--color-text-tertiary)] text-xs">Depend\u00eancia</dt>
                 <dd>
-                  <span className={"inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full " + (escola.dependencia_administrativa === "Privada" ? "tag-privada" : "tag-publica")}>
+                  <span className={"inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full " + (escola.categoria_administrativa === "Privada" ? "tag-privada" : "tag-publica")}>
                     {escola.dependencia_administrativa === "Privada" ? "Privada" : "P\u00fablica"}
                   </span>
                   {escola.categoria_administrativa && " \u2014 " + escola.categoria_administrativa}
