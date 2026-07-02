@@ -51,8 +51,12 @@ export default async function Footer() {
         </nav>
 
         <div className="mt-10 pt-6 border-t border-[var(--color-border)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[var(--color-text-tertiary)]">
+          <div className="flex gap-4">
+            <Link href="/sobre" className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors">Sobre</Link>
+            <span className="text-xs text-[var(--color-border)]">|</span>
+            <a href="mailto:mensalidadejustabr@gmail.com" className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors">Contato</a>
+          </div>
           <p>&copy; {new Date().getFullYear()} Mensalidade Justa. Dados colaborativos.</p>
-          <p>Fonte: INEP / Censo Escolar.</p>
         </div>
       </div>
     </footer>
