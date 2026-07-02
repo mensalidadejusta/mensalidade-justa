@@ -103,13 +103,18 @@ export default function BuscaContent({
     router.replace(`${pathname}?${params.toString()}`);
   }
 
-  // Sync local state from URL on browser back/forward
+  // Sync from URL on mount (hydration) and browser back/forward
   useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    setLocalPrivada(p.get("privada") !== "0");
+    setLocalPublica(p.get("publica") !== "0");
+    setLocalQuery(p.get("q") ?? "");
+
     const handler = () => {
-      const p = new URLSearchParams(window.location.search);
-      setLocalPrivada(p.get("privada") !== "0");
-      setLocalPublica(p.get("publica") !== "0");
-      setLocalQuery(p.get("q") ?? "");
+      const p2 = new URLSearchParams(window.location.search);
+      setLocalPrivada(p2.get("privada") !== "0");
+      setLocalPublica(p2.get("publica") !== "0");
+      setLocalQuery(p2.get("q") ?? "");
     };
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);

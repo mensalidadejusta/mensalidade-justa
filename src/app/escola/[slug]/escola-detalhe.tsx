@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import ToggleTema from "@/components/toggle-tema";
 import Link from "next/link";
 import { SERIES } from "@/lib/series";
@@ -52,6 +53,7 @@ function WhatsAppShare({ nome, slug, compact }: { nome: string; slug: string; co
 }
 
 export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola; slug: string; precos: Estatistica[] }) {
+  const router = useRouter();
   const grupos = [...new Set(SERIES.map((s) => s.grupo))];
 
   return (
@@ -59,9 +61,9 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
       <div className="max-w-3xl mx-auto px-4 py-6">
         <header className="flex items-start justify-between mb-6">
           <div>
-            <Link href="/busca" className="text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors">
+            <button onClick={() => router.back()} className="text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors cursor-pointer">
               ← Voltar para busca
-            </Link>
+            </button>
           </div>
           <ToggleTema />
         </header>
