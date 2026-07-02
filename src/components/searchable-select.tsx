@@ -85,40 +85,56 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
             <div className="flex-1 overflow-y-auto px-2 pb-4">
               {isSeries ? (
-                filteredSeries!.length === 0 ? (
-                  <p className="text-center text-xs text-slate-400 py-6">Nenhuma série encontrada</p>
-                ) : (
-                  grupos!.map((grupo) => {
-                    const items = filteredSeries!.filter((s) => s.grupo === grupo);
-                    if (!items.length) return null;
-                    return (
-                      <div key={grupo}>
-                        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 pt-3 pb-1">{grupo}</p>
-                        {items.map((s) => (
-                          <button key={s.slug} onClick={() => select(s.slug)}
-                            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                              s.slug === value
-                                ? "bg-[#3b82f6]/10 text-[#3b82f6] font-medium"
-                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            }`}>{s.nome}</button>
-                        ))}
-                      </div>
-                    );
-                  })
-                )
+                <>
+                  {value && (
+                    <button onClick={() => select("")}
+                      className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors italic">
+                      Todas as etapas
+                    </button>
+                  )}
+                  {filteredSeries!.length === 0 ? (
+                    <p className="text-center text-xs text-slate-400 py-6">Nenhuma s\u00e9rie encontrada</p>
+                  ) : (
+                    grupos!.map((grupo) => {
+                      const items = filteredSeries!.filter((s) => s.grupo === grupo);
+                      if (!items.length) return null;
+                      return (
+                        <div key={grupo}>
+                          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 pt-3 pb-1">{grupo}</p>
+                          {items.map((s) => (
+                            <button key={s.slug} onClick={() => select(s.slug)}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                                s.slug === value
+                                  ? "bg-[#3b82f6]/10 text-[#3b82f6] font-medium"
+                                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              }`}>{s.nome}</button>
+                          ))}
+                        </div>
+                      );
+                    })
+                  )}
+                </>
               ) : (
-                filteredOptions!.length === 0 ? (
-                  <p className="text-center text-xs text-slate-400 py-6">Nenhum resultado</p>
-                ) : (
-                  filteredOptions!.map((opt) => (
-                    <button key={opt} onClick={() => select(opt)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                        opt === value
-                          ? "bg-[#3b82f6]/10 text-[#3b82f6] font-medium"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      }`}>{opt}</button>
-                  ))
-                )
+                <>
+                  {value && (
+                    <button onClick={() => select("")}
+                      className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors italic">
+                      {isSeries ? "Todas as etapas" : "Todos"}
+                    </button>
+                  )}
+                  {filteredOptions!.length === 0 ? (
+                    <p className="text-center text-xs text-slate-400 py-6">Nenhum resultado</p>
+                  ) : (
+                    filteredOptions!.map((opt) => (
+                      <button key={opt} onClick={() => select(opt)}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                          opt === value
+                            ? "bg-[#3b82f6]/10 text-[#3b82f6] font-medium"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}>{opt}</button>
+                    ))
+                  )}
+                </>
               )}
             </div>
           </div>
