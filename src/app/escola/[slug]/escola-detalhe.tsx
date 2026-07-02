@@ -134,7 +134,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           {escola.categoria_administrativa !== "Privada" && (
           <div className="card space-y-4">
             <h2 className="text-sm font-semibold">Mensalidades</h2>
-            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Escola p\u00fablica gratuita</p>
+            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{'Escola p\u00fablica gratuita'}</p>
           </div>
           )}
 
