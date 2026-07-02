@@ -82,39 +82,39 @@ export default function BuscaContent({
   const [geoError, setGeoError] = useState("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [viewMap, setViewMap] = useState(false);
-  const [localPrivada, setLocalPrivada] = useState(
-    searchParams.get("privada") !== "0"
-  );
-  const [localPublica, setLocalPublica] = useState(
-    searchParams.get("publica") !== "0"
-  );
+  const [navTick, setNavTick] = useState(0);
 
   const uf = searchParams.get("uf") ?? "";
   const cidade = searchParams.get("cidade") ?? "";
   const serieSlug = searchParams.get("serie") ?? "";
   const maxPrice = searchParams.get("maxPrice") ?? "";
 
+  function readParam(key: string): string {
+    if (typeof window === "undefined") return searchParams.get(key) ?? "";
+    return new URLSearchParams(window.location.search).get(key) ?? "";
+  }
+
   function updateFilters(updates: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(
+      typeof window !== "undefined"
+        ? window.location.search
+        : searchParams.toString()
+    );
     for (const [k, v] of Object.entries(updates)) {
       if (v) params.set(k, v);
       else params.delete(k);
     }
     router.replace(`${pathname}?${params.toString()}`);
+    setNavTick((n) => n + 1);
   }
 
-  // Sync from URL on mount (hydration) and browser back/forward
+  // Sync local state from URL on mount and browser back/forward
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    setLocalPrivada(p.get("privada") !== "0");
-    setLocalPublica(p.get("publica") !== "0");
-    setLocalQuery(p.get("q") ?? "");
+    setLocalQuery(readParam("q"));
 
     const handler = () => {
-      const p2 = new URLSearchParams(window.location.search);
-      setLocalPrivada(p2.get("privada") !== "0");
-      setLocalPublica(p2.get("publica") !== "0");
-      setLocalQuery(p2.get("q") ?? "");
+      setNavTick((n) => n + 1);
+      setLocalQuery(readParam("q"));
     };
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
@@ -362,12 +362,11 @@ export default function BuscaContent({
       />
       <button
         onClick={() => {
-          const next = searchParams.get("privada") === "0";
-          setLocalPrivada(next);
-          updateFilters({ privada: next ? "1" : "0" });
+          const current = readParam("privada") !== "0";
+          updateFilters({ privada: current ? "0" : "1" });
         }}
         className={`badge transition-all ${
-          searchParams.get("privada") !== "0"
+          readParam("privada") !== "0"
             ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
             : ""
         }`}
@@ -376,12 +375,11 @@ export default function BuscaContent({
       </button>
       <button
         onClick={() => {
-          const next = searchParams.get("publica") === "0";
-          setLocalPublica(next);
-          updateFilters({ publica: next ? "1" : "0" });
+          const current = readParam("publica") !== "0";
+          updateFilters({ publica: current ? "0" : "1" });
         }}
         className={`badge transition-all ${
-          searchParams.get("publica") !== "0"
+          readParam("publica") !== "0"
             ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
             : ""
         }`}
