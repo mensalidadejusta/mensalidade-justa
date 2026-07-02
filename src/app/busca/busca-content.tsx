@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import ToggleTema from "@/components/toggle-tema";
 import MapaEscolas from "@/components/mapa-escolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -82,7 +81,12 @@ export default function BuscaContent({
   const [geoError, setGeoError] = useState("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [viewMap, setViewMap] = useState(false);
+  const [showMap, setShowMap] = useState(true);
   const [navTick, setNavTick] = useState(0);
+
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
 
   const uf = searchParams.get("uf") ?? "";
   const cidade = searchParams.get("cidade") ?? "";
@@ -108,7 +112,6 @@ export default function BuscaContent({
     setNavTick((n) => n + 1);
   }
 
-  // Sync local state from URL on mount and browser back/forward
   useEffect(() => {
     setLocalQuery(readParam("q"));
 
@@ -197,10 +200,7 @@ export default function BuscaContent({
       const { latitude, longitude } = pos.coords;
       const loc = { lat: latitude, lon: longitude };
       setUserLocation(loc);
-      localStorage.setItem(
-        "mj_userLocation",
-        JSON.stringify(loc)
-      );
+      localStorage.setItem("mj_userLocation", JSON.stringify(loc));
 
       const geoRes = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=10`,
@@ -264,19 +264,34 @@ export default function BuscaContent({
 
   const hasResults = sortedResultados && sortedResultados.length > 0;
 
+  const logo = (
+    <div className="text-center">
+      <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+        <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          Mensalidade Justa
+        </span>
+      </h1>
+      <p className="text-xs text-neutral-500 mt-1 font-medium">
+        Compare mensalidades escolares de forma an{'\u00f4'}nima
+      </p>
+    </div>
+  );
+
   const buscaInput = (
-    <div className="relative">
-      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
-        {'\uD83D\uDD0D'}
-      </span>
-      <input
-        className="w-full bg-white dark:bg-[#1e1e1f] border border-slate-200 dark:border-slate-700/60 rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#1f1f1f] dark:text-slate-200 placeholder:text-slate-400/80 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/30 transition-all shadow-sm"
-        placeholder="Buscar escola..."
-        value={localQuery}
-        onChange={(e) => setLocalQuery(e.target.value)}
-      />
+    <div className="relative w-full max-w-lg mx-auto">
+      <div className="relative group">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-neutral-500 z-10">
+          {'\uD83D\uDD0D'}
+        </span>
+        <input
+          className="w-full bg-neutral-900 border border-neutral-800 rounded-full py-3 pl-11 pr-4 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 shadow-sm"
+          placeholder="Buscar escola por nome..."
+          value={localQuery}
+          onChange={(e) => setLocalQuery(e.target.value)}
+        />
+      </div>
       {suggestions.length > 0 && (
-        <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-[#1e1e1f] border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-xl z-20 overflow-hidden backdrop-blur-md">
+        <div className="absolute top-full mt-2 left-0 right-0 max-w-lg mx-auto bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl z-30 overflow-hidden">
           {suggestions.map((s) => (
             <Link
               key={s.id}
@@ -284,12 +299,12 @@ export default function BuscaContent({
                 s.codigo_inep,
                 s.nome
               )}`}
-              className="block px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60 border-b border-slate-100 dark:border-slate-700/40 last:border-0 transition-colors"
+              className="block px-4 py-3 text-sm hover:bg-neutral-800 border-b border-neutral-800/60 last:border-0 transition-all duration-200"
             >
-              <div className="font-medium text-[#1f1f1f] dark:text-slate-200 truncate">
+              <div className="font-medium text-neutral-100 truncate">
                 {s.nome}
               </div>
-              <div className="text-xs text-slate-400 dark:text-slate-500">
+              <div className="text-xs text-neutral-500 mt-0.5">
                 {s.municipio} - {s.uf}
               </div>
             </Link>
@@ -299,47 +314,12 @@ export default function BuscaContent({
     </div>
   );
 
-  const buscaInputDesktop = (
-    <form onSubmit={(e) => e.preventDefault()} className="relative">
-      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
-        {'\uD83D\uDD0D'}
-      </span>
-      <input
-        className="w-full bg-[#f0f4f9] dark:bg-[#2c2c2e] border-0 rounded-2xl py-3 pl-11 pr-4 text-sm text-[#1f1f1f] dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
-        placeholder="Buscar escola por nome..."
-        value={localQuery}
-        onChange={(e) => setLocalQuery(e.target.value)}
-      />
-      {suggestions.length > 0 && (
-        <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-[#2c2c2e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-30 overflow-hidden">
-          {suggestions.map((s) => (
-            <Link
-              key={s.id}
-              href={`/escola/${makeEscolaSlug(
-                s.codigo_inep,
-                s.nome
-              )}`}
-              className="block px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-[#3a3a3c] border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
-            >
-              <div className="font-semibold text-[#1f1f1f] dark:text-slate-200 truncate">
-                {s.nome}
-              </div>
-              <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                {s.municipio} - {s.uf}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </form>
-  );
-
   const filterBar = (
-    <div className="flex gap-1.5 flex-wrap">
+    <div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] pb-1">
       <button
         onClick={buscarPertoDeMim}
         disabled={geoLoading}
-        className="badge transition-all active:scale-95"
+        className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-neutral-900 border border-neutral-800 text-neutral-300 hover:bg-neutral-800 hover:border-blue-500/40 hover:text-blue-400 transition-all duration-200 active:scale-95"
       >
         {geoLoading
           ? '\uD83D\uDCCD...'
@@ -365,10 +345,10 @@ export default function BuscaContent({
           const current = readParam("privada") !== "0";
           updateFilters({ privada: current ? "0" : "1" });
         }}
-        className={`badge transition-all ${
+        className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 active:scale-95 border ${
           readParam("privada") !== "0"
-            ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
-            : ""
+            ? "bg-blue-500/10 border-blue-500/40 text-blue-400"
+            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300"
         }`}
       >
         {'\uD83C\uDFE2'} Privadas
@@ -378,10 +358,10 @@ export default function BuscaContent({
           const current = readParam("publica") !== "0";
           updateFilters({ publica: current ? "0" : "1" });
         }}
-        className={`badge transition-all ${
+        className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 active:scale-95 border ${
           readParam("publica") !== "0"
-            ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
-            : ""
+            ? "bg-blue-500/10 border-blue-500/40 text-blue-400"
+            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300"
         }`}
       >
         {'\uD83C\uDFDB\uFE0F'} P{'\u00fa'}blicas
@@ -393,10 +373,10 @@ export default function BuscaContent({
         grupos={GRUPOS}
         onChange={(v) => updateFilters({ serie: v })}
       />
-      <div className="relative min-w-[100px]">
+      <div className="shrink-0">
         <input
-          className="badge w-full text-xs text-left font-normal"
-          placeholder="Mensalidade M\u00e1xima"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-neutral-900 border border-neutral-800 text-neutral-400 placeholder:text-neutral-500 hover:border-neutral-700 transition-all duration-200 w-36 outline-none focus:border-blue-500/40"
+          placeholder="Mensalidade M{'\u00e1'}x."
           type="number"
           min="0"
           step="100"
@@ -409,115 +389,132 @@ export default function BuscaContent({
     </div>
   );
 
+  const handleHover = useCallback((id: number | null) => {
+    setHoveredId(id);
+  }, []);
+
   return (
-    <div className="min-h-dvh bg-[#f0f4f9] dark:bg-[#131314] transition-colors font-sans selection:bg-blue-500/30">
+    <div className="min-h-dvh bg-neutral-950 text-neutral-100 font-sans selection:bg-blue-500/30">
       {/* ===== MOBILE ===== */}
       <div className="md:hidden flex flex-col min-h-dvh">
-        <header className="px-4 pt-4 pb-2 flex items-center justify-between">
-          <h1 className="text-base font-semibold text-[#1f1f1f] dark:text-slate-200 tracking-tight">
-            Mensalidade Justa
-          </h1>
-          <ToggleTema />
-        </header>
-
-        <div className="px-4 pb-3 space-y-2">
+        <div className="flex flex-col items-center pt-10 pb-3 px-4 space-y-5">
+          {logo}
           {buscaInput}
           {filterBar}
           {geoError && (
-            <p className="text-xs text-red-500 font-medium">
+            <p className="text-xs text-red-400 font-medium -mt-3">
               {geoError}
             </p>
           )}
         </div>
 
-        {!uf && (
-          <div className="flex-1 flex items-center justify-center text-center text-sm text-slate-400 dark:text-slate-500 px-4">
-            <div>
-              <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
+        {/* Results area with fade transition */}
+        <div className="flex-1 relative">
+          {uf && hasResults && (
+            <>
+              {/* List */}
+              <div
+                className={`absolute inset-0 px-4 pb-24 overflow-y-auto transition-all duration-300 ease-in-out ${
+                  viewMap
+                    ? "opacity-0 scale-[0.97] pointer-events-none"
+                    : "opacity-100 scale-100"
+                }`}
+              >
+                <BuscaResults
+                  resultados={sortedResultados!}
+                  hoveredId={hoveredId}
+                  onHover={handleHover}
+                />
+              </div>
+
+              {/* Map */}
+              <div
+                className={`absolute inset-0 px-4 pb-24 transition-all duration-300 ease-in-out ${
+                  viewMap
+                    ? "opacity-100 scale-100"
+                    : "opacity-0 scale-[0.97] pointer-events-none"
+                }`}
+              >
+                <div className="h-full rounded-2xl overflow-hidden border border-neutral-800 shadow-lg">
+                  <MapaEscolas
+                    escolas={sortedResultados || []}
+                    userLocation={userLocation}
+                    hoveredId={hoveredId}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Empty states */}
+          {!uf && (
+            <div className="flex items-center justify-center h-full text-center text-sm text-neutral-500 px-4">
+              <div>
+                <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
+                <p className="font-medium">
+                  Selecione uma localiza{'\u00e7\u00e3o'}o para iniciar.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {uf && !hasResults && (
+            <div className="flex items-center justify-center h-full text-center text-sm text-neutral-500 px-4">
               <p className="font-medium">
-                Selecione uma localiza
-                {'\u00e7\u00e3o'}o para iniciar.
+                Nenhuma escola cadastrada nesta regi{'\u00e3'}o.
               </p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {uf && !hasResults && (
-          <div className="flex-1 flex items-center justify-center text-center text-sm text-slate-400 px-4">
-            <p className="font-medium">
-              Nenhuma escola cadastrada nesta regi
-              {'\u00e3'}o.
-            </p>
-          </div>
-        )}
-
-        {uf && hasResults && !viewMap && (
-          <main className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto">
-            <BuscaResults resultados={sortedResultados!} />
-          </main>
-        )}
-
-        {uf && viewMap && (
-          <div className="flex-1 px-4 pb-4">
-            <div className="h-[68dvh] rounded-2xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800/80">
-              <MapaEscolas
-                escolas={sortedResultados || []}
-                userLocation={userLocation}
-                hoveredId={hoveredId}
-              />
-            </div>
-          </div>
-        )}
-
+        {/* FAB - View toggle */}
         {hasResults && (
           <button
             onClick={() => setViewMap((v) => !v)}
-            className="floating-btn fixed bottom-6 right-4 z-30 shadow-xl font-medium tracking-wide active:scale-95 transition-transform"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium bg-neutral-900 border border-neutral-700 text-neutral-100 shadow-2xl hover:bg-neutral-800 hover:border-blue-500/40 hover:text-blue-400 transition-all duration-200 active:scale-95 backdrop-blur-xl"
           >
             {viewMap
-              ? '\uD83D\uDCDD Exibir Lista'
-              : '\uD83D\uDCCD Ver no Mapa'}
+              ? '\uD83D\uDCDD Ver Lista'
+              : '\uD83D\uDCCD Ver Mapa'}
           </button>
         )}
       </div>
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex h-dvh overflow-hidden">
-        <div className="w-[43%] lg:w-[38%] flex flex-col bg-white dark:bg-[#1c1c1e] shadow-2xl z-10 border-r border-slate-200/60 dark:border-slate-800/60">
-          <header className="shrink-0 px-6 pt-6 pb-4 space-y-4 border-b border-slate-100 dark:border-slate-800/40">
-            <div className="flex items-center justify-between">
-              <h1 className="text-lg font-bold text-[#1f1f1f] dark:text-slate-100 tracking-tight">
-                Mensalidade{' '}
-                <span className="bg-gradient-to-r from-[#a855f7] via-[#3b82f6] to-[#f43f5e] bg-clip-text text-transparent font-extrabold">
-                  Justa
-                </span>
-              </h1>
-              <ToggleTema />
-            </div>
-            {buscaInputDesktop}
+        {/* Left panel */}
+        <div
+          className="flex flex-col border-r border-neutral-800/60 transition-all duration-300 ease-in-out"
+          style={{ width: showMap ? "60%" : "100%" }}
+        >
+          <header className="shrink-0 px-8 pt-8 pb-5 space-y-5 border-b border-neutral-800/40">
+            {logo}
+            {buscaInput}
             {filterBar}
             {geoError && (
-              <p className="text-xs text-red-500 font-medium">
+              <p className="text-xs text-red-400 font-medium">
                 {geoError}
               </p>
             )}
           </header>
 
-          <main className="flex-1 overflow-y-auto px-6 py-4 space-y-3 bg-[#f8fafc] dark:bg-[#131314]">
+          <main className="flex-1 overflow-y-auto px-8 py-4 space-y-3 bg-neutral-950">
             {sortedResultados ? (
-              <BuscaResults resultados={sortedResultados} />
+              <BuscaResults
+                resultados={sortedResultados}
+                hoveredId={hoveredId}
+                onHover={handleHover}
+              />
             ) : uf && cidade ? (
-              <div className="text-center text-sm text-slate-400 dark:text-slate-500 py-12">
+              <div className="text-center text-sm text-neutral-500 py-12">
                 <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
                 <p className="font-medium">
                   Nenhuma escola encontrada.
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-sm text-slate-400 dark:text-slate-500">
-                <p className="text-4xl mb-3 animate-bounce">
-                  {'\uD83D\uDDFA\uFE0F'}
-                </p>
+              <div className="flex flex-col items-center justify-center h-full text-sm text-neutral-500">
+                <p className="text-4xl mb-3">{'\uD83D\uDDFA\uFE0F'}</p>
                 <p className="font-semibold text-center">
                   Defina uma UF e Cidade para carregar
                   <br />
@@ -528,15 +525,34 @@ export default function BuscaContent({
           </main>
         </div>
 
-        <div className="flex-1 p-4 bg-[#f0f4f9] dark:bg-[#0e0e10] flex flex-col h-full">
-          <div className="flex-1 rounded-3xl overflow-hidden border border-slate-200/70 dark:border-slate-800/80 shadow-2xl relative bg-slate-100 dark:bg-[#18181c]">
-            <MapaEscolas
-              escolas={sortedResultados || []}
-              userLocation={userLocation}
-              hoveredId={hoveredId}
-            />
+        {/* Right panel - Map */}
+        {showMap && (
+          <div className="flex-1 relative p-3 min-w-0">
+            <div className="h-full rounded-3xl overflow-hidden border border-neutral-800/80 shadow-2xl bg-neutral-900">
+              <MapaEscolas
+                escolas={sortedResultados || []}
+                userLocation={userLocation}
+                hoveredId={hoveredId}
+              />
+            </div>
+            <button
+              onClick={() => setShowMap(false)}
+              className="absolute top-6 right-6 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-900/80 border border-neutral-700 text-neutral-400 hover:text-neutral-100 hover:border-neutral-600 transition-all duration-200 backdrop-blur-md"
+            >
+              {'\uD83D\uDDFA\uFE0F'} Ocultar Mapa
+            </button>
           </div>
-        </div>
+        )}
+
+        {/* "Show map" button when hidden */}
+        {!showMap && (
+          <button
+            onClick={() => setShowMap(true)}
+            className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium bg-neutral-900 border border-neutral-700 text-neutral-100 shadow-2xl hover:bg-neutral-800 hover:border-blue-500/40 hover:text-blue-400 transition-all duration-200 active:scale-95"
+          >
+            {'\uD83D\uDDFA\uFE0F'} Ver Mapa
+          </button>
+        )}
       </div>
     </div>
   );

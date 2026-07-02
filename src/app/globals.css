@@ -140,4 +140,7 @@
   }
   .floating-btn:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.15); transform: scale(1.04); }
   .floating-btn:active { transform: scale(0.96); }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }
