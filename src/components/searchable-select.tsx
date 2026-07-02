@@ -51,7 +51,9 @@ export default function SearchableSelect({ label, value, options, series, grupos
       : options!;
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 100);
+    if (open && !('ontouchstart' in window)) {
+      setTimeout(() => inputRef.current?.focus(), 200);
+    }
   }, [open]);
 
   function select(val: string) {
