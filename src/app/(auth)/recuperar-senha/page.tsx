@@ -16,7 +16,7 @@ export default function RecuperarSenhaPage() {
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/alterar-senha`,
+      redirectTo: `${window.location.origin}/alterar-senha`,
     });
     setLoading(false);
     if (error) return setError(error.message);
@@ -29,12 +29,8 @@ export default function RecuperarSenhaPage() {
         <div className="w-full max-w-sm text-center space-y-4">
           <div className="text-5xl">📧</div>
           <h1 className="text-xl font-bold">Verifique seu email</h1>
-          <p className="text-sm text-gray-500">
-            Enviamos um link de redefinição para <strong>{email}</strong>.
-          </p>
-          <Link href="/auth/login" className="text-primary text-sm hover:underline">
-            Voltar ao login
-          </Link>
+          <p className="text-sm text-gray-500">Enviamos um link de redefinição para <strong>{email}</strong>.</p>
+          <Link href="/login" className="text-primary text-sm hover:underline">Voltar ao login</Link>
         </div>
       </div>
     );
@@ -45,36 +41,14 @@ export default function RecuperarSenhaPage() {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">Recuperar Senha</h1>
-          <p className="text-sm text-gray-500">
-            Digite seu email para receber o link de redefinição.
-          </p>
+          <p className="text-sm text-gray-500">Digite seu email para receber o link de redefinição.</p>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="input-field"
-            type="email"
-            placeholder="Seu email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-
-          {error && (
-            <p className="text-sm text-danger bg-red-50 rounded-lg p-3">{error}</p>
-          )}
-
-          <button className="btn-primary" disabled={loading}>
-            {loading ? "Enviando..." : "Enviar link"}
-          </button>
+          <input className="input-field" type="email" placeholder="Seu email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+          {error && <p className="text-sm text-danger bg-red-50 rounded-lg p-3">{error}</p>}
+          <button className="btn-primary" disabled={loading}>{loading ? "Enviando..." : "Enviar link"}</button>
         </form>
-
-        <p className="text-center text-sm text-gray-500">
-          <Link href="/auth/login" className="text-primary hover:underline">
-            Voltar ao login
-          </Link>
-        </p>
+        <p className="text-center text-sm text-gray-500"><Link href="/login" className="text-primary hover:underline">Voltar ao login</Link></p>
       </div>
     </div>
   );

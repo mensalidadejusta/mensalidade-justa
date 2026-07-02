@@ -24,6 +24,7 @@ App para buscar escolas e consultar mensalidades.
   - FK `escola_id` → `escolas.id` CASCADE
   - `valor_mensalidade`, `valor_matricula`, `valor_material_didatico`, `valor_alimentacao`, `etapa_ensino`, `turno`, `ano_referencia`
   - RLS: leitura pública, insert apenas authenticated
+  - `user_id` vinculado a `auth.users` para rastreio de contribuições
 
 ### Conexão
 
@@ -42,9 +43,33 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 | `npm run build` | Build de produção |
 | `npm run import` | Importa CSV para `escolas` via REST API (upsert por codigo_inep) |
 
+### Novidades
+
+- `get_ufs()` — retorna UFs distintas
+- `get_cidades(text)` — retorna cidades distintas de uma UF
+- `escolas_perto_de_mim(lat, lon, raio_km)` — escolas num raio usando PostGIS
+- `get_top_cidades(uf, limit)` — cidades com mais escolas de uma UF
+- Tabela `profiles` vinculada a `auth.users` com endereço e geolocalização
+- Trigger `on_auth_user_created` cria profile automaticamente
+
+### Management API
+
+Token de acesso (sbp_...) está em `.env` como `SUPABASE_MGMT_TOKEN`.
+Endpoint: `https://api.supabase.com/v1/projects/{ref}/database/query`
+Usado para executar SQL de migrations sem depender do SQL Editor.
+
 ### Migrations
 
 Em `supabase/migrations/`. Extensões necessárias: `postgis`, `pg_trgm`. Ordem importa: criar extensões ANTES dos índices que as usam.
+
+**Para executar uma migration via script:**
+```js
+const res = await fetch(
+  `https://api.supabase.com/v1/projects/${ref}/database/query`,
+  { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: sqlStatement }) }
+)
+```
 
 ## MCP
 

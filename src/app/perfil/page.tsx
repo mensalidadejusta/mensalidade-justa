@@ -35,11 +35,7 @@ export default function PerfilPage() {
   }
 
   if (authLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="animate-pulse text-gray-300">Carregando...</div>
-      </div>
-    );
+    return <div className="flex-1 flex items-center justify-center"><div className="animate-pulse text-gray-300">Carregando...</div></div>;
   }
 
   if (!user) {
@@ -50,12 +46,8 @@ export default function PerfilPage() {
           <p className="text-sm text-gray-500">Faça login para acessar seu perfil.</p>
         </div>
         <div className="space-y-3">
-          <Link href="/auth/login" className="btn-primary block text-center">
-            Entrar
-          </Link>
-          <Link href="/auth/cadastro" className="btn-outline block text-center">
-            Criar conta
-          </Link>
+          <Link href="/login" className="btn-primary block text-center">Entrar</Link>
+          <Link href="/cadastro" className="btn-outline block text-center">Criar conta</Link>
         </div>
       </div>
     );
@@ -70,18 +62,11 @@ export default function PerfilPage() {
       </div>
 
       <div className="card divide-y divide-gray-100">
-        <Link
-          href="/auth/alterar-senha"
-          className="flex items-center justify-between py-4 text-sm hover:text-primary transition-colors"
-        >
+        <Link href="/alterar-senha" className="flex items-center justify-between py-4 text-sm hover:text-primary transition-colors">
           <span>🔑 Alterar senha</span>
           <span className="text-gray-300">→</span>
         </Link>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center justify-between w-full py-4 text-sm hover:text-primary transition-colors text-left"
-        >
+        <button onClick={handleLogout} className="flex items-center justify-between w-full py-4 text-sm hover:text-primary transition-colors text-left">
           <span>🚪 Sair</span>
           <span className="text-gray-300">→</span>
         </button>
@@ -89,38 +74,16 @@ export default function PerfilPage() {
 
       <div className="card border-danger/20">
         <h2 className="text-sm font-semibold text-danger mb-2">🗑️ Excluir conta</h2>
-        <p className="text-xs text-gray-500 leading-relaxed mb-4">
-          Seus dados de identificação serão removidos permanentemente. As médias
-          das mensalidades que você enviou serão preservadas de forma anônima.
-        </p>
+        <p className="text-xs text-gray-500 leading-relaxed mb-4">Seus dados de identificação serão removidos permanentemente. As médias das mensalidades que você enviou serão preservadas de forma anônima.</p>
 
         {!confirmDelete ? (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="btn-danger text-sm"
-          >
-            Excluir minha conta
-          </button>
+          <button onClick={() => setConfirmDelete(true)} className="btn-danger text-sm">Excluir minha conta</button>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-danger font-medium">
-              Tem certeza? Esta ação é irreversível.
-            </p>
+            <p className="text-xs text-danger font-medium">Tem certeza? Esta ação é irreversível.</p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-300 text-sm font-medium
-                           hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleting}
-                className="flex-1 btn-danger text-sm"
-              >
-                {deleting ? "Excluindo..." : "Sim, excluir"}
-              </button>
+              <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 px-4 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={handleDeleteAccount} disabled={deleting} className="flex-1 btn-danger text-sm">{deleting ? "Excluindo..." : "Sim, excluir"}</button>
             </div>
           </div>
         )}

@@ -34,50 +34,19 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="input-field"
-            type="email"
-            placeholder="Seu email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-          <input
-            className="input-field"
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-
-          {error && (
-            <p className="text-sm text-danger bg-red-50 rounded-lg p-3">{error}</p>
-          )}
-
-          <button className="btn-primary" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
-          </button>
+          <input className="input-field" type="email" placeholder="Seu email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+          <input className="input-field" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+          {error && <p className="text-sm text-danger bg-red-50 rounded-lg p-3">{error}</p>}
+          <button className="btn-primary" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
         </form>
 
         <div className="text-center space-y-2 text-sm">
-          <Link href="/auth/recuperar" className="text-primary hover:underline">
-            Esqueceu a senha?
-          </Link>
-          <p className="text-gray-500">
-            Ainda não tem conta?{" "}
-            <Link href="/auth/cadastro" className="text-primary font-medium hover:underline">
-              Criar conta
-            </Link>
-          </p>
+          <Link href="/recuperar-senha" className="text-primary hover:underline">Esqueceu a senha?</Link>
+          <p className="text-gray-500">Ainda não tem conta? <Link href="/cadastro" className="text-primary font-medium hover:underline">Criar conta</Link></p>
         </div>
 
         <div className="bg-primary-light rounded-xl p-4 text-xs text-gray-600 leading-relaxed">
-          <strong>🔒 Seu anonimato é garantido.</strong> Usamos o login apenas para
-          evitar fraudes. Nenhuma informação sua é exibida publicamente ou enviada
-          para as escolas.
+          <strong>🔒 Seu anonimato é garantido.</strong> Usamos o login apenas para evitar fraudes. Nenhuma informação sua é exibida publicamente ou enviada para as escolas.
         </div>
       </div>
     </div>

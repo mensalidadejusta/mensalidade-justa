@@ -10,9 +10,7 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
+        getAll() { return req.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             req.cookies.set(name, value);
@@ -24,8 +22,7 @@ export async function middleware(req: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-
-  const authRoutes = ["/auth/login", "/auth/cadastro", "/auth/recuperar"];
+  const authRoutes = ["/login", "/cadastro", "/recuperar-senha"];
   const isAuthRoute = authRoutes.some((r) => req.nextUrl.pathname.startsWith(r));
 
   if (user && isAuthRoute) {
