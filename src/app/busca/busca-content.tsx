@@ -362,12 +362,12 @@ export default function BuscaContent({
       />
       <button
         onClick={() => {
-          const next = !localPrivada;
+          const next = searchParams.get("privada") === "0";
           setLocalPrivada(next);
           updateFilters({ privada: next ? "1" : "0" });
         }}
         className={`badge transition-all ${
-          localPrivada
+          searchParams.get("privada") !== "0"
             ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
             : ""
         }`}
@@ -376,12 +376,12 @@ export default function BuscaContent({
       </button>
       <button
         onClick={() => {
-          const next = !localPublica;
+          const next = searchParams.get("publica") === "0";
           setLocalPublica(next);
           updateFilters({ publica: next ? "1" : "0" });
         }}
         className={`badge transition-all ${
-          localPublica
+          searchParams.get("publica") !== "0"
             ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
             : ""
         }`}
