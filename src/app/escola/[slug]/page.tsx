@@ -12,7 +12,7 @@ async function getEscola(slug: string) {
   const supabase = createServerClient();
   const { data: escola } = await supabase
     .from("escolas")
-    .select("id, nome, uf, municipio, bairro, endereco, telefone, dependencia_administrativa, categoria_administrativa, latitude, longitude, restricao_atendimento, codigo_inep")
+    .select("id, nome, uf, municipio, bairro, endereco, telefone, dependencia_administrativa, categoria_administrativa, categoria_escola_privada, localizacao, localidade_diferenciada, porte_escola, etapas_modalidades, outras_ofertas, conveniada_poder_publico, regulamentacao_conselho, latitude, longitude, restricao_atendimento, codigo_inep")
     .eq("codigo_inep", parsed.codigoInep)
     .single();
 

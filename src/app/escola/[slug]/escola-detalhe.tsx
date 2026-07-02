@@ -15,7 +15,11 @@ type Estatistica = {
 type Escola = {
   id: number; nome: string; uf: string; municipio: string; bairro: string | null;
   endereco: string | null; telefone: string | null; dependencia_administrativa: string;
-  categoria_administrativa: string | null; latitude: number | null; longitude: number | null;
+  categoria_administrativa: string | null; categoria_escola_privada: string | null;
+  localizacao: string | null; localidade_diferenciada: string | null;
+  porte_escola: string | null; etapas_modalidades: string | null; outras_ofertas: string | null;
+  conveniada_poder_publico: string | null; regulamentacao_conselho: string | null;
+  latitude: number | null; longitude: number | null;
   restricao_atendimento: string | null; codigo_inep: string;
 };
 
@@ -106,11 +110,20 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                     {escola.dependencia_administrativa === "Privada" ? "Privada" : "Pública"}
                   </span>
                   {escola.categoria_administrativa && ` — ${escola.categoria_administrativa}`}
+                  {escola.categoria_escola_privada && ` — ${escola.categoria_escola_privada}`}
                 </dd>
               </div>
+              {escola.localizacao && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Localização</dt><dd>{escola.localizacao}</dd></div>}
+              {escola.localidade_diferenciada && escola.localidade_diferenciada !== "A escola não está em área de localização diferenciada" && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Localidade</dt><dd>{escola.localidade_diferenciada}</dd></div>}
               {escola.endereco && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Endereço</dt><dd className="text-sm">{escola.endereco}</dd></div>}
               {escola.telefone && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Telefone</dt><dd>{escola.telefone}</dd></div>}
+              {escola.porte_escola && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Porte</dt><dd className="text-xs">{escola.porte_escola}</dd></div>}
+              {escola.etapas_modalidades && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Etapas</dt><dd className="text-xs">{escola.etapas_modalidades}</dd></div>}
+              {escola.outras_ofertas && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Outras Ofertas</dt><dd className="text-xs">{escola.outras_ofertas}</dd></div>}
+              {escola.conveniada_poder_publico && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Conveniada</dt><dd className="text-xs">{escola.conveniada_poder_publico}</dd></div>}
+              {escola.regulamentacao_conselho && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Regulamentação</dt><dd className="text-xs">{escola.regulamentacao_conselho}</dd></div>}
               <div><dt className="text-[var(--color-text-tertiary)] text-xs">Código INEP</dt><dd className="font-mono text-xs">{escola.codigo_inep}</dd></div>
+              {escola.restricao_atendimento && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Restrição</dt><dd className="text-xs">{escola.restricao_atendimento}</dd></div>}
             </dl>
           </div>
 
