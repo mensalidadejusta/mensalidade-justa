@@ -88,17 +88,13 @@ export default function BuscaContent({
   const [localPublica, setLocalPublica] = useState(
     searchParams.get("publica") !== "0"
   );
-  const pendingInternal = useRef(0);
 
   const uf = searchParams.get("uf") ?? "";
   const cidade = searchParams.get("cidade") ?? "";
   const serieSlug = searchParams.get("serie") ?? "";
   const maxPrice = searchParams.get("maxPrice") ?? "";
-  const showPrivada = localPrivada;
-  const showPublica = localPublica;
 
   function updateFilters(updates: Record<string, string>) {
-    pendingInternal.current++;
     const params = new URLSearchParams(searchParams.toString());
     for (const [k, v] of Object.entries(updates)) {
       if (v) params.set(k, v);
@@ -107,15 +103,17 @@ export default function BuscaContent({
     router.replace(`${pathname}?${params.toString()}`);
   }
 
+  // Sync local state from URL on browser back/forward
   useEffect(() => {
-    if (pendingInternal.current > 0) {
-      pendingInternal.current--;
-      return;
-    }
-    setLocalPrivada(searchParams.get("privada") !== "0");
-    setLocalPublica(searchParams.get("publica") !== "0");
-    setLocalQuery(searchParams.get("q") ?? "");
-  }, [searchParams]);
+    const handler = () => {
+      const p = new URLSearchParams(window.location.search);
+      setLocalPrivada(p.get("privada") !== "0");
+      setLocalPublica(p.get("publica") !== "0");
+      setLocalQuery(p.get("q") ?? "");
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
 
   useEffect(() => {
     if (initialUfs.length > 0) setUfs(initialUfs);
