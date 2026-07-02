@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import ToggleTema from "./toggle-tema";
 
 const tabs = [
-  { href: "/busca", label: "Busca", icon: "🔍" },
-  { href: "/contribuir", label: "Contribuir", icon: "✏️" },
-  { href: "/perfil", label: "Perfil", icon: "👤" },
+  { href: "/busca", label: "Busca", icon: "\uD83D\uDD0D" },
+  { href: "/contribuir", label: "Contribuir", icon: "\u270F\uFE0F" },
+  { href: "/perfil", label: "Perfil", icon: "\uD83D\uDC64" },
 ];
 
 const authPaths = ["/login", "/cadastro", "/recuperar-senha", "/alterar-senha"];
@@ -33,7 +33,12 @@ export default function TabBar() {
             </Link>
           );
         })}
-        <div className="mt-auto">
+        <div className="flex flex-col items-center gap-4 mt-auto">
+          <Link href="/sobre"
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] transition-all"
+            title="Sobre">
+            ?
+          </Link>
           <ToggleTema />
         </div>
       </nav>
@@ -53,6 +58,11 @@ export default function TabBar() {
               </Link>
             );
           })}
+          <Link href="/sobre"
+            className="flex items-center justify-center px-2 text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors"
+            title="Sobre">
+            ?
+          </Link>
         </div>
       </nav>
     </>
