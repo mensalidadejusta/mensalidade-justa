@@ -86,7 +86,18 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId }: Props)
       await import("leaflet/dist/leaflet.css");
       const L = mod.default || mod;
       const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 18 }).addTo(map);
+
+      const tiles: Record<string, any> = {
+        "Padrão": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }),
+        "Satélite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "&copy; Esri", maxZoom: 19 }),
+        "Terreno": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenTopoMap", maxZoom: 17 }),
+        "Claro": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
+        "Escuro": L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
+      };
+
+      tiles["Padrão"].addTo(map);
+      L.control.layers(tiles, {}, { position: "topright", collapsed: true }).addTo(map);
+
       state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null } };
       lastDataKey.current = buildKey();
       syncMarkers(true);
