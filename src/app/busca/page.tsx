@@ -182,7 +182,7 @@ function BuscaContent() {
     if (!uf || !cidade || !mounted) return;
     const timer = setTimeout(() => doSearch(query, uf, cidade, serieSlug), 300);
     return () => clearTimeout(timer);
-  }, [query, uf, cidade, serieSlug, mounted, doSearch]);
+  }, [query, uf, cidade, serieSlug, showPrivada, showPublica, mounted, doSearch]);
 
   async function buscarPertoDeMim() {
     if (!navigator.geolocation) { setGeoError("Geolocalização não suportada."); return; }
