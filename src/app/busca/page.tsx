@@ -68,7 +68,28 @@ function BuscaContent() {
       const savedCidade = localStorage.getItem("mj_cidade");
       if (savedUf) setUf(savedUf);
       if (savedCidade) setCidade(savedCidade);
-      if (savedLoc) setUserLocation(JSON.parse(savedLoc));
+      if (savedLoc) {
+        const loc = JSON.parse(savedLoc);
+        setUserLocation(loc);
+        // Re-order cached results by distance from saved location
+        const savedJson = localStorage.getItem("mj_results");
+        if (savedJson) {
+          try {
+            const arr = JSON.parse(savedJson);
+            const R = 6371;
+            arr.forEach((e: any) => {
+              if (e.latitude && e.longitude) {
+                const dLat = (loc.lat - e.latitude) * Math.PI / 180;
+                const dLon = (loc.lon - e.longitude) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(e.latitude * Math.PI / 180) * Math.cos(loc.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+                e.distancia_km = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 100) / 100;
+              }
+            });
+            arr.sort((a: any, b: any) => (a.distancia_km || 999) - (b.distancia_km || 999));
+            setResults(arr);
+          } catch {}
+        }
+      }
     }
   }, [searchParams]);
 
@@ -95,6 +116,32 @@ function BuscaContent() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Haversine: calcula distância em km entre duas coordenadas
+  function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // Ordena resultados por distância quando userLocation está disponível
+  function sortByDistance(arr: any[]) {
+    if (!userLocation) return arr;
+    return arr
+      .map((e: any) => {
+        if (e.latitude && e.longitude) {
+          e.distancia_km = Math.round(haversine(userLocation.lat, userLocation.lon, e.latitude, e.longitude) * 100) / 100;
+        }
+        return e;
+      })
+      .sort((a: any, b: any) => {
+        if (!a.distancia_km) return 1;
+        if (!b.distancia_km) return -1;
+        return a.distancia_km - b.distancia_km;
+      });
+  }
+
   // Função principal de busca
   const doSearch = useCallback(async (q: string, currentUf: string, currentCidade: string, currentSerie: string) => {
     if (!currentUf || !currentCidade) return;
@@ -107,12 +154,13 @@ function BuscaContent() {
       p_uf: currentUf, p_municipio: currentCidade, p_serie_slug: currentSerie || null, p_termo: q || null,
     });
     if (data) {
-      setResults(data);
-      localStorage.setItem("mj_results", JSON.stringify(data));
+      const ordenado = sortByDistance(data);
+      setResults(ordenado);
+      localStorage.setItem("mj_results", JSON.stringify(ordenado));
     }
     setLoading(false);
     setFetched(true);
-  }, [updateQueryParams]);
+  }, [updateQueryParams, userLocation]);
 
   // Debounce para digitação ou troca de filtros
   useEffect(() => {
