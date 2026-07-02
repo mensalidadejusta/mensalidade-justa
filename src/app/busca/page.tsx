@@ -18,6 +18,7 @@ type Escola = {
   valor_mensalidade?: number | null;
   valor_matricula?: number | null;
   valor_material?: number | null;
+  qtd_mensalidade?: number;
 };
 
 function BuscaContent() {
@@ -429,14 +430,19 @@ function ResultList({ results, hoveredId, onHover }: {
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 {escola.valor_mensalidade != null ? (
-                  <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                    R$ {Number(escola.valor_mensalidade).toFixed(2)}<span className="text-[10px] text-slate-400 font-normal"> /mês</span>
-                  </p>
+                  <div>
+                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                      R$ {Number(escola.valor_mensalidade).toFixed(2)}<span className="text-[10px] text-slate-400 font-normal">/mês</span>
+                    </p>
+                    {escola.qtd_mensalidade != null && escola.qtd_mensalidade > 0 && (
+                      <p className="text-[11px] text-slate-400">{escola.qtd_mensalidade} contribuição(ões)</p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-xs text-slate-400 font-medium">Sem mensalidade cadastrada</p>
                 )}
                 {escola.distancia_km !== undefined && (
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">📍 {escola.distancia_km} km</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md shrink-0">{escola.distancia_km} km</p>
                 )}
               </div>
               {(escola.valor_matricula != null || escola.valor_material != null) && (

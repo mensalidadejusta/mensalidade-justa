@@ -1,12 +1,11 @@
 "use client";
 
-import { Fragment } from "react";
 import ToggleTema from "@/components/toggle-tema";
 import Link from "next/link";
 import { SERIES } from "@/lib/series";
 
 type Estatistica = {
-  serie_slug: string; serie_nome: string;
+  serie_slug: string; serie_nome: string; ano_vigencia: number;
   media_mensalidade: number | null; min_mensalidade: number | null; max_mensalidade: number | null; qtd_mensalidade: number;
   media_matricula: number | null; min_matricula: number | null; max_matricula: number | null; qtd_matricula: number;
   media_material: number | null; min_material: number | null; max_material: number | null; qtd_material: number;
@@ -86,45 +85,35 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]">
-                      <th className="text-left py-2 pr-3 font-medium">S\u00e9rie</th>
-                      <th className="text-right py-2 px-2 font-medium">Qtd</th>
-                      <th className="text-right py-2 px-2 font-medium">M\u00edn</th>
-                      <th className="text-right py-2 px-2 font-medium">M\u00e9dia</th>
-                      <th className="text-right py-2 pl-2 font-medium">M\u00e1x</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grupos.map((grupo) => {
-                      const series = SERIES.filter((s) => s.grupo === grupo);
-                      const hasData = series.some((s) => precos.find((p) => p.serie_slug === s.slug));
-                      if (!hasData) return null;
-                      return (
-                        <Fragment key={grupo}>
-                          <tr className="border-b border-[var(--color-border)]">
-                            <td colSpan={5} className="py-2 text-xs font-semibold text-[var(--color-text-secondary)]">{grupo}</td>
-                          </tr>
-                          {series.map((s) => {
-                            const p = precos.find((pr) => pr.serie_slug === s.slug);
-                            if (!p || !p.qtd_mensalidade) return null;
-                            return (
-                              <tr key={s.slug} className="border-b border-[var(--color-border)] last:border-0">
-                                <td className="py-2 pr-3">{s.nome}</td>
-                                <td className="py-2 px-2 text-right tabular-nums text-xs text-[var(--color-text-tertiary)]">{p.qtd_mensalidade}</td>
-                                <td className="py-2 px-2 text-right tabular-nums">{fmt(p.min_mensalidade)}</td>
-                                <td className="py-2 px-2 text-right tabular-nums font-semibold">{fmt(p.media_mensalidade)}</td>
-                                <td className="py-2 pl-2 text-right tabular-nums">{fmt(p.max_mensalidade)}</td>
-                              </tr>
-                            );
-                          })}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="space-y-5">
+                {grupos.map((grupo) => {
+                  const series = SERIES.filter((s) => s.grupo === grupo);
+                  const hasData = series.some((s) => precos.find((p) => p.serie_slug === s.slug));
+                  if (!hasData) return null;
+                  return (
+                    <div key={grupo}>
+                      <h3 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-3">{grupo}</h3>
+                      <div className="space-y-3">
+                        {series.map((s) => {
+                          const p = precos.find((pr) => pr.serie_slug === s.slug);
+                          if (!p || !p.qtd_mensalidade) return null;
+                          return (
+                            <div key={s.slug} className="bg-[var(--color-surface-hover)] dark:bg-slate-800/50 rounded-lg p-3 border border-[var(--color-border)]">
+                              <p className="text-sm font-medium text-[var(--color-text)]">
+                                {s.nome}: <span className="text-[var(--color-text-tertiary)] font-normal">{p.qtd_mensalidade} contribui\u00e7\u00f5es ({p.ano_vigencia})</span>
+                              </p>
+                              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+                                M\u00ednimo: <strong className="text-[var(--color-text)] tabular-nums">{fmt(p.min_mensalidade)}</strong>
+                                {" | "}M\u00e1ximo: <strong className="text-[var(--color-text)] tabular-nums">{fmt(p.max_mensalidade)}</strong>
+                                {" | "}M\u00e9dia: <strong className="text-blue-600 dark:text-blue-400 tabular-nums">{fmt(p.media_mensalidade)}</strong>
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
