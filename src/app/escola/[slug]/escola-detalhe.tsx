@@ -91,11 +91,11 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]">
-                      <th className="text-left py-2 pr-3 font-medium">S\u00e9rie</th>
+                      <th className="text-left py-2 pr-3 font-medium">{'S\u00e9rie'}</th>
                       <th className="text-right py-2 px-2 font-medium">Qtd</th>
-                      <th className="text-right py-2 px-2 font-medium">M\u00edn</th>
-                      <th className="text-right py-2 px-2 font-medium">M\u00e9dia</th>
-                      <th className="text-right py-2 pl-2 font-medium">M\u00e1x</th>
+                      <th className="text-right py-2 px-2 font-medium">{'M\u00edn'}</th>
+                      <th className="text-right py-2 px-2 font-medium">{'M\u00e9dia'}</th>
+                      <th className="text-right py-2 pl-2 font-medium">{'M\u00e1x'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -139,30 +139,30 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           )}
 
           <div className="card space-y-4">
-            <h2 className="text-sm font-semibold">Informa\u00e7\u00f5es da Escola</h2>
+            <h2 className="text-sm font-semibold">{'Informa\u00e7\u00f5es da Escola'}</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {escola.bairro && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Bairro</dt><dd>{escola.bairro}</dd></div>}
               <div>
-                <dt className="text-[var(--color-text-tertiary)] text-xs">Depend\u00eancia</dt>
+                <dt className="text-[var(--color-text-tertiary)] text-xs">{'Depend\u00eancia'}</dt>
                 <dd>
                   <span className={"inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full " + (escola.dependencia_administrativa === "Privada" ? "tag-privada" : "tag-publica")}>
-                    {escola.dependencia_administrativa === "Privada" ? "Privada" : "P\u00fablica"}
+                    {escola.dependencia_administrativa === "Privada" ? 'Privada' : 'P\u00fablica'}
                   </span>
                   {escola.categoria_administrativa && " \u2014 " + escola.categoria_administrativa}
                   {escola.categoria_escola_privada && " \u2014 " + escola.categoria_escola_privada}
                 </dd>
               </div>
-              {escola.localizacao && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Localiza\u00e7\u00e3o</dt><dd>{escola.localizacao}</dd></div>}
+              {escola.localizacao && <div><dt className="text-[var(--color-text-tertiary)] text-xs">{'Localiza\u00e7\u00e3o'}</dt><dd>{escola.localizacao}</dd></div>}
               {escola.localidade_diferenciada && escola.localidade_diferenciada !== "A escola n\u00e3o est\u00e1 em \u00e1rea de localiza\u00e7\u00e3o diferenciada" && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Localidade</dt><dd>{escola.localidade_diferenciada}</dd></div>}
-              {escola.endereco && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Endere\u00e7o</dt><dd className="text-sm">{escola.endereco}</dd></div>}
+              {escola.endereco && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">{'Endere\u00e7o'}</dt><dd className="text-sm">{escola.endereco}</dd></div>}
               {escola.telefone && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Telefone</dt><dd>{escola.telefone}</dd></div>}
               {escola.porte_escola && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Porte</dt><dd className="text-xs">{escola.porte_escola}</dd></div>}
               {escola.etapas_modalidades && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Etapas</dt><dd className="text-xs">{escola.etapas_modalidades}</dd></div>}
               {escola.outras_ofertas && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Outras Ofertas</dt><dd className="text-xs">{escola.outras_ofertas}</dd></div>}
               {escola.conveniada_poder_publico && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Conveniada</dt><dd className="text-xs">{escola.conveniada_poder_publico}</dd></div>}
-              {escola.regulamentacao_conselho && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Regulamenta\u00e7\u00e3o</dt><dd className="text-xs">{escola.regulamentacao_conselho}</dd></div>}
-              <div><dt className="text-[var(--color-text-tertiary)] text-xs">C\u00f3digo INEP</dt><dd className="font-mono text-xs">{escola.codigo_inep}</dd></div>
-              {escola.restricao_atendimento && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Restri\u00e7\u00e3o</dt><dd className="text-xs">{escola.restricao_atendimento}</dd></div>}
+              {escola.regulamentacao_conselho && <div><dt className="text-[var(--color-text-tertiary)] text-xs">{'Regulamenta\u00e7\u00e3o'}</dt><dd className="text-xs">{escola.regulamentacao_conselho}</dd></div>}
+              <div><dt className="text-[var(--color-text-tertiary)] text-xs">{'C\u00f3digo INEP'}</dt><dd className="font-mono text-xs">{escola.codigo_inep}</dd></div>
+              {escola.restricao_atendimento && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">{'Restri\u00e7\u00e3o'}</dt><dd className="text-xs">{escola.restricao_atendimento}</dd></div>}
             </dl>
           </div>
 
