@@ -42,8 +42,10 @@ function sortResults(
   });
 
   return withDistance.sort((a, b) => {
-    if (a.valor_mensalidade != null && b.valor_mensalidade == null) return -1;
-    if (a.valor_mensalidade == null && b.valor_mensalidade != null) return 1;
+    const aHasPreco = a.series_precos && a.series_precos.length > 0;
+    const bHasPreco = b.series_precos && b.series_precos.length > 0;
+    if (aHasPreco && !bHasPreco) return -1;
+    if (!aHasPreco && bHasPreco) return 1;
     const distA = a.distancia_km ?? 99999;
     const distB = b.distancia_km ?? 99999;
     return distA - distB;

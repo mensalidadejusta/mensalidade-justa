@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { makeEscolaSlug } from "@/lib/utils";
 
+export type SeriePreco = {
+  serie_slug: string;
+  serie_nome: string;
+  valor_mensalidade: number | null;
+  valor_matricula: number | null;
+  valor_material: number | null;
+  qtd: number;
+};
+
 export type EscolaResult = {
   id: number;
   nome: string;
@@ -11,9 +20,7 @@ export type EscolaResult = {
   latitude: number | null;
   longitude: number | null;
   codigo_inep: string;
-  valor_mensalidade?: number | null;
-  valor_matricula?: number | null;
-  valor_material?: number | null;
+  series_precos: SeriePreco[];
   distancia_km?: number;
 };
 
@@ -63,13 +70,20 @@ export default function BuscaResults({
             </div>
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                {escola.valor_mensalidade != null ? (
-                  <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                    R$ {Number(escola.valor_mensalidade).toFixed(2)}
-                    <span className="text-[10px] text-slate-400 font-normal">
-                      {' /m'}{'\u00ea'}s
-                    </span>
-                  </p>
+                {escola.series_precos.length > 0 ? (
+                  <div className="space-y-1 flex-1">
+                    {escola.series_precos.map((sp) => (
+                      <p key={sp.serie_slug} className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                        {sp.serie_nome}:{' '}
+                        <span className="text-sm font-bold">
+                          R$ {Number(sp.valor_mensalidade).toFixed(2)}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          {' /m'}{'\u00ea'}s
+                        </span>
+                      </p>
+                    ))}
+                  </div>
                 ) : escola.dependencia_administrativa === "Privada" ? (
                   <p className="text-xs text-slate-400 font-medium">
                     Sem mensalidade cadastrada
@@ -80,32 +94,11 @@ export default function BuscaResults({
                   </p>
                 )}
                 {escola.distancia_km !== undefined && (
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                  <p className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                     {'📍'} {escola.distancia_km} km
                   </p>
                 )}
               </div>
-              {(escola.valor_matricula != null ||
-                escola.valor_material != null) && (
-                <div className="flex gap-4 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                  {escola.valor_matricula != null && (
-                    <span>
-                      Matr{'{\u00ed}'}cula:{' '}
-                      <strong className="text-slate-600 dark:text-slate-300">
-                        R$ {Number(escola.valor_matricula).toFixed(2)}
-                      </strong>
-                    </span>
-                  )}
-                  {escola.valor_material != null && (
-                    <span>
-                      Material:{' '}
-                      <strong className="text-slate-600 dark:text-slate-300">
-                        R$ {Number(escola.valor_material).toFixed(2)}
-                      </strong>
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           </Link>
         </article>

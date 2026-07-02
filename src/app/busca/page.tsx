@@ -29,10 +29,11 @@ function filtrar(
   }
 
   if (maxPrice != null && !isNaN(maxPrice)) {
-    filtrado = filtrado.filter(
-      (e: any) =>
-        e.valor_mensalidade == null || e.valor_mensalidade <= maxPrice
-    );
+    filtrado = filtrado.filter((e: any) => {
+      const series = e.series_precos as Array<{ valor_mensalidade: number | null }>;
+      if (!series || series.length === 0) return true;
+      return series.some((s) => s.valor_mensalidade == null || s.valor_mensalidade <= maxPrice);
+    });
   }
 
   return filtrado as EscolaResult[];
@@ -106,7 +107,7 @@ export default async function BuscaPage({ searchParams }: Props) {
 
   let resultados: EscolaResult[] | null = null;
   if (uf && cidade) {
-    const { data } = await supabase.rpc("buscar_escolas_com_precos", {
+    const { data } = await supabase.rpc("buscar_escolas_com_precos_detalhado", {
       p_uf: uf,
       p_municipio: cidade,
       p_serie_slug: serie || null,
