@@ -88,6 +88,7 @@ export default function BuscaContent({
   const [localPublica, setLocalPublica] = useState(
     searchParams.get("publica") !== "0"
   );
+  const pendingInternal = useRef(0);
 
   const uf = searchParams.get("uf") ?? "";
   const cidade = searchParams.get("cidade") ?? "";
@@ -96,27 +97,24 @@ export default function BuscaContent({
   const showPrivada = localPrivada;
   const showPublica = localPublica;
 
-  const lastUrl = useRef(searchParams.toString());
-
   function updateFilters(updates: Record<string, string>) {
+    pendingInternal.current++;
     const params = new URLSearchParams(searchParams.toString());
     for (const [k, v] of Object.entries(updates)) {
       if (v) params.set(k, v);
       else params.delete(k);
     }
-    const qs = params.toString();
-    lastUrl.current = qs;
-    router.replace(`${pathname}?${qs}`);
+    router.replace(`${pathname}?${params.toString()}`);
   }
 
   useEffect(() => {
-    const cur = searchParams.toString();
-    if (cur !== lastUrl.current) {
-      lastUrl.current = cur;
-      setLocalPrivada(searchParams.get("privada") !== "0");
-      setLocalPublica(searchParams.get("publica") !== "0");
-      setLocalQuery(searchParams.get("q") ?? "");
+    if (pendingInternal.current > 0) {
+      pendingInternal.current--;
+      return;
     }
+    setLocalPrivada(searchParams.get("privada") !== "0");
+    setLocalPublica(searchParams.get("publica") !== "0");
+    setLocalQuery(searchParams.get("q") ?? "");
   }, [searchParams]);
 
   useEffect(() => {
