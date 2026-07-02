@@ -260,22 +260,18 @@ function BuscaContent() {
           </div>
 
           <div className="flex gap-1.5 flex-wrap">
+            <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge transition-all active:scale-95">{geoLoading ? "📍..." : "📍 Perto de mim"}</button>
             <SearchableSelect label="UF" value={uf} options={ufs} onChange={(v) => { setUf(v); setCidade(""); }} placeholder="UF" />
             <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={setCidade} placeholder="Cidade" disabled={!uf} />
-
-            <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
-
             <button onClick={() => setShowPrivada(!showPrivada)}
               className={`badge transition-all ${showPrivada ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
             <button onClick={() => setShowPublica(!showPublica)}
               className={`badge transition-all ${showPublica ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
-
+            <SearchableSelect label="🎓 Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
             <div className="relative min-w-[100px]">
-              <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
+              <input className="badge w-full text-xs text-left font-normal" placeholder="Mensalidade Máxima" type="number" min="0" step="100"
                 value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
             </div>
-
-            <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge transition-all active:scale-95">{geoLoading ? "📍..." : "📍 Perto de mim"}</button>
           </div>
           {geoError && <p className="text-xs text-red-500 font-medium">{geoError}</p>}
         </div>
@@ -339,22 +335,18 @@ function BuscaContent() {
             </form>
 
             <div className="flex gap-1.5 flex-wrap">
+              <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge hover:bg-blue-50 dark:hover:bg-blue-950/40">{geoLoading ? "📍..." : "📍 Perto de mim"}</button>
               <SearchableSelect label="UF" value={uf} options={ufs} onChange={(v) => { setUf(v); setCidade(""); }} placeholder="UF" />
               <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={setCidade} placeholder="Cidade" disabled={!uf} />
-
-              <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
-
               <button onClick={() => setShowPrivada(!showPrivada)}
                 className={`badge transition-all ${showPrivada ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
               <button onClick={() => setShowPublica(!showPublica)}
                 className={`badge transition-all ${showPublica ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
-
+              <SearchableSelect label="🎓 Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
               <div className="relative min-w-[100px]">
-                <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
+                <input className="badge w-full text-xs text-left font-normal" placeholder="Mensalidade Máxima" type="number" min="0" step="100"
                   value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
               </div>
-
-              <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge hover:bg-blue-50 dark:hover:bg-blue-950/40">{geoLoading ? "📍 Calculando..." : "📍 Perto de mim"}</button>
             </div>
             {geoError && <p className="text-xs text-red-500 font-medium">{geoError}</p>}
           </header>
