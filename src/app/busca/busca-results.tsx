@@ -120,6 +120,36 @@ export default function BuscaResults({
                   </p>
                 )}
               </div>
+              {escola.dependencia_administrativa === "Privada" && (
+                <div className="flex gap-2 pt-2">
+                  <Link
+                    href={"/contribuir?escola=" + escola.codigo_inep}
+                    className="flex-1 text-center text-xs font-semibold py-2 px-3 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all active:scale-95"
+                  >
+                    {'✏\uFE0F'} Contribuir
+                  </Link>
+                  <a
+                    href={
+                      "https://wa.me/?text=" +
+                      encodeURIComponent(
+                        'Ol\u00e1! Conhece algu\u00e9m que estuda no ' +
+                          escola.nome +
+                          '? Acesse https://mensalidadejusta.com.br/escola/' +
+                          makeEscolaSlug(
+                            escola.codigo_inep,
+                            escola.nome
+                          ) +
+                          ' e ajude a cadastrar os valores reais de mensalidade. \u00c9 r\u00e1pido e an\u00f4nimo! Obrigado \ud83d\udc99'
+                      )
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center text-xs font-semibold py-2 px-3 rounded-lg bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all active:scale-95"
+                  >
+                    {'\uD83D\uDCF2'} Convidar
+                  </a>
+                </div>
+              )}
             </div>
           </Link>
         </article>
