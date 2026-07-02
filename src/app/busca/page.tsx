@@ -44,6 +44,8 @@ function BuscaContent() {
   const [geoError, setGeoError] = useState("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [viewMap, setViewMap] = useState(false);
+  const [tipoFilter, setTipoFilter] = useState<"" | "Privada" | "Pública">("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   // Sincroniza os estados com a URL para permitir compartilhamento e indexação de links
   const updateQueryParams = useCallback((filters: { q?: string; uf?: string; cidade?: string; serie?: string }) => {
@@ -154,13 +156,23 @@ function BuscaContent() {
       p_uf: currentUf, p_municipio: currentCidade, p_serie_slug: currentSerie || null, p_termo: q || null,
     });
     if (data) {
-      const ordenado = sortByDistance(data);
+      let filtrado = [...data];
+      // Filtro público/privado
+      if (tipoFilter) {
+        filtrado = filtrado.filter((e: any) => e.dependencia_administrativa === tipoFilter);
+      }
+      // Filtro preço máximo
+      if (maxPrice && !isNaN(Number(maxPrice))) {
+        const max = Number(maxPrice);
+        filtrado = filtrado.filter((e: any) => e.valor_mensalidade == null || e.valor_mensalidade <= max);
+      }
+      const ordenado = sortByDistance(filtrado);
       setResults(ordenado);
       localStorage.setItem("mj_results", JSON.stringify(ordenado));
     }
     setLoading(false);
     setFetched(true);
-  }, [updateQueryParams, userLocation]);
+  }, [updateQueryParams, userLocation, tipoFilter, maxPrice]);
 
   // Debounce para digitação ou troca de filtros
   useEffect(() => {
@@ -248,6 +260,16 @@ function BuscaContent() {
 
             <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
+            <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
+              className={`badge transition-all ${tipoFilter === "Privada" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
+            <button onClick={() => setTipoFilter(tipoFilter === "Pública" ? "" : "Pública")}
+              className={`badge transition-all ${tipoFilter === "Pública" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
+
+            <div className="relative min-w-[100px]">
+              <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
+                value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+            </div>
+
             <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge transition-all active:scale-95">{geoLoading ? "📍..." : "📍 Perto de mim"}</button>
           </div>
           {geoError && <p className="text-xs text-red-500 font-medium">{geoError}</p>}
@@ -316,6 +338,16 @@ function BuscaContent() {
               <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={setCidade} placeholder="Cidade" disabled={!uf} />
 
               <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
+
+              <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
+                className={`badge transition-all ${tipoFilter === "Privada" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
+              <button onClick={() => setTipoFilter(tipoFilter === "Pública" ? "" : "Pública")}
+                className={`badge transition-all ${tipoFilter === "Pública" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
+
+              <div className="relative min-w-[100px]">
+                <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
+                  value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+              </div>
 
               <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge hover:bg-blue-50 dark:hover:bg-blue-950/40">{geoLoading ? "📍 Calculando..." : "📍 Perto de mim"}</button>
             </div>
