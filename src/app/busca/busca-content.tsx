@@ -82,13 +82,21 @@ export default function BuscaContent({
   const [geoError, setGeoError] = useState("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [viewMap, setViewMap] = useState(false);
+  const [localPrivada, setLocalPrivada] = useState(
+    searchParams.get("privada") !== "0"
+  );
+  const [localPublica, setLocalPublica] = useState(
+    searchParams.get("publica") !== "0"
+  );
 
   const uf = searchParams.get("uf") ?? "";
   const cidade = searchParams.get("cidade") ?? "";
   const serieSlug = searchParams.get("serie") ?? "";
-  const showPrivada = searchParams.get("privada") !== "0";
-  const showPublica = searchParams.get("publica") !== "0";
   const maxPrice = searchParams.get("maxPrice") ?? "";
+  const showPrivada = localPrivada;
+  const showPublica = localPublica;
+
+  const lastUrl = useRef(searchParams.toString());
 
   function updateFilters(updates: Record<string, string>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -96,11 +104,19 @@ export default function BuscaContent({
       if (v) params.set(k, v);
       else params.delete(k);
     }
-    router.replace(`${pathname}?${params.toString()}`);
+    const qs = params.toString();
+    lastUrl.current = qs;
+    router.replace(`${pathname}?${qs}`);
   }
 
   useEffect(() => {
-    setLocalQuery(searchParams.get("q") ?? "");
+    const cur = searchParams.toString();
+    if (cur !== lastUrl.current) {
+      lastUrl.current = cur;
+      setLocalPrivada(searchParams.get("privada") !== "0");
+      setLocalPublica(searchParams.get("publica") !== "0");
+      setLocalQuery(searchParams.get("q") ?? "");
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -344,11 +360,13 @@ export default function BuscaContent({
         disabled={!uf}
       />
       <button
-        onClick={() =>
-          updateFilters({ privada: showPrivada ? "0" : "1" })
-        }
+        onClick={() => {
+          const next = !localPrivada;
+          setLocalPrivada(next);
+          updateFilters({ privada: next ? "1" : "0" });
+        }}
         className={`badge transition-all ${
-          showPrivada
+          localPrivada
             ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
             : ""
         }`}
@@ -356,11 +374,13 @@ export default function BuscaContent({
         {'\uD83C\uDFE2'} Privadas
       </button>
       <button
-        onClick={() =>
-          updateFilters({ publica: showPublica ? "0" : "1" })
-        }
+        onClick={() => {
+          const next = !localPublica;
+          setLocalPublica(next);
+          updateFilters({ publica: next ? "1" : "0" });
+        }}
         className={`badge transition-all ${
-          showPublica
+          localPublica
             ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]"
             : ""
         }`}

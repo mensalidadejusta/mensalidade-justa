@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { createServerClient } from "@/lib/supabase-server";
 import { getSerieBySlug } from "@/lib/series";
@@ -119,6 +120,8 @@ export default async function BuscaPage({ searchParams }: Props) {
   }
 
   return (
-    <BuscaContent ufs={ufs} cidades={cidades} resultados={resultados} />
+    <Suspense fallback={<div className="p-12 text-center text-sm text-slate-400 font-medium animate-pulse">Iniciando...</div>}>
+      <BuscaContent ufs={ufs} cidades={cidades} resultados={resultados} />
+    </Suspense>
   );
 }
