@@ -234,7 +234,16 @@ function BuscaContent() {
           <h1 className="text-base font-semibold text-[#1f1f1f] dark:text-slate-200 tracking-tight">
             Mensalidade Justa
           </h1>
-          <ToggleTema />
+          <div className="flex items-center gap-1">
+            {fetched && results.length > 0 && (
+              <button onClick={() => setViewMap((v) => !v)}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl text-base transition-all ${viewMap ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"}`}
+                title={viewMap ? "Exibir lista" : "Exibir mapa"}>
+                🗺️
+              </button>
+            )}
+            <ToggleTema />
+          </div>
         </header>
         
         <div className="px-4 pb-3 space-y-2">
@@ -298,9 +307,9 @@ function BuscaContent() {
           )}
         </main>
 
-        {fetched && results.length > 0 && (
-          <button onClick={() => setViewMap((v) => !v)} className="floating-btn fixed bottom-6 right-4 z-30 shadow-xl font-medium tracking-wide active:scale-95 transition-transform">
-            {viewMap ? "📝 Exibir Lista" : "📍 Ver no Mapa"}
+        {fetched && results.length > 0 && viewMap && (
+          <button onClick={() => setViewMap(false)} className="floating-btn fixed bottom-6 right-4 z-30 shadow-xl font-medium tracking-wide active:scale-95 transition-transform md:hidden">
+            📝 Lista
           </button>
         )}
       </div>
