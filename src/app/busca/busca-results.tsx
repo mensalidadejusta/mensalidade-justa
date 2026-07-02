@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { makeEscolaSlug } from "@/lib/utils";
+import { SERIES, GRUPOS } from "@/lib/series";
+
+const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
 
 export type SeriePreco = {
   serie_slug: string;
@@ -71,18 +74,36 @@ export default function BuscaResults({
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 {escola.series_precos.length > 0 ? (
-                  <div className="space-y-1 flex-1">
-                    {escola.series_precos.map((sp) => (
-                      <p key={sp.serie_slug} className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                        {sp.serie_nome}:{' '}
-                        <span className="text-sm font-bold">
-                          R$ {Number(sp.valor_mensalidade).toFixed(2)}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-normal">
-                          {' /m'}{'\u00ea'}s
-                        </span>
-                      </p>
-                    ))}
+                  <div className="space-y-1.5 flex-1">
+                    {GRUPOS.map((grupo) => {
+                      const items = escola.series_precos.filter(
+                        (sp) => slugToGrupo.get(sp.serie_slug) === grupo
+                      );
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={grupo}>
+                          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">
+                            {grupo}
+                          </p>
+                          {items.map((sp) => (
+                            <p key={sp.serie_slug} className="text-xs leading-5">
+                              <span className="text-slate-500 dark:text-slate-400">
+                                {sp.serie_nome}:{' '}
+                              </span>
+                              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                R$ {Number(sp.valor_mensalidade).toFixed(2)}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-normal">
+                                {' /m'}{'\u00ea'}s
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-normal ml-1">
+                                ({sp.qtd})
+                              </span>
+                            </p>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : escola.dependencia_administrativa === "Privada" ? (
                   <p className="text-xs text-slate-400 font-medium">
