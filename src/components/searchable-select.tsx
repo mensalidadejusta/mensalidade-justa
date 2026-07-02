@@ -62,7 +62,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   return (
     <>
-      <button onClick={() => { if (!disabled) setOpen(true); }} className="badge text-left" disabled={disabled}>
+      <button onClick={() => { if (!disabled) setOpen(true); }} className="badge text-left min-h-[36px]" disabled={disabled}>
         {getDisplay()}
       </button>
 
