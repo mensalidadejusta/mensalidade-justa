@@ -418,8 +418,10 @@ function ResultList({ results, hoveredId, onHover }: {
                   <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
                     R$ {Number(escola.valor_mensalidade).toFixed(2)}<span className="text-[10px] text-slate-400 font-normal"> /mês</span>
                   </p>
-                ) : (
+                ) : escola.dependencia_administrativa === "Privada" ? (
                   <p className="text-xs text-slate-400 font-medium">Sem mensalidade cadastrada</p>
+                ) : (
+                  <p className="text-xs text-slate-400 font-medium">Escola p\u00fablica gratuita</p>
                 )}
                 {escola.distancia_km !== undefined && (
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">📍 {escola.distancia_km} km</p>
@@ -431,6 +433,7 @@ function ResultList({ results, hoveredId, onHover }: {
                   {escola.valor_material != null && <span>Material: <strong className="text-slate-600 dark:text-slate-300">R$ {Number(escola.valor_material).toFixed(2)}</strong></span>}
                 </div>
               )}
+              {escola.dependencia_administrativa === "Privada" && (
               <div className="flex gap-2 pt-2">
                 <Link href={"/contribuir?escola=" + escola.codigo_inep}
                   className="flex-1 text-center text-xs font-semibold py-2 px-3 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all active:scale-95">
@@ -443,6 +446,7 @@ function ResultList({ results, hoveredId, onHover }: {
                   📲 Convidar
                 </a>
               </div>
+              )}
             </div>
           </Link>
         </article>
