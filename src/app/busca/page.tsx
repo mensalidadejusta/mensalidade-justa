@@ -422,7 +422,7 @@ function ResultList({ results, hoveredId, onHover }: {
                     R$ {Number(escola.valor_mensalidade).toFixed(2)}<span className="text-[10px] text-slate-400 font-normal"> /mês</span>
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-400 font-medium">Mensalidade sob consulta</p>
+                  <p className="text-xs text-slate-400 font-medium">Sem mensalidade cadastrada</p>
                 )}
                 {escola.distancia_km !== undefined && (
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">📍 {escola.distancia_km} km</p>
@@ -434,6 +434,18 @@ function ResultList({ results, hoveredId, onHover }: {
                   {escola.valor_material != null && <span>Material: <strong className="text-slate-600 dark:text-slate-300">R$ {Number(escola.valor_material).toFixed(2)}</strong></span>}
                 </div>
               )}
+              <div className="flex gap-2 pt-1">
+                <Link href={"/contribuir?escola=" + escola.codigo_inep}
+                  className="text-[11px] font-medium text-purple-600 dark:text-purple-400 hover:underline">
+                  ✏️ Contribuir
+                </Link>
+                <a href={"https://wa.me/?text=" + encodeURIComponent(
+                  "Ol\u00e1! Conhece algu\u00e9m que estuda no " + escola.nome + "? Acesse https://mensalidadejusta.com.br/escola/" + makeEscolaSlug(escola.codigo_inep, escola.nome) + " e ajude a cadastrar os valores reais de mensalidade. \u00c9 r\u00e1pido e an\u00f4nimo! Obrigado \ud83d\udc99"
+                )} target="_blank" rel="noopener noreferrer"
+                  className="text-[11px] font-medium text-green-600 dark:text-green-400 hover:underline">
+                  📲 Convidar
+                </a>
+              </div>
             </div>
           </Link>
         </article>
