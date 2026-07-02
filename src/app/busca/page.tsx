@@ -198,16 +198,7 @@ function BuscaContent() {
             <SearchableSelect label="UF" value={uf} options={ufs} onChange={(v) => { setUf(v); setCidade(""); }} placeholder="UF" />
             <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={setCidade} placeholder="Cidade" disabled={!uf} />
 
-            <select className="badge text-xs bg-transparent appearance-none" value={serieSlug} onChange={(e) => setSerieSlug(e.target.value)}>
-              <option value="">🎓 Série</option>
-              {GRUPOS.map((g) => (
-                <optgroup key={g} label={g} className="bg-white dark:bg-[#1e1e1f]">
-                  {SERIES.filter((s) => s.grupo === g).map((s) => (
-                    <option key={s.slug} value={s.slug}>{s.nome}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
             <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge transition-all active:scale-95">{geoLoading ? "📍..." : "📍 Perto de mim"}</button>
           </div>
@@ -276,16 +267,7 @@ function BuscaContent() {
               <SearchableSelect label="UF" value={uf} options={ufs} onChange={(v) => { setUf(v); setCidade(""); }} placeholder="UF" />
               <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={setCidade} placeholder="Cidade" disabled={!uf} />
 
-              <select className="badge text-xs bg-transparent" value={serieSlug} onChange={(e) => setSerieSlug(e.target.value)}>
-                <option value="">🎓 Série</option>
-                {GRUPOS.map((g) => (
-                  <optgroup key={g} label={g} className="bg-white dark:bg-[#1e1e1f]">
-                    {SERIES.filter((s) => s.grupo === g).map((s) => (
-                      <option key={s.slug} value={s.slug}>{s.nome}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+              <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
               <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge hover:bg-blue-50 dark:hover:bg-blue-950/40">{geoLoading ? "📍 Calculando..." : "📍 Perto de mim"}</button>
             </div>
