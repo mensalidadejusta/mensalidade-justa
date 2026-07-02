@@ -158,11 +158,13 @@ function BuscaContent() {
     });
     if (data) {
       let filtrado = [...data];
-      // Filtro público/privado
+      // Filtro privada/publica: nenhum selecionado = nenhum exibido
       if (showPrivada && !showPublica) {
         filtrado = filtrado.filter((e: any) => e.dependencia_administrativa === "Privada");
       } else if (showPublica && !showPrivada) {
         filtrado = filtrado.filter((e: any) => e.dependencia_administrativa !== "Privada");
+      } else if (!showPrivada && !showPublica) {
+        filtrado = []; // nenhum filtro ativo = nenhuma escola mostrada
       }
       // Filtro preço máximo
       if (maxPrice && !isNaN(Number(maxPrice))) {
