@@ -45,10 +45,10 @@ function BuscaContent() {
   const [geoError, setGeoError] = useState("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [viewMap, setViewMap] = useState(false);
-  const [tipoFilter, setTipoFilter] = useState<"" | "Privada" | "Pública">("");
+  const [tipoFilter, setTipoFilter] = useState<string>("");
   const [maxPrice, setMaxPrice] = useState("");
 
-  // Sincroniza os estados com a URL para permitir compartilhamento e indexação de links
+  // Sincroniza os estados com a URL para permitir compartilhamento e indexaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o de links
   const updateQueryParams = useCallback((filters: { q?: string; uf?: string; cidade?: string; serie?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(filters).forEach(([key, value]) => {
@@ -104,7 +104,7 @@ function BuscaContent() {
     });
   }, [uf]);
 
-  // Autocomplete de Sugestões
+  // Autocomplete de SugestÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âµes
   useEffect(() => {
     if (query.length < 2) { setSuggestions([]); return; }
     const timer = setTimeout(async () => {
@@ -119,7 +119,7 @@ function BuscaContent() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Haversine: calcula distância em km entre duas coordenadas
+  // Haversine: calcula distÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ncia em km entre duas coordenadas
   function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -128,7 +128,7 @@ function BuscaContent() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // Ordena resultados por distância quando userLocation está disponível
+  // Ordena resultados por distÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ncia quando userLocation estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ disponÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­vel
   function sortByDistance(arr: any[]) {
     if (!userLocation) return arr;
     return arr
@@ -145,12 +145,12 @@ function BuscaContent() {
       });
   }
 
-  // Função principal de busca
+  // FunÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o principal de busca
   const doSearch = useCallback(async (q: string, currentUf: string, currentCidade: string, currentSerie: string) => {
     if (!currentUf || !currentCidade) return;
     setLoading(true);
     
-    // Atualiza a URL para o robô do Google poder ler os filtros aplicados
+    // Atualiza a URL para o robÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´ do Google poder ler os filtros aplicados
     updateQueryParams({ q, uf: currentUf, cidade: currentCidade, serie: currentSerie });
 
     const { data } = await supabase.current.rpc("buscar_escolas_com_precos", {
@@ -158,13 +158,13 @@ function BuscaContent() {
     });
     if (data) {
       let filtrado = [...data];
-      // Filtro público/privado
+      // Filtro pÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºblico/privado
       if (tipoFilter === "Privada") {
         filtrado = filtrado.filter((e: any) => e.dependencia_administrativa === "Privada");
-      } else if (tipoFilter && tipoFilter.charAt(0) === 'P') {
+      } else if (tipoFilter !== "" && tipoFilter !== "Privada") {
         filtrado = filtrado.filter((e: any) => e.dependencia_administrativa !== "Privada");
       }
-      // Filtro preço máximo
+      // Filtro preÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ximo
       if (maxPrice && !isNaN(Number(maxPrice))) {
         const max = Number(maxPrice);
         filtrado = filtrado.filter((e: any) => e.valor_mensalidade == null || e.valor_mensalidade <= max);
@@ -177,7 +177,7 @@ function BuscaContent() {
     setFetched(true);
   }, [updateQueryParams, userLocation, tipoFilter, maxPrice]);
 
-  // Debounce para digitação ou troca de filtros
+  // Debounce para digitaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o ou troca de filtros
   useEffect(() => {
     if (!uf || !cidade || !mounted) return;
     const timer = setTimeout(() => doSearch(query, uf, cidade, serieSlug), 300);
@@ -185,7 +185,7 @@ function BuscaContent() {
   }, [query, uf, cidade, serieSlug, mounted, doSearch]);
 
   async function buscarPertoDeMim() {
-    if (!navigator.geolocation) { setGeoError("Geolocalização não suportada."); return; }
+    if (!navigator.geolocation) { setGeoError("GeolocalizaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o suportada."); return; }
     setGeoLoading(true); setGeoError("");
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -206,7 +206,7 @@ function BuscaContent() {
       const a = geo.address || {};
       const cid = a.city || a.town || a.village || a.municipality || "";
       const est = a["ISO3166-2-lvl4"]?.replace("BR-", "") || a.state?.slice(0, 2) || "";
-      if (!est || !cid) { setGeoError("Não foi possível identificar sua cidade."); return; }
+      if (!est || !cid) { setGeoError("NÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o foi possÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­vel identificar sua cidade."); return; }
 
       setUf(est);
       const { data: raw } = await supabase.current.rpc("get_cidades", { p_uf: est });
@@ -222,7 +222,7 @@ function BuscaContent() {
       localStorage.setItem("mj_cidade", match);
       doSearch(query, est, match, serieSlug);
     } catch (err: any) {
-      setGeoError(err.code === 1 ? "Permissão negada." : "Erro ao obter localização.");
+      setGeoError(err.code === 1 ? "PermissÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o negada." : "Erro ao obter localizaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o.");
     }
     setGeoLoading(false);
   }
@@ -240,7 +240,7 @@ function BuscaContent() {
               <button onClick={() => setViewMap((v) => !v)}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl text-base transition-all ${viewMap ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"}`}
                 title={viewMap ? "Exibir lista" : "Exibir mapa"}>
-                🗺️
+                ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â
               </button>
             )}
             <ToggleTema />
@@ -249,7 +249,7 @@ function BuscaContent() {
         
         <div className="px-4 pb-3 space-y-2">
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">🔍</span>
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â</span>
             <input className="w-full bg-white dark:bg-[#1e1e1f] border border-slate-200 dark:border-slate-700/60 rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#1f1f1f] dark:text-slate-200 placeholder:text-slate-400/80 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/30 transition-all shadow-sm"
               placeholder="Buscar escola..." value={query} onChange={(e) => setQuery(e.target.value)} />
             
@@ -270,19 +270,19 @@ function BuscaContent() {
             <SearchableSelect label="UF" value={uf} options={ufs} onChange={(v) => { setUf(v); setCidade(""); }} placeholder="UF" />
             <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={setCidade} placeholder="Cidade" disabled={!uf} />
 
-            <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
+            <SearchableSelect label="ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ SÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
             <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
-              className={`badge transition-all ${tipoFilter === "Privada" ? "bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600" : ""}`}>🏢 Privadas</button>
-            <button onClick={() => setTipoFilter(tipoFilter && tipoFilter.charAt(0) === 'P' ? "" : "Pública")}
-              className={`badge transition-all ${tipoFilter && tipoFilter.charAt(0) === 'P' ? "bg-green-100 text-green-700 border-green-400 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600" : ""}`}>🏛️ Públicas</button>
+              className={`badge transition-all ${tipoFilter === "Privada" ? "bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600" : ""}`}>ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¢ Privadas</button>
+            <button onClick={() => setTipoFilter(tipoFilter !== "" && tipoFilter !== "Privada" ? "" : "PÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºblica")}
+              className={`badge transition-all ${tipoFilter !== "" && tipoFilter !== "Privada" ? "bg-green-100 text-green-700 border-green-400 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600" : ""}`}>ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â PÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºblicas</button>
 
             <div className="relative min-w-[100px]">
-              <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
+              <input className="badge w-full text-xs text-left font-normal" placeholder="R$ MÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ximo" type="number" min="0" step="100"
                 value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
             </div>
 
-            <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge transition-all active:scale-95">{geoLoading ? "📍..." : "📍 Perto de mim"}</button>
+            <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge transition-all active:scale-95">{geoLoading ? "ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â..." : "ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â Perto de mim"}</button>
           </div>
           {geoError && <p className="text-xs text-red-500 font-medium">{geoError}</p>}
         </div>
@@ -291,12 +291,12 @@ function BuscaContent() {
           {loading && <p className="text-center text-sm text-slate-400 py-8 animate-pulse">Buscando escolas premium...</p>}
           {!loading && !fetched && (
             <div className="text-center text-sm text-slate-400 dark:text-slate-500 py-12">
-              <p className="text-3xl mb-3">🔍</p>
-              <p className="font-medium">Selecione uma localização para iniciar.</p>
+              <p className="text-3xl mb-3">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â</p>
+              <p className="font-medium">Selecione uma localizaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o para iniciar.</p>
             </div>
           )}
           {!loading && fetched && results.length === 0 && (
-            <p className="text-center text-sm text-slate-400 py-8">Nenhuma escola cadastrada nesta região.</p>
+            <p className="text-center text-sm text-slate-400 py-8">Nenhuma escola cadastrada nesta regiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o.</p>
           )}
           {!loading && fetched && results.length > 0 && !viewMap && (
             <ResultList results={results} hoveredId={hoveredId} onHover={setHoveredId} />
@@ -310,12 +310,12 @@ function BuscaContent() {
 
         {fetched && results.length > 0 && viewMap && (
           <button onClick={() => setViewMap(false)} className="floating-btn fixed bottom-6 right-4 z-30 shadow-xl font-medium tracking-wide active:scale-95 transition-transform md:hidden">
-            📝 Lista
+            ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â Lista
           </button>
         )}
       </div>
 
-      {/* ===== DESKTOP (Layout Avançado Estilo Gemini) ===== */}
+      {/* ===== DESKTOP (Layout AvanÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ado Estilo Gemini) ===== */}
       <div className="hidden md:flex h-dvh overflow-hidden">
         {/* Painel Esquerdo */}
         <div className="w-[43%] lg:w-[38%] flex flex-col bg-white dark:bg-[#1c1c1e] shadow-2xl z-10 border-r border-slate-200/60 dark:border-slate-800/60">
@@ -328,7 +328,7 @@ function BuscaContent() {
             </div>
 
             <form onSubmit={(e) => e.preventDefault()} className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">🔍</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â</span>
               <input className="w-full bg-[#f0f4f9] dark:bg-[#2c2c2e] border-0 rounded-2xl py-3 pl-11 pr-4 text-sm text-[#1f1f1f] dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
                 placeholder="Buscar escola por nome..." value={query} onChange={(e) => setQuery(e.target.value)} />
               
@@ -349,19 +349,19 @@ function BuscaContent() {
               <SearchableSelect label="UF" value={uf} options={ufs} onChange={(v) => { setUf(v); setCidade(""); }} placeholder="UF" />
               <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={setCidade} placeholder="Cidade" disabled={!uf} />
 
-              <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
+              <SearchableSelect label="ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ SÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
               <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
-                className={`badge transition-all ${tipoFilter === "Privada" ? "bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600" : ""}`}>🏢 Privadas</button>
-              <button onClick={() => setTipoFilter(tipoFilter && tipoFilter.charAt(0) === 'P' ? "" : "P\u00fablica")}
-                className={`badge transition-all ${tipoFilter && tipoFilter.charAt(0) === 'P' ? "bg-green-100 text-green-700 border-green-400 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600" : ""}`}>🏛️ Públicas</button>
+                className={`badge transition-all ${tipoFilter === "Privada" ? "bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600" : ""}`}>ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¢ Privadas</button>
+              <button onClick={() => setTipoFilter(tipoFilter !== "" && tipoFilter !== "Privada" ? "" : "P\u00fablica")}
+                className={`badge transition-all ${tipoFilter !== "" && tipoFilter !== "Privada" ? "bg-green-100 text-green-700 border-green-400 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600" : ""}`}>ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â PÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºblicas</button>
 
               <div className="relative min-w-[100px]">
-                <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
+                <input className="badge w-full text-xs text-left font-normal" placeholder="R$ MÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ximo" type="number" min="0" step="100"
                   value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
               </div>
 
-              <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge hover:bg-blue-50 dark:hover:bg-blue-950/40">{geoLoading ? "📍 Calculando..." : "📍 Perto de mim"}</button>
+              <button onClick={buscarPertoDeMim} disabled={geoLoading} className="badge hover:bg-blue-50 dark:hover:bg-blue-950/40">{geoLoading ? "ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â Calculando..." : "ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â Perto de mim"}</button>
             </div>
             {geoError && <p className="text-xs text-red-500 font-medium">{geoError}</p>}
           </header>
@@ -370,7 +370,7 @@ function BuscaContent() {
             {loading && <p className="text-center text-sm text-slate-400 py-12 animate-pulse font-medium">Buscando a melhor mensalidade...</p>}
             {!loading && !fetched && (
               <div className="flex flex-col items-center justify-center h-full text-sm text-slate-400 dark:text-slate-500">
-                <p className="text-4xl mb-3 animate-bounce">🗺️</p>
+                <p className="text-4xl mb-3 animate-bounce">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â</p>
                 <p className="font-semibold text-center">Defina uma UF e Cidade para carregar<br />as escolas no mapa.</p>
               </div>
             )}
@@ -424,7 +424,7 @@ function ResultList({ results, hoveredId, onHover }: {
                   ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                   : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400"
               }`}>
-                {escola.dependencia_administrativa === "Privada" ? "Privada" : "Pública"}
+                {escola.dependencia_administrativa === "Privada" ? "Privada" : "PÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºblica"}
               </span>
             </div>
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-1.5">
@@ -432,10 +432,10 @@ function ResultList({ results, hoveredId, onHover }: {
                 {escola.valor_mensalidade != null ? (
                   <div>
                     <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                      R$ {Number(escola.valor_mensalidade).toFixed(2)}<span className="text-[10px] text-slate-400 font-normal">/mês</span>
+                      R$ {Number(escola.valor_mensalidade).toFixed(2)}<span className="text-[10px] text-slate-400 font-normal">/mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªs</span>
                     </p>
                     {escola.qtd_mensalidade != null && escola.qtd_mensalidade > 0 && (
-                      <p className="text-[11px] text-slate-400">{escola.qtd_mensalidade} contribuição(ões)</p>
+                      <p className="text-[11px] text-slate-400">{escola.qtd_mensalidade} contribuiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o(ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âµes)</p>
                     )}
                   </div>
                 ) : (
@@ -447,20 +447,20 @@ function ResultList({ results, hoveredId, onHover }: {
               </div>
               {(escola.valor_matricula != null || escola.valor_material != null) && (
                 <div className="flex gap-4 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                  {escola.valor_matricula != null && <span>Matrícula: <strong className="text-slate-600 dark:text-slate-300">R$ {Number(escola.valor_matricula).toFixed(2)}</strong></span>}
+                  {escola.valor_matricula != null && <span>MatrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­cula: <strong className="text-slate-600 dark:text-slate-300">R$ {Number(escola.valor_matricula).toFixed(2)}</strong></span>}
                   {escola.valor_material != null && <span>Material: <strong className="text-slate-600 dark:text-slate-300">R$ {Number(escola.valor_material).toFixed(2)}</strong></span>}
                 </div>
               )}
               <div className="flex gap-2 pt-2">
                 <Link href={"/contribuir?escola=" + escola.codigo_inep}
                   className="flex-1 text-center text-xs font-semibold py-2 px-3 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all active:scale-95">
-                  ✏️ Contribuir
+                  ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â Contribuir
                 </Link>
                 <a href={"https://wa.me/?text=" + encodeURIComponent(
                   "Ol\u00e1! Conhece algu\u00e9m que estuda no " + escola.nome + "? Acesse https://mensalidadejusta.com.br/escola/" + makeEscolaSlug(escola.codigo_inep, escola.nome) + " e ajude a cadastrar os valores reais de mensalidade. \u00c9 r\u00e1pido e an\u00f4nimo! Obrigado \ud83d\udc99"
                 )} target="_blank" rel="noopener noreferrer"
                   className="flex-1 text-center text-xs font-semibold py-2 px-3 rounded-lg bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all active:scale-95">
-                  📲 Convidar
+                  ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â² Convidar
                 </a>
               </div>
             </div>
