@@ -72,6 +72,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             <p className="text-sm text-[var(--color-text-secondary)] mt-1">{escola.municipio} \u2014 {escola.uf}</p>
           </section>
 
+          {escola.categoria_administrativa === "Privada" && (
           <div className="card space-y-4">
             <h2 className="text-sm font-semibold">Mensalidades</h2>
             {precos.length === 0 ? (
@@ -128,6 +129,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               </div>
             )}
           </div>
+          )}
 
           <div className="card space-y-4">
             <h2 className="text-sm font-semibold">Informa\u00e7\u00f5es da Escola</h2>

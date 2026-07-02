@@ -44,7 +44,8 @@ function BuscaContent() {
   const [geoError, setGeoError] = useState("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [viewMap, setViewMap] = useState(false);
-  const [tipoFilter, setTipoFilter] = useState<"" | "Privada" | "Pública">("");
+  const [showPrivada, setShowPrivada] = useState(true);
+  const [showPublica, setShowPublica] = useState(true);
   const [maxPrice, setMaxPrice] = useState("");
 
   // Sincroniza os estados com a URL para permitir compartilhamento e indexação de links
@@ -158,8 +159,10 @@ function BuscaContent() {
     if (data) {
       let filtrado = [...data];
       // Filtro público/privado
-      if (tipoFilter) {
-        filtrado = filtrado.filter((e: any) => e.dependencia_administrativa === tipoFilter);
+      if (showPrivada && !showPublica) {
+        filtrado = filtrado.filter((e: any) => e.dependencia_administrativa === "Privada");
+      } else if (showPublica && !showPrivada) {
+        filtrado = filtrado.filter((e: any) => e.dependencia_administrativa !== "Privada");
       }
       // Filtro preço máximo
       if (maxPrice && !isNaN(Number(maxPrice))) {
@@ -172,7 +175,7 @@ function BuscaContent() {
     }
     setLoading(false);
     setFetched(true);
-  }, [updateQueryParams, userLocation, tipoFilter, maxPrice]);
+  }, [updateQueryParams, userLocation, showPrivada, showPublica, maxPrice]);
 
   // Debounce para digitação ou troca de filtros
   useEffect(() => {
@@ -260,10 +263,10 @@ function BuscaContent() {
 
             <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
-            <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
-              className={`badge transition-all ${tipoFilter === "Privada" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
-            <button onClick={() => setTipoFilter(tipoFilter === "Pública" ? "" : "Pública")}
-              className={`badge transition-all ${tipoFilter === "Pública" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
+            <button onClick={() => setShowPrivada(!showPrivada)}
+              className={`badge transition-all ${showPrivada ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
+            <button onClick={() => setShowPublica(!showPublica)}
+              className={`badge transition-all ${showPublica ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
 
             <div className="relative min-w-[100px]">
               <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
@@ -339,10 +342,10 @@ function BuscaContent() {
 
               <SearchableSelect label="🎓 Série" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={setSerieSlug} />
 
-              <button onClick={() => setTipoFilter(tipoFilter === "Privada" ? "" : "Privada")}
-                className={`badge transition-all ${tipoFilter === "Privada" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
-              <button onClick={() => setTipoFilter(tipoFilter === "Pública" ? "" : "Pública")}
-                className={`badge transition-all ${tipoFilter === "Pública" ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
+              <button onClick={() => setShowPrivada(!showPrivada)}
+                className={`badge transition-all ${showPrivada ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏢 Privadas</button>
+              <button onClick={() => setShowPublica(!showPublica)}
+                className={`badge transition-all ${showPublica ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]" : ""}`}>🏛️ Públicas</button>
 
               <div className="relative min-w-[100px]">
                 <input className="badge w-full text-xs text-left font-normal" placeholder="R$ Máximo" type="number" min="0" step="100"
