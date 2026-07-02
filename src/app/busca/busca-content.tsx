@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import ToggleTema from "@/components/toggle-tema";
@@ -11,6 +11,44 @@ import { SERIES, GRUPOS } from "@/lib/series";
 import SearchableSelect from "@/components/searchable-select";
 import BuscaResults from "./busca-results";
 import type { EscolaResult } from "./busca-results";
+
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 100) / 100;
+}
+
+function sortResults(
+  data: EscolaResult[],
+  userLocation: { lat: number; lon: number } | null
+): EscolaResult[] {
+  const withDistance = data.map((e) => {
+    let distancia_km: number | undefined;
+    if (userLocation && e.latitude && e.longitude) {
+      distancia_km = haversine(
+        userLocation.lat,
+        userLocation.lon,
+        e.latitude,
+        e.longitude
+      );
+    }
+    return { ...e, distancia_km };
+  });
+
+  return withDistance.sort((a, b) => {
+    if (a.valor_mensalidade != null && b.valor_mensalidade == null) return -1;
+    if (a.valor_mensalidade == null && b.valor_mensalidade != null) return 1;
+    const distA = a.distancia_km ?? 99999;
+    const distB = b.distancia_km ?? 99999;
+    return distA - distB;
+  });
+}
 
 type Props = {
   ufs: string[];
@@ -200,7 +238,12 @@ export default function BuscaContent({
     setGeoLoading(false);
   }
 
-  const hasResults = resultados && resultados.length > 0;
+  const sortedResultados = useMemo(
+    () => (resultados ? sortResults(resultados, userLocation) : null),
+    [resultados, userLocation]
+  );
+
+  const hasResults = sortedResultados && sortedResultados.length > 0;
 
   const buscaInput = (
     <div className="relative">
@@ -389,7 +432,7 @@ export default function BuscaContent({
 
         {uf && hasResults && !viewMap && (
           <main className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto">
-            <BuscaResults resultados={resultados!} />
+            <BuscaResults resultados={sortedResultados!} />
           </main>
         )}
 
@@ -397,7 +440,7 @@ export default function BuscaContent({
           <div className="flex-1 px-4 pb-4">
             <div className="h-[68dvh] rounded-2xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800/80">
               <MapaEscolas
-                escolas={resultados || []}
+                escolas={sortedResultados || []}
                 userLocation={userLocation}
                 hoveredId={hoveredId}
               />
@@ -440,8 +483,8 @@ export default function BuscaContent({
           </header>
 
           <main className="flex-1 overflow-y-auto px-6 py-4 space-y-3 bg-[#f8fafc] dark:bg-[#131314]">
-            {resultados ? (
-              <BuscaResults resultados={resultados} />
+            {sortedResultados ? (
+              <BuscaResults resultados={sortedResultados} />
             ) : uf && cidade ? (
               <div className="text-center text-sm text-slate-400 dark:text-slate-500 py-12">
                 <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
@@ -467,7 +510,7 @@ export default function BuscaContent({
         <div className="flex-1 p-4 bg-[#f0f4f9] dark:bg-[#0e0e10] flex flex-col h-full">
           <div className="flex-1 rounded-3xl overflow-hidden border border-slate-200/70 dark:border-slate-800/80 shadow-2xl relative bg-slate-100 dark:bg-[#18181c]">
             <MapaEscolas
-              escolas={resultados || []}
+              escolas={sortedResultados || []}
               userLocation={userLocation}
               hoveredId={hoveredId}
             />

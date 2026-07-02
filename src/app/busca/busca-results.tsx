@@ -14,6 +14,7 @@ export type EscolaResult = {
   valor_mensalidade?: number | null;
   valor_matricula?: number | null;
   valor_material?: number | null;
+  distancia_km?: number;
 };
 
 export default function BuscaResults({
@@ -76,6 +77,11 @@ export default function BuscaResults({
                 ) : (
                   <p className="text-xs text-slate-400 font-medium">
                     {'Escola p\u00fablica gratuita'}
+                  </p>
+                )}
+                {escola.distancia_km !== undefined && (
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                    {'📍'} {escola.distancia_km} km
                   </p>
                 )}
               </div>
