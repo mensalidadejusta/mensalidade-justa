@@ -42,7 +42,6 @@ export default function BuscaResults({
   if (resultados.length === 0) {
     return (
       <div className="text-center text-sm text-[var(--color-text-tertiary)] py-12">
-        <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
         <p className="font-medium">Nenhuma escola corresponde aos filtros.</p>
       </div>
     );
