@@ -276,14 +276,24 @@ export default function BuscaContent({
 
   const buscaInput = (
     <div className="relative w-full max-w-xl mx-auto">
-      <div className="relative">
-        <Search className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4 md:h-4 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
-        <input
-          className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full py-2 md:py-3 pl-9 md:pl-11 pr-3.5 md:pr-4 text-xs md:text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all duration-300 shadow-sm"
-          placeholder="Buscar escola por nome..."
-          value={localQuery}
-          onChange={(e) => setLocalQuery(e.target.value)}
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
+          <input
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full py-2.5 md:py-3 pl-11 pr-4 text-xs md:text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all duration-300 shadow-sm"
+            placeholder="Buscar escola por nome..."
+            value={localQuery}
+            onChange={(e) => setLocalQuery(e.target.value)}
+          />
+        </div>
+        <button
+          onClick={buscarPertoDeMim}
+          disabled={geoLoading}
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 md:py-3 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
+        >
+          <Navigation className="w-3.5 h-3.5" />
+          {geoLoading ? '...' : 'Perto de mim'}
+        </button>
       </div>
       {suggestions.length > 0 && (
         <div className="absolute top-full mt-2 left-0 right-0 max-w-xl mx-auto bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl z-30 overflow-hidden backdrop-blur-md">
@@ -310,85 +320,79 @@ export default function BuscaContent({
   );
 
   const filterBar = (
-    <div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide snap-x md:flex-wrap md:justify-center pb-1">
-      <button
-        onClick={buscarPertoDeMim}
-        disabled={geoLoading}
-        className="shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
-      >
-        <Navigation className="w-3.5 h-3.5" />
-        {geoLoading ? '...' : 'Perto de mim'}
-      </button>
-      <div className="shrink-0 snap-start">
-        <SearchableSelect
-          label="UF"
-          value={uf}
-          options={ufs}
-          onChange={(v) => updateFilters({ uf: v, cidade: "" })}
-          placeholder="UF"
-        />
-      </div>
-      <div className="shrink-0 snap-start">
-        <SearchableSelect
-          label="Cidade"
-          value={cidade}
-          options={cidades}
-          onChange={(v) => updateFilters({ cidade: v })}
-          placeholder="Cidade"
-          disabled={!uf}
-        />
-      </div>
-      <button
-        onClick={() => {
-          const current = readParam("privada") !== "0";
-          updateFilters({ privada: current ? "0" : "1" });
-        }}
-        className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
-          readParam("privada") !== "0"
-            ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
-            : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-        }`}
-      >
-        <DollarSign className="w-3.5 h-3.5" />
-        Privadas
-      </button>
-      <button
-        onClick={() => {
-          const current = readParam("publica") !== "0";
-          updateFilters({ publica: current ? "0" : "1" });
-        }}
-        className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
-          readParam("publica") !== "0"
-            ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
-            : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-        }`}
-      >
-        <GraduationCap className="w-3.5 h-3.5" />
-        P{'\u00fa'}blicas
-      </button>
-      <div className="shrink-0 snap-start">
-        <SearchableSelect
-          label="Etapa"
-          value={serieSlug}
-          series={SERIES}
-          grupos={GRUPOS}
-          onChange={(v) => updateFilters({ serie: v })}
-        />
-      </div>
-      <div className="shrink-0 snap-start">
-        <div className="relative">
-          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
-          <input
-            className="pl-8 pr-4 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-tertiary)] hover:border-[var(--color-border-hover)] transition-all duration-300 w-36 outline-none focus:border-[var(--color-primary)]/40"
-            placeholder="Mensalidade M{'\u00e1'}x."
-            type="number"
-            min="0"
-            step="100"
-            value={maxPrice}
-            onChange={(e) =>
-              updateFilters({ maxPrice: e.target.value })
-            }
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl px-4 py-3">
+      <div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide snap-x w-full">
+        <div className="shrink-0 snap-start">
+          <SearchableSelect
+            label="UF"
+            value={uf}
+            options={ufs}
+            onChange={(v) => updateFilters({ uf: v, cidade: "" })}
+            placeholder="UF"
           />
+        </div>
+        <div className="shrink-0 snap-start">
+          <SearchableSelect
+            label="Cidade"
+            value={cidade}
+            options={cidades}
+            onChange={(v) => updateFilters({ cidade: v })}
+            placeholder="Cidade"
+            disabled={!uf}
+          />
+        </div>
+        <button
+          onClick={() => {
+            const current = readParam("privada") !== "0";
+            updateFilters({ privada: current ? "0" : "1" });
+          }}
+          className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+            readParam("privada") !== "0"
+              ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+              : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+          }`}
+        >
+          <DollarSign className="w-3.5 h-3.5" />
+          Privadas
+        </button>
+        <button
+          onClick={() => {
+            const current = readParam("publica") !== "0";
+            updateFilters({ publica: current ? "0" : "1" });
+          }}
+          className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+            readParam("publica") !== "0"
+              ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+              : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+          }`}
+        >
+          <GraduationCap className="w-3.5 h-3.5" />
+          P{'\u00fa'}blicas
+        </button>
+        <div className="shrink-0 snap-start">
+          <SearchableSelect
+            label="Etapa"
+            value={serieSlug}
+            series={SERIES}
+            grupos={GRUPOS}
+            onChange={(v) => updateFilters({ serie: v })}
+          />
+        </div>
+        <div className="shrink-0 snap-start">
+          <div className="relative">
+            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
+            <input
+              className="pl-8 pr-4 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-tertiary)] hover:border-[var(--color-border-hover)] transition-all duration-300 w-36 outline-none focus:border-[var(--color-primary)]/40"
+              placeholder="Mensalidade M{'\u00e1'}x."
+              type="number"
+              min="0"
+              step="100"
+              value={maxPrice}
+              onChange={(e) =>
+                updateFilters({ maxPrice: e.target.value })
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -403,90 +407,130 @@ export default function BuscaContent({
       {/* ===== MOBILE ===== */}
       <div className="md:hidden flex flex-col min-h-dvh">
         {/* Sticky header */}
-        <div className="sticky top-0 z-50 bg-[var(--color-bg)]/90 backdrop-blur-md border-b border-[var(--color-border)]/50 px-4 pt-3 pb-2 space-y-2.5">
+        <div className="sticky top-0 z-50 bg-[var(--color-bg)]/90 backdrop-blur-md border-b border-[var(--color-border)]/50 px-4 pt-3 pb-3 space-y-2.5">
           <div className="flex items-center justify-center">
             {logo}
           </div>
-          {buscaInput}
-          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide snap-x w-full pb-0.5">
+
+          {/* Search row + Perto de mim */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
+              <input
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full py-2 pl-9 pr-3.5 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all duration-300 shadow-sm"
+                placeholder="Buscar escola..."
+                value={localQuery}
+                onChange={(e) => setLocalQuery(e.target.value)}
+              />
+            </div>
             <button
               onClick={buscarPertoDeMim}
               disabled={geoLoading}
-              className="shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
             >
-              <Navigation className="w-3 h-3" />
-              {geoLoading ? '...' : 'Perto de mim'}
+              <Navigation className="w-3.5 h-3.5" />
+              {geoLoading ? '...' : undefined}
+              <span className="hidden sm:inline">Perto de mim</span>
             </button>
-            <div className="shrink-0 snap-start">
-              <SearchableSelect
-                label="UF"
-                value={uf}
-                options={ufs}
-                onChange={(v) => updateFilters({ uf: v, cidade: "" })}
-                placeholder="UF"
-              />
+          </div>
+          {suggestions.length > 0 && (
+            <div className="relative">
+              <div className="absolute top-0 left-0 right-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl z-30 overflow-hidden backdrop-blur-md">
+                {suggestions.map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/escola/${makeEscolaSlug(
+                      s.codigo_inep,
+                      s.nome
+                    )}`}
+                    className="block px-4 py-3 text-sm hover:bg-[var(--color-surface-hover)] border-b border-[var(--color-border)] last:border-0 transition-all duration-300"
+                  >
+                    <div className="font-medium text-[var(--color-text)] truncate">
+                      {s.nome}
+                    </div>
+                    <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
+                      {s.municipio} - {s.uf}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="shrink-0 snap-start">
-              <SearchableSelect
-                label="Cidade"
-                value={cidade}
-                options={cidades}
-                onChange={(v) => updateFilters({ cidade: v })}
-                placeholder="Cidade"
-                disabled={!uf}
-              />
-            </div>
-            <button
-              onClick={() => {
-                const current = readParam("privada") !== "0";
-                updateFilters({ privada: current ? "0" : "1" });
-              }}
-              className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
-                readParam("privada") !== "0"
-                  ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
-                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-              }`}
-            >
-              <DollarSign className="w-3 h-3" />
-              Privadas
-            </button>
-            <button
-              onClick={() => {
-                const current = readParam("publica") !== "0";
-                updateFilters({ publica: current ? "0" : "1" });
-              }}
-              className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
-                readParam("publica") !== "0"
-                  ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
-                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-              }`}
-            >
-              <GraduationCap className="w-3 h-3" />
-              P{'\u00fa'}blicas
-            </button>
-            <div className="shrink-0 snap-start">
-              <SearchableSelect
-                label="Etapa"
-                value={serieSlug}
-                series={SERIES}
-                grupos={GRUPOS}
-                onChange={(v) => updateFilters({ serie: v })}
-              />
-            </div>
-            <div className="shrink-0 snap-start">
-              <div className="relative">
-                <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
-                <input
-                  className="pl-7 pr-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-tertiary)] hover:border-[var(--color-border-hover)] transition-all duration-300 w-32 outline-none focus:border-[var(--color-primary)]/40"
-                  placeholder="Mensalidade M{'\u00e1'}x."
-                  type="number"
-                  min="0"
-                  step="100"
-                  value={maxPrice}
-                  onChange={(e) =>
-                    updateFilters({ maxPrice: e.target.value })
-                  }
+          )}
+
+          {/* Filters panel */}
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl px-3 py-2.5">
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide snap-x w-full">
+              <div className="shrink-0 snap-start">
+                <SearchableSelect
+                  label="UF"
+                  value={uf}
+                  options={ufs}
+                  onChange={(v) => updateFilters({ uf: v, cidade: "" })}
+                  placeholder="UF"
                 />
+              </div>
+              <div className="shrink-0 snap-start">
+                <SearchableSelect
+                  label="Cidade"
+                  value={cidade}
+                  options={cidades}
+                  onChange={(v) => updateFilters({ cidade: v })}
+                  placeholder="Cidade"
+                  disabled={!uf}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const current = readParam("privada") !== "0";
+                  updateFilters({ privada: current ? "0" : "1" });
+                }}
+                className={`shrink-0 snap-start inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+                  readParam("privada") !== "0"
+                    ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                }`}
+              >
+                <DollarSign className="w-3 h-3" />
+                Privadas
+              </button>
+              <button
+                onClick={() => {
+                  const current = readParam("publica") !== "0";
+                  updateFilters({ publica: current ? "0" : "1" });
+                }}
+                className={`shrink-0 snap-start inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+                  readParam("publica") !== "0"
+                    ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                }`}
+              >
+                <GraduationCap className="w-3 h-3" />
+                P{'\u00fa'}blicas
+              </button>
+              <div className="shrink-0 snap-start">
+                <SearchableSelect
+                  label="Etapa"
+                  value={serieSlug}
+                  series={SERIES}
+                  grupos={GRUPOS}
+                  onChange={(v) => updateFilters({ serie: v })}
+                />
+              </div>
+              <div className="shrink-0 snap-start">
+                <div className="relative">
+                  <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
+                  <input
+                    className="pl-7 pr-2.5 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-tertiary)] hover:border-[var(--color-border-hover)] transition-all duration-300 w-28 outline-none focus:border-[var(--color-primary)]/40"
+                    placeholder="Mensal. M{'\u00e1'}x."
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={maxPrice}
+                    onChange={(e) =>
+                      updateFilters({ maxPrice: e.target.value })
+                    }
+                  />
+                </div>
               </div>
             </div>
           </div>
