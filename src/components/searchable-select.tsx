@@ -70,10 +70,10 @@ export default function SearchableSelect({ label, value, options, series, grupos
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => { setOpen(false); setSearch(""); }} />
 
-          <div className="relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl max-h-[70vh] flex flex-col shadow-2xl border border-[var(--color-border)] animate-slide-up">
+          <div className="relative bg-[var(--color-surface)] w-full max-w-sm rounded-2xl max-h-[80vh] flex flex-col shadow-2xl border border-[var(--color-border)]">
             <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-[var(--color-border)] shrink-0">
               <h3 className="text-sm font-semibold text-[var(--color-text)]">{label}</h3>
               <button onClick={() => { setOpen(false); setSearch(""); }} className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text)] transition-colors">Fechar</button>
