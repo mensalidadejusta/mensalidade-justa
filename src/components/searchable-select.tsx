@@ -15,6 +15,7 @@ type Props = {
   onChange: (val: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  isMultiple?: boolean;
 };
 
 const TITLES: Record<string, string> = {
@@ -39,24 +40,46 @@ function RadioUnchecked() {
   return <span className="w-4 h-4 rounded-full border-2 border-neutral-700 bg-transparent shrink-0 mr-3" />;
 }
 
-export default function SearchableSelect({ label, value, options, series, grupos, onChange, disabled }: Props) {
+function CheckboxChecked() {
+  return (
+    <span className="w-4 h-4 rounded bg-[var(--color-primary)] flex items-center justify-center shrink-0 mr-3">
+      <Check className="w-3 h-3 text-white" />
+    </span>
+  );
+}
+
+function CheckboxUnchecked() {
+  return <span className="w-4 h-4 rounded border-2 border-neutral-700 bg-transparent shrink-0 mr-3" />;
+}
+
+export default function SearchableSelect({ label, value, options, series, grupos, onChange, disabled, isMultiple }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const isSeries = !!series;
+  const multi = !!isMultiple;
   const title = TITLES[label] || label;
 
+  const selectedArray = multi && value ? value.split(",") : [];
+
   function getDisplay(): string {
-    if (value) {
-      if (isSeries) {
-        const found = series!.find((s) => s.slug === value);
-        return found ? found.nome : value;
+    if (!value) return label;
+    if (multi) {
+      const arr = value.split(",");
+      if (arr.length === 0) return label;
+      if (arr.length === 1 && isSeries) {
+        const found = series!.find((s) => s.slug === arr[0]);
+        return found ? found.nome : arr[0];
       }
-      return value;
+      return `${arr.length} selecionados`;
     }
-    return label;
+    if (isSeries) {
+      const found = series!.find((s) => s.slug === value);
+      return found ? found.nome : value;
+    }
+    return value;
   }
 
   const filteredSeries = !isSeries
@@ -93,14 +116,35 @@ export default function SearchableSelect({ label, value, options, series, grupos
     setOpen(false);
   }
 
-  function select(val: string) {
-    onChange(val);
+  function handleSelect(val: string) {
+    if (multi) {
+      const arr = value ? value.split(",").filter(Boolean) : [];
+      if (!val) {
+        onChange("");
+        return;
+      }
+      if (arr.includes(val)) {
+        const next = arr.filter((v) => v !== val);
+        onChange(next.length > 0 ? next.join(",") : "");
+      } else {
+        onChange([...arr, val].join(","));
+      }
+    } else {
+      onChange(val);
+    }
   }
 
-  const handleDragEnd = useCallback((_: any, info: any) => {
-    if (info.offset.y > 150) {
-      closeSheet();
+  function isSelected(slug: string): boolean {
+    if (multi) {
+      return selectedArray.includes(slug);
     }
+    return slug === value;
+  }
+
+  const isAllSelected = multi ? !value : !value;
+
+  const handleDragEnd = useCallback((_: any, info: any) => {
+    if (info.offset.y > 150) closeSheet();
   }, []);
 
   const showOptions = isSeries ? filteredSeries : filteredOptions;
@@ -117,6 +161,13 @@ export default function SearchableSelect({ label, value, options, series, grupos
     exit: { opacity: 0, transition: { duration: 0.15 } },
   };
 
+  const Indicator = ({ slug }: { slug: string }) => {
+    if (multi) {
+      return isSelected(slug) ? <CheckboxChecked /> : <CheckboxUnchecked />;
+    }
+    return isSelected(slug) ? <RadioChecked /> : <RadioUnchecked />;
+  };
+
   return (
     <>
       <button
@@ -131,7 +182,6 @@ export default function SearchableSelect({ label, value, options, series, grupos
       <AnimatePresence>
         {open && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
-            {/* Overlay */}
             <motion.div
               className="absolute inset-0 bg-black/70"
               variants={overlayVariants}
@@ -141,7 +191,6 @@ export default function SearchableSelect({ label, value, options, series, grupos
               onClick={closeSheet}
             />
 
-            {/* Sheet */}
             <motion.div
               ref={sheetRef}
               className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-[#131314] border border-neutral-800 flex flex-col shadow-2xl overflow-hidden sm:mx-4"
@@ -155,12 +204,10 @@ export default function SearchableSelect({ label, value, options, series, grupos
               dragElastic={{ top: 0, bottom: 0.5 }}
               onDragEnd={handleDragEnd}
             >
-              {/* Handle */}
               <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing sm:hidden">
                 <div className="w-12 h-1 rounded-full bg-neutral-700" />
               </div>
 
-              {/* Header */}
               <div className="flex items-center justify-between px-5 pb-3 shrink-0">
                 <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
                 <button onClick={closeSheet} className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
@@ -168,7 +215,6 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 </button>
               </div>
 
-              {/* Search */}
               <div className="px-4 pb-3 shrink-0">
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)] pointer-events-none z-10" />
@@ -182,7 +228,6 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 </div>
               </div>
 
-              {/* Options list */}
               <div className="flex-1 overflow-y-auto pb-4">
                 {!showOptions || showOptions.length === 0 ? (
                   <p className="text-center text-xs text-[var(--color-text-tertiary)] py-8">
@@ -191,17 +236,21 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 ) : (
                   <div className="w-full divide-y divide-neutral-800/80 border-t border-b border-neutral-800/80">
                     {/* "All" option */}
-                    {value && (
-                      <button
-                        onClick={() => select("")}
-                        className="flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors text-[var(--color-text-tertiary)] italic hover:bg-neutral-900"
-                      >
-                        <span className="flex items-center">
-                          {!value ? <RadioChecked /> : <RadioUnchecked />}
-                          {isSeries ? "Todas as etapas" : "Todos"}
-                        </span>
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleSelect("")}
+                      className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors italic hover:bg-neutral-900 ${
+                        isAllSelected ? "text-[var(--color-text-tertiary)]" : "text-[var(--color-text-tertiary)]"
+                      }`}
+                    >
+                      <span className="flex items-center">
+                        {multi ? (
+                          isAllSelected ? <CheckboxChecked /> : <CheckboxUnchecked />
+                        ) : (
+                          isAllSelected ? <RadioChecked /> : <RadioUnchecked />
+                        )}
+                        {isSeries ? "Todas as etapas" : "Todos"}
+                      </span>
+                    </button>
 
                     {isSeries ? (
                       grupos!.map((grupo) => {
@@ -213,22 +262,22 @@ export default function SearchableSelect({ label, value, options, series, grupos
                               {grupo}
                             </p>
                             {items.map((s) => {
-                              const selected = s.slug === value;
+                              const sel = isSelected(s.slug);
                               return (
                                 <button
                                   key={s.slug}
-                                  onClick={() => select(s.slug)}
+                                  onClick={() => handleSelect(s.slug)}
                                   className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                                    selected
+                                    sel
                                       ? "bg-[var(--color-primary)]/5 text-neutral-100 font-medium"
                                       : "text-[var(--color-text-secondary)] hover:bg-neutral-900"
                                   }`}
                                 >
                                   <span className="flex items-center min-w-0">
-                                    {selected ? <RadioChecked /> : <RadioUnchecked />}
+                                    <Indicator slug={s.slug} />
                                     <span className="truncate">{s.nome}</span>
                                   </span>
-                                  {selected && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
+                                  {sel && !multi && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
                                 </button>
                               );
                             })}
@@ -237,22 +286,22 @@ export default function SearchableSelect({ label, value, options, series, grupos
                       })
                     ) : (
                       (filteredOptions as string[]).map((opt) => {
-                        const selected = opt === value;
+                        const sel = isSelected(opt);
                         return (
                           <button
                             key={opt}
-                            onClick={() => select(opt)}
+                            onClick={() => handleSelect(opt)}
                             className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                              selected
+                              sel
                                 ? "bg-[var(--color-primary)]/5 text-neutral-100 font-medium"
                                 : "text-[var(--color-text-secondary)] hover:bg-neutral-900"
                             }`}
                           >
                             <span className="flex items-center min-w-0">
-                              {selected ? <RadioChecked /> : <RadioUnchecked />}
+                              <Indicator slug={opt} />
                               <span className="truncate">{opt}</span>
                             </span>
-                            {selected && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
+                            {sel && !multi && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
                           </button>
                         );
                       })

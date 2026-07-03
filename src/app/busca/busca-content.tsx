@@ -387,6 +387,7 @@ export default function BuscaContent({
             series={SERIES}
             grupos={GRUPOS}
             onChange={(v) => updateFilters({ serie: v })}
+            isMultiple={true}
           />
         </div>
         <div className="shrink-0 snap-start">
@@ -454,7 +455,7 @@ export default function BuscaContent({
               className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 active:scale-95 ${
                 readParam("publica") !== "0" ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]" : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
               }`}><GraduationCap className="w-3 h-3" /> P{'\u00fa'}blicas</button>
-            <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} />
+            <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
             <div className="shrink-0 relative">
               <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
               <input className="pl-7 pr-2.5 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-tertiary)] transition-all duration-300 w-28 outline-none focus:border-[var(--color-primary)]/40" placeholder="Mensal. M{'\u00e1'}x." type="number" min="0" step="100" value={maxPrice} onChange={(e) => updateFilters({ maxPrice: e.target.value })} />
