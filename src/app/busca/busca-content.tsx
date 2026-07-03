@@ -448,8 +448,8 @@ export default function BuscaContent({
 
         {/* Suggestions overlay (outside sticky, covers filters + results) */}
         {suggestions.length > 0 && (
-          <div className="fixed inset-x-0 top-[116px] z-50 mx-4">
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
+          <div className="fixed inset-x-0 top-[116px] z-50 mx-4 pointer-events-none">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md pointer-events-auto">
               {suggestions.map((s) => (
                 <Link
                   key={s.id}
@@ -458,6 +458,7 @@ export default function BuscaContent({
                     s.nome
                   )}`}
                   className="block px-4 py-3 text-sm hover:bg-[var(--color-surface-hover)] border-b border-[var(--color-border)] last:border-0 transition-all duration-200"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="font-medium text-[var(--color-text)] truncate">
                     {s.nome}
