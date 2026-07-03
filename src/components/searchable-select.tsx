@@ -95,7 +95,6 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   function select(val: string) {
     onChange(val);
-    closeSheet();
   }
 
   const handleDragEnd = useCallback((_: any, info: any) => {
