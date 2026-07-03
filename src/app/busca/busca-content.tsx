@@ -84,6 +84,7 @@ export default function BuscaContent({
   const [viewMap, setViewMap] = useState(false);
   const [showMap, setShowMap] = useState(true);
   const [navTick, setNavTick] = useState(0);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -178,6 +179,16 @@ export default function BuscaContent({
     }, 500);
     return () => clearTimeout(timer);
   }, [localQuery]);
+
+  useEffect(() => {
+    if (suggestions.length === 0) return;
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current?.contains(e.target as Node)) return;
+      setSuggestions([]);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [suggestions]);
 
   async function buscarPertoDeMim() {
     if (!navigator.geolocation) {
@@ -275,7 +286,7 @@ export default function BuscaContent({
   );
 
   const buscaInput = (
-    <div className="relative w-full max-w-xl mx-auto">
+    <div className="relative w-full max-w-xl mx-auto" ref={searchRef}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
@@ -407,13 +418,13 @@ export default function BuscaContent({
       {/* ===== MOBILE ===== */}
       <div className="md:hidden flex flex-col min-h-dvh">
         {/* Sticky header */}
-        <div className="sticky top-0 z-50 bg-[var(--color-bg)]/90 backdrop-blur-md border-b border-[var(--color-border)]/50 px-4 pt-3 pb-3 space-y-2.5">
+        <div className="sticky top-0 z-40 bg-[var(--color-bg)]/90 backdrop-blur-md border-b border-[var(--color-border)]/50 px-4 pt-3 pb-2 space-y-2">
           <div className="flex items-center justify-center">
             {logo}
           </div>
 
           {/* Search row + Perto de mim */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" ref={searchRef}>
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
               <input
@@ -429,36 +440,40 @@ export default function BuscaContent({
               className="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
             >
               <Navigation className="w-3.5 h-3.5" />
-              {geoLoading ? '...' : undefined}
+              {geoLoading ? '...' : null}
               <span className="hidden sm:inline">Perto de mim</span>
             </button>
           </div>
-          {suggestions.length > 0 && (
-            <div className="relative">
-              <div className="absolute top-0 left-0 right-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl z-30 overflow-hidden backdrop-blur-md">
-                {suggestions.map((s) => (
-                  <Link
-                    key={s.id}
-                    href={`/escola/${makeEscolaSlug(
-                      s.codigo_inep,
-                      s.nome
-                    )}`}
-                    className="block px-4 py-3 text-sm hover:bg-[var(--color-surface-hover)] border-b border-[var(--color-border)] last:border-0 transition-all duration-300"
-                  >
-                    <div className="font-medium text-[var(--color-text)] truncate">
-                      {s.nome}
-                    </div>
-                    <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-                      {s.municipio} - {s.uf}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+        </div>
 
-          {/* Filters panel */}
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl px-3 py-2.5">
+        {/* Suggestions overlay (outside sticky, covers filters + results) */}
+        {suggestions.length > 0 && (
+          <div className="fixed inset-x-0 top-[116px] z-50 mx-4">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
+              {suggestions.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/escola/${makeEscolaSlug(
+                    s.codigo_inep,
+                    s.nome
+                  )}`}
+                  className="block px-4 py-3 text-sm hover:bg-[var(--color-surface-hover)] border-b border-[var(--color-border)] last:border-0 transition-all duration-200"
+                >
+                  <div className="font-medium text-[var(--color-text)] truncate">
+                    {s.nome}
+                  </div>
+                  <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
+                    {s.municipio} - {s.uf}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Filters panel (sticky below search) */}
+        <div className="sticky top-[116px] z-30 px-4 py-2 bg-[var(--color-bg)]">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl px-3 py-2.5 shadow-sm">
             <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide snap-x w-full">
               <div className="shrink-0 snap-start">
                 <SearchableSelect
@@ -481,6 +496,7 @@ export default function BuscaContent({
               </div>
               <button
                 onClick={() => {
+                  setSuggestions([]);
                   const current = readParam("privada") !== "0";
                   updateFilters({ privada: current ? "0" : "1" });
                 }}
@@ -495,6 +511,7 @@ export default function BuscaContent({
               </button>
               <button
                 onClick={() => {
+                  setSuggestions([]);
                   const current = readParam("publica") !== "0";
                   updateFilters({ publica: current ? "0" : "1" });
                 }}
@@ -534,70 +551,54 @@ export default function BuscaContent({
               </div>
             </div>
           </div>
-          {geoError && (
+        </div>
+
+        {geoError && (
+          <div className="px-4 pt-1">
             <p className="text-xs text-[var(--color-danger)] font-medium">
               {geoError}
             </p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Results area with fade transition — fixed height */}
-        <div className="relative h-[calc(100dvh-132px)]">
-          {uf && hasResults && (
+        {/* Results area */}
+        <div className="flex-1 px-4 pb-20 overflow-y-auto">
+          {uf && hasResults ? (
             <>
-              {/* List */}
-              <div
-                className={`absolute inset-0 px-4 pb-20 overflow-y-auto transition-all duration-300 ease-in-out ${
-                  viewMap
-                    ? "opacity-0 scale-[0.97] pointer-events-none"
-                    : "opacity-100 scale-100"
-                }`}
-              >
-                <BuscaResults
-                  resultados={sortedResultados!}
-                  hoveredId={hoveredId}
-                  onHover={handleHover}
-                />
-              </div>
-
-              {/* Map */}
-              <div
-                className={`absolute inset-0 px-4 pb-20 transition-all duration-300 ease-in-out ${
-                  viewMap
-                    ? "opacity-100 scale-100"
-                    : "opacity-0 scale-[0.97] pointer-events-none"
-                }`}
-              >
-                <div className="h-full rounded-2xl overflow-hidden border border-[var(--color-border)] shadow-lg">
+              {viewMap ? (
+                <div className="h-[calc(100dvh-280px)] rounded-2xl overflow-hidden border border-[var(--color-border)] shadow-lg transition-all duration-300">
                   <MapaEscolas
                     escolas={sortedResultados || []}
                     userLocation={userLocation}
                     hoveredId={hoveredId}
                   />
                 </div>
-              </div>
-            </>
-          )}
-
-          {/* Empty states */}
-          {!uf && (
-            <div className="flex items-center justify-center h-full text-center text-sm text-[var(--color-text-tertiary)] px-4">
-              <div>
-                <div className="flex justify-center mb-2">
-                  <Search className="w-6 h-6 text-[var(--color-text-tertiary)]" />
+              ) : (
+                <div className="pt-3 transition-all duration-300">
+                  <BuscaResults
+                    resultados={sortedResultados!}
+                    hoveredId={hoveredId}
+                    onHover={handleHover}
+                  />
                 </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-center text-sm text-[var(--color-text-tertiary)] px-4">
+              {!uf ? (
+                <div>
+                  <div className="flex justify-center mb-2">
+                    <Search className="w-6 h-6 text-[var(--color-text-tertiary)]" />
+                  </div>
+                  <p className="font-medium text-xs">
+                    Selecione uma localiza{'\u00e7\u00e3o'}o para iniciar.
+                  </p>
+                </div>
+              ) : (
                 <p className="font-medium text-xs">
-                  Selecione uma localiza{'\u00e7\u00e3o'}o para iniciar.
+                  Nenhuma escola cadastrada nesta regi{'\u00e3'}o.
                 </p>
-              </div>
-            </div>
-          )}
-
-          {uf && !hasResults && (
-            <div className="flex items-center justify-center h-full text-center text-xs text-[var(--color-text-tertiary)] px-4">
-              <p className="font-medium">
-                Nenhuma escola cadastrada nesta regi{'\u00e3'}o.
-              </p>
+              )}
             </div>
           )}
         </div>
