@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, Navigation, DollarSign, GraduationCap, Layers, Map, List, Maximize2, Minimize2, MapPin } from "lucide-react";
+import { Search, Navigation, DollarSign, GraduationCap, Map, List, Maximize2, Minimize2, MapPin } from "lucide-react";
 import MapaEscolas from "@/components/mapa-escolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -262,13 +262,13 @@ export default function BuscaContent({
   const hasResults = sortedResultados && sortedResultados.length > 0;
 
   const logo = (
-    <div className="text-center">
-      <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+    <div className="text-center md:text-left">
+      <h1 className="text-sm md:text-2xl font-bold tracking-tight">
         <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
           Mensalidade Justa
         </span>
       </h1>
-      <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">
+      <p className="hidden md:block text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">
         Compare mensalidades escolares de forma an{'\u00f4'}nima
       </p>
     </div>
@@ -277,9 +277,9 @@ export default function BuscaContent({
   const buscaInput = (
     <div className="relative w-full max-w-xl mx-auto">
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
+        <Search className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4 md:h-4 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
         <input
-          className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full py-3 pl-11 pr-4 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all duration-300 shadow-sm"
+          className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full py-2 md:py-3 pl-9 md:pl-11 pr-3.5 md:pr-4 text-xs md:text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all duration-300 shadow-sm"
           placeholder="Buscar escola por nome..."
           value={localQuery}
           onChange={(e) => setLocalQuery(e.target.value)}
@@ -402,24 +402,108 @@ export default function BuscaContent({
     <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)] font-sans selection:bg-[var(--color-primary)]/30">
       {/* ===== MOBILE ===== */}
       <div className="md:hidden flex flex-col min-h-dvh">
-        <div className="flex flex-col items-center pt-10 pb-3 px-4 space-y-5">
-          {logo}
+        {/* Sticky header */}
+        <div className="sticky top-0 z-50 bg-[var(--color-bg)]/90 backdrop-blur-md border-b border-[var(--color-border)]/50 px-4 pt-3 pb-2 space-y-2.5">
+          <div className="flex items-center justify-center">
+            {logo}
+          </div>
           {buscaInput}
-          {filterBar}
+          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide snap-x w-full pb-0.5">
+            <button
+              onClick={buscarPertoDeMim}
+              disabled={geoLoading}
+              className="shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
+            >
+              <Navigation className="w-3 h-3" />
+              {geoLoading ? '...' : 'Perto de mim'}
+            </button>
+            <div className="shrink-0 snap-start">
+              <SearchableSelect
+                label="UF"
+                value={uf}
+                options={ufs}
+                onChange={(v) => updateFilters({ uf: v, cidade: "" })}
+                placeholder="UF"
+              />
+            </div>
+            <div className="shrink-0 snap-start">
+              <SearchableSelect
+                label="Cidade"
+                value={cidade}
+                options={cidades}
+                onChange={(v) => updateFilters({ cidade: v })}
+                placeholder="Cidade"
+                disabled={!uf}
+              />
+            </div>
+            <button
+              onClick={() => {
+                const current = readParam("privada") !== "0";
+                updateFilters({ privada: current ? "0" : "1" });
+              }}
+              className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+                readParam("privada") !== "0"
+                  ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+              }`}
+            >
+              <DollarSign className="w-3 h-3" />
+              Privadas
+            </button>
+            <button
+              onClick={() => {
+                const current = readParam("publica") !== "0";
+                updateFilters({ publica: current ? "0" : "1" });
+              }}
+              className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+                readParam("publica") !== "0"
+                  ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+              }`}
+            >
+              <GraduationCap className="w-3 h-3" />
+              P{'\u00fa'}blicas
+            </button>
+            <div className="shrink-0 snap-start">
+              <SearchableSelect
+                label="Etapa"
+                value={serieSlug}
+                series={SERIES}
+                grupos={GRUPOS}
+                onChange={(v) => updateFilters({ serie: v })}
+              />
+            </div>
+            <div className="shrink-0 snap-start">
+              <div className="relative">
+                <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
+                <input
+                  className="pl-7 pr-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-tertiary)] hover:border-[var(--color-border-hover)] transition-all duration-300 w-32 outline-none focus:border-[var(--color-primary)]/40"
+                  placeholder="Mensalidade M{'\u00e1'}x."
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={maxPrice}
+                  onChange={(e) =>
+                    updateFilters({ maxPrice: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
           {geoError && (
-            <p className="text-xs text-[var(--color-danger)] font-medium -mt-3">
+            <p className="text-xs text-[var(--color-danger)] font-medium">
               {geoError}
             </p>
           )}
         </div>
 
-        {/* Results area with fade transition */}
-        <div className="flex-1 relative">
+        {/* Results area with fade transition — fixed height */}
+        <div className="relative h-[calc(100dvh-132px)]">
           {uf && hasResults && (
             <>
               {/* List */}
               <div
-                className={`absolute inset-0 px-4 pb-24 overflow-y-auto transition-all duration-300 ease-in-out ${
+                className={`absolute inset-0 px-4 pb-20 overflow-y-auto transition-all duration-300 ease-in-out ${
                   viewMap
                     ? "opacity-0 scale-[0.97] pointer-events-none"
                     : "opacity-100 scale-100"
@@ -434,7 +518,7 @@ export default function BuscaContent({
 
               {/* Map */}
               <div
-                className={`absolute inset-0 px-4 pb-24 transition-all duration-300 ease-in-out ${
+                className={`absolute inset-0 px-4 pb-20 transition-all duration-300 ease-in-out ${
                   viewMap
                     ? "opacity-100 scale-100"
                     : "opacity-0 scale-[0.97] pointer-events-none"
@@ -455,10 +539,10 @@ export default function BuscaContent({
           {!uf && (
             <div className="flex items-center justify-center h-full text-center text-sm text-[var(--color-text-tertiary)] px-4">
               <div>
-                <div className="flex justify-center mb-3">
-                  <Search className="w-8 h-8 text-[var(--color-text-tertiary)]" />
+                <div className="flex justify-center mb-2">
+                  <Search className="w-6 h-6 text-[var(--color-text-tertiary)]" />
                 </div>
-                <p className="font-medium">
+                <p className="font-medium text-xs">
                   Selecione uma localiza{'\u00e7\u00e3o'}o para iniciar.
                 </p>
               </div>
@@ -466,7 +550,7 @@ export default function BuscaContent({
           )}
 
           {uf && !hasResults && (
-            <div className="flex items-center justify-center h-full text-center text-sm text-[var(--color-text-tertiary)] px-4">
+            <div className="flex items-center justify-center h-full text-center text-xs text-[var(--color-text-tertiary)] px-4">
               <p className="font-medium">
                 Nenhuma escola cadastrada nesta regi{'\u00e3'}o.
               </p>
@@ -478,7 +562,7 @@ export default function BuscaContent({
         {hasResults && (
           <button
             onClick={() => setViewMap((v) => !v)}
-            className="floating-btn fixed bottom-6 left-1/2 -translate-x-1/2 z-40 backdrop-blur-lg active:scale-95"
+            className="floating-btn fixed bottom-[72px] left-1/2 -translate-x-1/2 z-40 backdrop-blur-lg active:scale-95"
           >
             {viewMap ? (
               <><List className="w-4 h-4" /> Ver Lista</>

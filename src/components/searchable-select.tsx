@@ -64,7 +64,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   return (
     <>
-      <button onClick={() => { if (!disabled) setOpen(true); }} className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-all duration-300 min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed" disabled={disabled}>
+      <button onClick={() => { if (!disabled) setOpen(true); }} className="shrink-0 inline-flex items-center gap-1 px-2.5 md:gap-1.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={disabled}>
         {getDisplay()}
         <ChevronDown className="w-3 h-3 text-[var(--color-text-tertiary)]" />
       </button>
