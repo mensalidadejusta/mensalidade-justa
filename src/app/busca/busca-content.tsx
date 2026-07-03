@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { Search, Navigation, DollarSign, GraduationCap, Layers, Map, List, Maximize2, Minimize2, MapPin } from "lucide-react";
 import MapaEscolas from "@/components/mapa-escolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -180,9 +181,7 @@ export default function BuscaContent({
 
   async function buscarPertoDeMim() {
     if (!navigator.geolocation) {
-      setGeoError(
-        "Geolocaliza\u00e7\u00e3o n\u00e3o suportada."
-      );
+      setGeoError("Geolocaliza\u00e7\u00e3o n\u00e3o suportada.");
       return;
     }
     setGeoLoading(true);
@@ -215,9 +214,7 @@ export default function BuscaContent({
         a.state?.slice(0, 2) ||
         "";
       if (!est || !cid) {
-        setGeoError(
-          "N\u00e3o foi poss\u00edvel identificar sua cidade."
-        );
+        setGeoError("N\u00e3o foi poss\u00edvel identificar sua cidade.");
         return;
       }
 
@@ -271,27 +268,25 @@ export default function BuscaContent({
           Mensalidade Justa
         </span>
       </h1>
-      <p className="text-xs text-neutral-500 mt-1 font-medium">
+      <p className="text-xs text-[var(--color-text-tertiary)] mt-1 font-medium">
         Compare mensalidades escolares de forma an{'\u00f4'}nima
       </p>
     </div>
   );
 
   const buscaInput = (
-    <div className="relative w-full max-w-lg mx-auto">
-      <div className="relative group">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-neutral-500 z-10">
-          {'\uD83D\uDD0D'}
-        </span>
+    <div className="relative w-full max-w-xl mx-auto">
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
         <input
-          className="w-full bg-neutral-900 border border-neutral-800 rounded-full py-3 pl-11 pr-4 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 shadow-sm"
+          className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full py-3 pl-11 pr-4 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all duration-300 shadow-sm"
           placeholder="Buscar escola por nome..."
           value={localQuery}
           onChange={(e) => setLocalQuery(e.target.value)}
         />
       </div>
       {suggestions.length > 0 && (
-        <div className="absolute top-full mt-2 left-0 right-0 max-w-lg mx-auto bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl z-30 overflow-hidden">
+        <div className="absolute top-full mt-2 left-0 right-0 max-w-xl mx-auto bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl z-30 overflow-hidden backdrop-blur-md">
           {suggestions.map((s) => (
             <Link
               key={s.id}
@@ -299,12 +294,12 @@ export default function BuscaContent({
                 s.codigo_inep,
                 s.nome
               )}`}
-              className="block px-4 py-3 text-sm hover:bg-neutral-800 border-b border-neutral-800/60 last:border-0 transition-all duration-200"
+              className="block px-4 py-3 text-sm hover:bg-[var(--color-surface-hover)] border-b border-[var(--color-border)] last:border-0 transition-all duration-300"
             >
-              <div className="font-medium text-neutral-100 truncate">
+              <div className="font-medium text-[var(--color-text)] truncate">
                 {s.nome}
               </div>
-              <div className="text-xs text-neutral-500 mt-0.5">
+              <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
                 {s.municipio} - {s.uf}
               </div>
             </Link>
@@ -315,76 +310,86 @@ export default function BuscaContent({
   );
 
   const filterBar = (
-    <div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] pb-1">
+    <div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide snap-x md:flex-wrap md:justify-center pb-1">
       <button
         onClick={buscarPertoDeMim}
         disabled={geoLoading}
-        className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-neutral-900 border border-neutral-800 text-neutral-300 hover:bg-neutral-800 hover:border-blue-500/40 hover:text-blue-400 transition-all duration-200 active:scale-95"
+        className="shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
       >
-        {geoLoading
-          ? '\uD83D\uDCCD...'
-          : '\uD83D\uDCCD Perto de mim'}
+        <Navigation className="w-3.5 h-3.5" />
+        {geoLoading ? '...' : 'Perto de mim'}
       </button>
-      <SearchableSelect
-        label="UF"
-        value={uf}
-        options={ufs}
-        onChange={(v) => updateFilters({ uf: v, cidade: "" })}
-        placeholder="UF"
-      />
-      <SearchableSelect
-        label="Cidade"
-        value={cidade}
-        options={cidades}
-        onChange={(v) => updateFilters({ cidade: v })}
-        placeholder="Cidade"
-        disabled={!uf}
-      />
+      <div className="shrink-0 snap-start">
+        <SearchableSelect
+          label="UF"
+          value={uf}
+          options={ufs}
+          onChange={(v) => updateFilters({ uf: v, cidade: "" })}
+          placeholder="UF"
+        />
+      </div>
+      <div className="shrink-0 snap-start">
+        <SearchableSelect
+          label="Cidade"
+          value={cidade}
+          options={cidades}
+          onChange={(v) => updateFilters({ cidade: v })}
+          placeholder="Cidade"
+          disabled={!uf}
+        />
+      </div>
       <button
         onClick={() => {
           const current = readParam("privada") !== "0";
           updateFilters({ privada: current ? "0" : "1" });
         }}
-        className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 active:scale-95 border ${
+        className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
           readParam("privada") !== "0"
-            ? "bg-blue-500/10 border-blue-500/40 text-blue-400"
-            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300"
+            ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+            : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
         }`}
       >
-        {'\uD83C\uDFE2'} Privadas
+        <DollarSign className="w-3.5 h-3.5" />
+        Privadas
       </button>
       <button
         onClick={() => {
           const current = readParam("publica") !== "0";
           updateFilters({ publica: current ? "0" : "1" });
         }}
-        className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 active:scale-95 border ${
+        className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
           readParam("publica") !== "0"
-            ? "bg-blue-500/10 border-blue-500/40 text-blue-400"
-            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300"
+            ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+            : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
         }`}
       >
-        {'\uD83C\uDFDB\uFE0F'} P{'\u00fa'}blicas
+        <GraduationCap className="w-3.5 h-3.5" />
+        P{'\u00fa'}blicas
       </button>
-      <SearchableSelect
-        label="Etapa"
-        value={serieSlug}
-        series={SERIES}
-        grupos={GRUPOS}
-        onChange={(v) => updateFilters({ serie: v })}
-      />
-      <div className="shrink-0">
-        <input
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-neutral-900 border border-neutral-800 text-neutral-400 placeholder:text-neutral-500 hover:border-neutral-700 transition-all duration-200 w-36 outline-none focus:border-blue-500/40"
-          placeholder="Mensalidade M{'\u00e1'}x."
-          type="number"
-          min="0"
-          step="100"
-          value={maxPrice}
-          onChange={(e) =>
-            updateFilters({ maxPrice: e.target.value })
-          }
+      <div className="shrink-0 snap-start">
+        <SearchableSelect
+          label="Etapa"
+          value={serieSlug}
+          series={SERIES}
+          grupos={GRUPOS}
+          onChange={(v) => updateFilters({ serie: v })}
         />
+      </div>
+      <div className="shrink-0 snap-start">
+        <div className="relative">
+          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
+          <input
+            className="pl-8 pr-4 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-tertiary)] hover:border-[var(--color-border-hover)] transition-all duration-300 w-36 outline-none focus:border-[var(--color-primary)]/40"
+            placeholder="Mensalidade M{'\u00e1'}x."
+            type="number"
+            min="0"
+            step="100"
+            value={maxPrice}
+            onChange={(e) =>
+              updateFilters({ maxPrice: e.target.value })
+            }
+          />
+        </div>
       </div>
     </div>
   );
@@ -394,7 +399,7 @@ export default function BuscaContent({
   }, []);
 
   return (
-    <div className="min-h-dvh bg-neutral-950 text-neutral-100 font-sans selection:bg-blue-500/30">
+    <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)] font-sans selection:bg-[var(--color-primary)]/30">
       {/* ===== MOBILE ===== */}
       <div className="md:hidden flex flex-col min-h-dvh">
         <div className="flex flex-col items-center pt-10 pb-3 px-4 space-y-5">
@@ -402,7 +407,7 @@ export default function BuscaContent({
           {buscaInput}
           {filterBar}
           {geoError && (
-            <p className="text-xs text-red-400 font-medium -mt-3">
+            <p className="text-xs text-[var(--color-danger)] font-medium -mt-3">
               {geoError}
             </p>
           )}
@@ -435,7 +440,7 @@ export default function BuscaContent({
                     : "opacity-0 scale-[0.97] pointer-events-none"
                 }`}
               >
-                <div className="h-full rounded-2xl overflow-hidden border border-neutral-800 shadow-lg">
+                <div className="h-full rounded-2xl overflow-hidden border border-[var(--color-border)] shadow-lg">
                   <MapaEscolas
                     escolas={sortedResultados || []}
                     userLocation={userLocation}
@@ -448,9 +453,11 @@ export default function BuscaContent({
 
           {/* Empty states */}
           {!uf && (
-            <div className="flex items-center justify-center h-full text-center text-sm text-neutral-500 px-4">
+            <div className="flex items-center justify-center h-full text-center text-sm text-[var(--color-text-tertiary)] px-4">
               <div>
-                <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
+                <div className="flex justify-center mb-3">
+                  <Search className="w-8 h-8 text-[var(--color-text-tertiary)]" />
+                </div>
                 <p className="font-medium">
                   Selecione uma localiza{'\u00e7\u00e3o'}o para iniciar.
                 </p>
@@ -459,7 +466,7 @@ export default function BuscaContent({
           )}
 
           {uf && !hasResults && (
-            <div className="flex items-center justify-center h-full text-center text-sm text-neutral-500 px-4">
+            <div className="flex items-center justify-center h-full text-center text-sm text-[var(--color-text-tertiary)] px-4">
               <p className="font-medium">
                 Nenhuma escola cadastrada nesta regi{'\u00e3'}o.
               </p>
@@ -471,11 +478,13 @@ export default function BuscaContent({
         {hasResults && (
           <button
             onClick={() => setViewMap((v) => !v)}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium bg-neutral-900 border border-neutral-700 text-neutral-100 shadow-2xl hover:bg-neutral-800 hover:border-blue-500/40 hover:text-blue-400 transition-all duration-200 active:scale-95 backdrop-blur-xl"
+            className="floating-btn fixed bottom-6 left-1/2 -translate-x-1/2 z-40 backdrop-blur-lg active:scale-95"
           >
-            {viewMap
-              ? '\uD83D\uDCDD Ver Lista'
-              : '\uD83D\uDCCD Ver Mapa'}
+            {viewMap ? (
+              <><List className="w-4 h-4" /> Ver Lista</>
+            ) : (
+              <><Map className="w-4 h-4" /> Ver Mapa</>
+            )}
           </button>
         )}
       </div>
@@ -484,21 +493,21 @@ export default function BuscaContent({
       <div className="hidden md:flex h-dvh overflow-hidden">
         {/* Left panel */}
         <div
-          className="flex flex-col border-r border-neutral-800/60 transition-all duration-300 ease-in-out"
-          style={{ width: showMap ? "60%" : "100%" }}
+          className="flex flex-col border-r border-[var(--color-border)]/60 transition-all duration-300 ease-in-out"
+          style={{ width: showMap ? "55%" : "100%" }}
         >
-          <header className="shrink-0 px-8 pt-8 pb-5 space-y-5 border-b border-neutral-800/40">
+          <header className="shrink-0 px-8 pt-8 pb-5 space-y-5 border-b border-[var(--color-border)]/40">
             {logo}
             {buscaInput}
             {filterBar}
             {geoError && (
-              <p className="text-xs text-red-400 font-medium">
+              <p className="text-xs text-[var(--color-danger)] font-medium">
                 {geoError}
               </p>
             )}
           </header>
 
-          <main className="flex-1 overflow-y-auto px-8 py-4 space-y-3 bg-neutral-950">
+          <main className="flex-1 overflow-y-auto px-8 py-4 space-y-3 bg-[var(--color-bg)]">
             {sortedResultados ? (
               <BuscaResults
                 resultados={sortedResultados}
@@ -506,15 +515,19 @@ export default function BuscaContent({
                 onHover={handleHover}
               />
             ) : uf && cidade ? (
-              <div className="text-center text-sm text-neutral-500 py-12">
-                <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
+              <div className="text-center text-sm text-[var(--color-text-tertiary)] py-12">
+                <div className="flex justify-center mb-3">
+                  <Search className="w-8 h-8 text-[var(--color-text-tertiary)]" />
+                </div>
                 <p className="font-medium">
                   Nenhuma escola encontrada.
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-sm text-neutral-500">
-                <p className="text-4xl mb-3">{'\uD83D\uDDFA\uFE0F'}</p>
+              <div className="flex flex-col items-center justify-center h-full text-sm text-[var(--color-text-tertiary)]">
+                <div className="flex justify-center mb-3">
+                  <MapPin className="w-10 h-10 text-[var(--color-text-tertiary)]" />
+                </div>
                 <p className="font-semibold text-center">
                   Defina uma UF e Cidade para carregar
                   <br />
@@ -528,7 +541,7 @@ export default function BuscaContent({
         {/* Right panel - Map */}
         {showMap && (
           <div className="flex-1 relative p-3 min-w-0">
-            <div className="h-full rounded-3xl overflow-hidden border border-neutral-800/80 shadow-2xl bg-neutral-900">
+            <div className="h-full rounded-3xl overflow-hidden border border-[var(--color-border)]/80 shadow-2xl bg-[var(--color-surface)]">
               <MapaEscolas
                 escolas={sortedResultados || []}
                 userLocation={userLocation}
@@ -537,9 +550,9 @@ export default function BuscaContent({
             </div>
             <button
               onClick={() => setShowMap(false)}
-              className="absolute top-6 right-6 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-900/80 border border-neutral-700 text-neutral-400 hover:text-neutral-100 hover:border-neutral-600 transition-all duration-200 backdrop-blur-md"
+              className="absolute top-6 right-6 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)]/80 border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition-all duration-300 backdrop-blur-md"
             >
-              {'\uD83D\uDDFA\uFE0F'} Ocultar Mapa
+              <Minimize2 className="w-3.5 h-3.5" /> Ocultar Mapa
             </button>
           </div>
         )}
@@ -548,9 +561,9 @@ export default function BuscaContent({
         {!showMap && (
           <button
             onClick={() => setShowMap(true)}
-            className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium bg-neutral-900 border border-neutral-700 text-neutral-100 shadow-2xl hover:bg-neutral-800 hover:border-blue-500/40 hover:text-blue-400 transition-all duration-200 active:scale-95"
+            className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] shadow-2xl hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)] transition-all duration-300 active:scale-95"
           >
-            {'\uD83D\uDDFA\uFE0F'} Ver Mapa
+            <Maximize2 className="w-4 h-4" /> Ver Mapa
           </button>
         )}
       </div>

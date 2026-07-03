@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 
 type SerieItem = { slug: string; nome: string; grupo: string };
 
@@ -37,7 +38,6 @@ export default function SearchableSelect({ label, value, options, series, grupos
     return label;
   }
 
-  // Filter logic
   const filteredSeries = !isSeries
     ? null
     : search
@@ -64,22 +64,23 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   return (
     <>
-      <button onClick={() => { if (!disabled) setOpen(true); }} className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-neutral-900 border border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 transition-all duration-200 min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed" disabled={disabled}>
+      <button onClick={() => { if (!disabled) setOpen(true); }} className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-all duration-300 min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed" disabled={disabled}>
         {getDisplay()}
+        <ChevronDown className="w-3 h-3 text-[var(--color-text-tertiary)]" />
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/60" onClick={() => { setOpen(false); setSearch(""); }} />
 
-          <div className="relative bg-neutral-900 w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl max-h-[70vh] flex flex-col shadow-2xl border border-neutral-800">
-            <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-neutral-800 shrink-0">
-              <h3 className="text-sm font-semibold text-neutral-100">{label}</h3>
-              <button onClick={() => { setOpen(false); setSearch(""); }} className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">Fechar</button>
+          <div className="relative bg-[var(--color-surface)] w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl max-h-[70vh] flex flex-col shadow-2xl border border-[var(--color-border)] animate-slide-up">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-[var(--color-border)] shrink-0">
+              <h3 className="text-sm font-semibold text-[var(--color-text)]">{label}</h3>
+              <button onClick={() => { setOpen(false); setSearch(""); }} className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text)] transition-colors">Fechar</button>
             </div>
 
             <div className="px-4 py-2 shrink-0">
-              <input ref={inputRef} className="w-full bg-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              <input ref={inputRef} className="w-full bg-[var(--color-bg)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
                 placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
 
@@ -88,25 +89,25 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 <>
                   {value && (
                     <button onClick={() => select("")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:bg-neutral-800 transition-colors italic">
+                      className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-hover)] transition-colors italic">
                       Todas as etapas
                     </button>
                   )}
                   {filteredSeries!.length === 0 ? (
-                    <p className="text-center text-xs text-neutral-500 py-6">Nenhuma s\u00e9rie encontrada</p>
+                    <p className="text-center text-xs text-[var(--color-text-tertiary)] py-6">Nenhuma s{'\u00e9'}rie encontrada</p>
                   ) : (
                     grupos!.map((grupo) => {
                       const items = filteredSeries!.filter((s) => s.grupo === grupo);
                       if (!items.length) return null;
                       return (
                         <div key={grupo}>
-                          <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider px-3 pt-3 pb-1">{grupo}</p>
+                          <p className="text-[10px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider px-3 pt-3 pb-1">{grupo}</p>
                           {items.map((s) => (
                             <button key={s.slug} onClick={() => select(s.slug)}
                               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
                                 s.slug === value
-                                  ? "bg-blue-500/10 text-blue-400 font-medium"
-                                  : "text-neutral-300 hover:bg-neutral-800"
+                                  ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-medium"
+                                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                               }`}>{s.nome}</button>
                           ))}
                         </div>
@@ -118,19 +119,19 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 <>
                   {value && (
                     <button onClick={() => select("")}
-                      className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:bg-neutral-800 transition-colors italic">
+                      className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-hover)] transition-colors italic">
                       {isSeries ? "Todas as etapas" : "Todos"}
                     </button>
                   )}
                   {filteredOptions!.length === 0 ? (
-                    <p className="text-center text-xs text-neutral-500 py-6">Nenhum resultado</p>
+                    <p className="text-center text-xs text-[var(--color-text-tertiary)] py-6">Nenhum resultado</p>
                   ) : (
                     filteredOptions!.map((opt) => (
                       <button key={opt} onClick={() => select(opt)}
                         className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
                           opt === value
-                            ? "bg-blue-500/10 text-blue-400 font-medium"
-                            : "text-neutral-300 hover:bg-neutral-800"
+                            ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-medium"
+                            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                         }`}>{opt}</button>
                     ))
                   )}
