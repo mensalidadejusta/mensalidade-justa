@@ -340,6 +340,7 @@ export default function BuscaContent({
             options={ufs}
             onChange={(v) => updateFilters({ uf: v, cidade: "" })}
             placeholder="UF"
+            position="sidebar"
           />
         </div>
         <div className="shrink-0 snap-start">
@@ -350,6 +351,7 @@ export default function BuscaContent({
             onChange={(v) => updateFilters({ cidade: v })}
             placeholder="Cidade"
             disabled={!uf}
+            position="sidebar"
           />
         </div>
         <button
@@ -388,6 +390,7 @@ export default function BuscaContent({
             grupos={GRUPOS}
             onChange={(v) => updateFilters({ serie: v })}
             isMultiple={true}
+            position="sidebar"
           />
         </div>
         <div className="shrink-0 snap-start">
