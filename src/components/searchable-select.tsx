@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronDown, Check } from "lucide-react";
 
 type SerieItem = { slug: string; nome: string; grupo: string };
@@ -26,12 +27,23 @@ function normalize(t: string) {
   return t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+function RadioChecked() {
+  return (
+    <span className="w-4 h-4 rounded-full border-2 border-[var(--color-primary)] flex items-center justify-center shrink-0 mr-3">
+      <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+    </span>
+  );
+}
+
+function RadioUnchecked() {
+  return <span className="w-4 h-4 rounded-full border-2 border-neutral-700 bg-transparent shrink-0 mr-3" />;
+}
+
 export default function SearchableSelect({ label, value, options, series, grupos, onChange, disabled }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [closing, setClosing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   const isSeries = !!series;
   const title = TITLES[label] || label;
@@ -74,16 +86,11 @@ export default function SearchableSelect({ label, value, options, series, grupos
   function openSheet() {
     if (disabled) return;
     setSearch("");
-    setClosing(false);
     setOpen(true);
   }
 
   function closeSheet() {
-    setClosing(true);
-    setTimeout(() => {
-      setOpen(false);
-      setClosing(false);
-    }, 200);
+    setOpen(false);
   }
 
   function select(val: string) {
@@ -91,129 +98,173 @@ export default function SearchableSelect({ label, value, options, series, grupos
     closeSheet();
   }
 
+  const handleDragEnd = useCallback((_: any, info: any) => {
+    if (info.offset.y > 150) {
+      closeSheet();
+    }
+  }, []);
+
   const showOptions = isSeries ? filteredSeries : filteredOptions;
+
+  const sheetVariants = {
+    hidden: { y: "100%" },
+    visible: { y: 0, transition: { type: "spring" as const, damping: 25, stiffness: 200 } },
+    exit: { y: "100%", transition: { type: "spring" as const, damping: 20, stiffness: 200 } },
+  };
+
+  const overlayVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  };
 
   return (
     <>
-      <button onClick={openSheet} className="shrink-0 inline-flex items-center gap-1 px-2.5 md:gap-1.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled={disabled}>
+      <button
+        onClick={openSheet}
+        className="shrink-0 inline-flex items-center gap-1 px-2.5 md:gap-1.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={disabled}
+      >
         {getDisplay()}
         <ChevronDown className="w-3 h-3 text-[var(--color-text-tertiary)]" />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
-          {/* Overlay */}
-          <div
-            className={`absolute inset-0 bg-black/70 transition-opacity duration-200 ${closing ? "opacity-0" : "opacity-100"}`}
-            onClick={closeSheet}
-          />
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
+            {/* Overlay */}
+            <motion.div
+              className="absolute inset-0 bg-black/70"
+              variants={overlayVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              onClick={closeSheet}
+            />
 
-          {/* Panel */}
-          <div
-            className={`relative w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl bg-[#1e1e1e] flex flex-col shadow-2xl border border-[var(--color-border)] transition-all duration-200 ${
-              closing
-                ? "translate-y-full opacity-0"
-                : "translate-y-0 opacity-100"
-            }`}
-            style={{ maxHeight: "85dvh" }}
-          >
-            {/* Handle */}
-            <div className="flex justify-center pt-2 pb-1 shrink-0 sm:hidden">
-              <div className="w-8 h-1 rounded-full bg-[#3c4043]" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-1 pb-3 shrink-0">
-              <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
-              <button onClick={closeSheet} className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
-                Concluir
-              </button>
-            </div>
-
-            {/* Search */}
-            <div className="px-4 pb-3 shrink-0">
-              <div className="relative group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)] pointer-events-none z-10" />
-                <input
-                  ref={inputRef}
-                  className="w-full bg-[#131314] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] outline-none border border-[var(--color-border)] transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-[#4285f4]/50 group-focus-within:border-transparent"
-                  placeholder="Digite para buscar..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+            {/* Sheet */}
+            <motion.div
+              ref={sheetRef}
+              className="relative w-full sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-[#131314] border border-neutral-800 flex flex-col shadow-2xl overflow-hidden sm:mx-4"
+              style={{ maxHeight: "85dvh" }}
+              variants={sheetVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              drag={typeof window !== "undefined" && window.innerWidth < 640 ? "y" : false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.5 }}
+              onDragEnd={handleDragEnd}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing sm:hidden">
+                <div className="w-12 h-1 rounded-full bg-neutral-700" />
               </div>
-            </div>
 
-            {/* Options list */}
-            <div ref={listRef} className="flex-1 overflow-y-auto px-2 pb-4">
-              {/* "All" option */}
-              {value && (
-                <button
-                  onClick={() => select("")}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-[var(--color-text-tertiary)] hover:bg-[#2a2a2a]/80 transition-colors italic"
-                >
-                  {isSeries ? "Todas as etapas" : "Todos"}
-                  {!value && <Check className="w-4 h-4 text-[var(--color-primary)]" />}
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pb-3 shrink-0">
+                <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
+                <button onClick={closeSheet} className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
+                  Concluir
                 </button>
-              )}
+              </div>
 
-              {!showOptions || showOptions.length === 0 ? (
-                <p className="text-center text-xs text-[var(--color-text-tertiary)] py-8">
-                  Nenhum resultado encontrado
-                </p>
-              ) : isSeries ? (
-                grupos!.map((grupo) => {
-                  const items = (filteredSeries as SerieItem[]).filter((s) => s.grupo === grupo);
-                  if (!items.length) return null;
-                  const isSelectedGroup = items.some((s) => s.slug === value);
-                  return (
-                    <div key={grupo}>
-                      <p className="text-[10px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider px-3 pt-4 pb-1">
-                        {grupo}
-                      </p>
-                      {items.map((s) => {
-                        const selected = s.slug === value;
+              {/* Search */}
+              <div className="px-4 pb-3 shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)] pointer-events-none z-10" />
+                  <input
+                    ref={inputRef}
+                    className="w-full bg-neutral-900 rounded-xl pl-10 pr-4 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] outline-none border border-neutral-800 transition-all duration-300 focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                    placeholder="Digite para buscar..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Options list */}
+              <div className="flex-1 overflow-y-auto">
+                {!showOptions || showOptions.length === 0 ? (
+                  <p className="text-center text-xs text-[var(--color-text-tertiary)] py-8">
+                    Nenhum resultado encontrado
+                  </p>
+                ) : (
+                  <div className="w-full divide-y divide-neutral-800/80 border-t border-b border-neutral-800/80">
+                    {/* "All" option */}
+                    {value && (
+                      <button
+                        onClick={() => select("")}
+                        className="flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors text-[var(--color-text-tertiary)] italic hover:bg-neutral-900"
+                      >
+                        <span className="flex items-center">
+                          {!value ? <RadioChecked /> : <RadioUnchecked />}
+                          {isSeries ? "Todas as etapas" : "Todos"}
+                        </span>
+                      </button>
+                    )}
+
+                    {isSeries ? (
+                      grupos!.map((grupo) => {
+                        const items = (filteredSeries as SerieItem[]).filter((s) => s.grupo === grupo);
+                        if (!items.length) return null;
+                        return (
+                          <div key={grupo}>
+                            <p className="text-[10px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider px-4 pt-3 pb-1">
+                              {grupo}
+                            </p>
+                            {items.map((s) => {
+                              const selected = s.slug === value;
+                              return (
+                                <button
+                                  key={s.slug}
+                                  onClick={() => select(s.slug)}
+                                  className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                                    selected
+                                      ? "bg-[var(--color-primary)]/5 text-neutral-100 font-medium"
+                                      : "text-[var(--color-text-secondary)] hover:bg-neutral-900"
+                                  }`}
+                                >
+                                  <span className="flex items-center min-w-0">
+                                    {selected ? <RadioChecked /> : <RadioUnchecked />}
+                                    <span className="truncate">{s.nome}</span>
+                                  </span>
+                                  {selected && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      (filteredOptions as string[]).map((opt) => {
+                        const selected = opt === value;
                         return (
                           <button
-                            key={s.slug}
-                            onClick={() => select(s.slug)}
-                            className={`w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm transition-all duration-200 ${
+                            key={opt}
+                            onClick={() => select(opt)}
+                            className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${
                               selected
-                                ? "bg-blue-500/10 text-blue-400 font-medium"
-                                : "text-[var(--color-text-secondary)] hover:bg-[#2a2a2a]/80"
+                                ? "bg-[var(--color-primary)]/5 text-neutral-100 font-medium"
+                                : "text-[var(--color-text-secondary)] hover:bg-neutral-900"
                             }`}
                           >
-                            <span>{s.nome}</span>
-                            {selected && <Check className="w-4 h-4 text-blue-400 shrink-0 ml-2" />}
+                            <span className="flex items-center min-w-0">
+                              {selected ? <RadioChecked /> : <RadioUnchecked />}
+                              <span className="truncate">{opt}</span>
+                            </span>
+                            {selected && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
                           </button>
                         );
-                      })}
-                    </div>
-                  );
-                })
-              ) : (
-                (filteredOptions as string[]).map((opt) => {
-                  const selected = opt === value;
-                  return (
-                    <button
-                      key={opt}
-                      onClick={() => select(opt)}
-                      className={`w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm transition-all duration-200 ${
-                        selected
-                          ? "bg-blue-500/10 text-blue-400 font-medium"
-                          : "text-[var(--color-text-secondary)] hover:bg-[#2a2a2a]/80"
-                      }`}
-                    >
-                      <span>{opt}</span>
-                      {selected && <Check className="w-4 h-4 text-blue-400 shrink-0 ml-2" />}
-                    </button>
-                  );
-                })
-              )}
-            </div>
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }
