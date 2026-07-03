@@ -194,7 +194,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
             <motion.div
               ref={sheetRef}
               className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-[#131314] border border-neutral-800 flex flex-col shadow-2xl overflow-hidden sm:mx-4"
-              style={{ height: "50dvh" }}
+              style={{ height: "90dvh" }}
               variants={sheetVariants}
               initial="hidden"
               animate="visible"
