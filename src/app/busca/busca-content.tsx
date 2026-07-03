@@ -359,7 +359,7 @@ export default function BuscaContent({
           }}
           className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
             readParam("privada") !== "0"
-              ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+              ? "bg-purple-500/10 border-purple-500/40 text-purple-400"
               : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
           }`}
         >
@@ -373,7 +373,7 @@ export default function BuscaContent({
           }}
           className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
             readParam("publica") !== "0"
-              ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+              ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
               : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
           }`}
         >
@@ -448,13 +448,13 @@ export default function BuscaContent({
             <SearchableSelect label="UF" value={uf} options={ufs} onChange={(v) => updateFilters({ uf: v, cidade: "" })} placeholder="UF" />
             <SearchableSelect label="Cidade" value={cidade} options={cidades} onChange={(v) => updateFilters({ cidade: v })} placeholder="Cidade" disabled={!uf} />
             <button onClick={() => { setSuggestions([]); const current = readParam("privada") !== "0"; updateFilters({ privada: current ? "0" : "1" }); }}
-              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 active:scale-95 ${
-                readParam("privada") !== "0" ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]" : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
-              }`}><DollarSign className="w-3 h-3" /> Privadas</button>
+               className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 active:scale-95 ${
+                 readParam("privada") !== "0" ? "bg-purple-500/10 border-purple-500/40 text-purple-400" : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
+               }`}><DollarSign className="w-3 h-3" /> Privadas</button>
             <button onClick={() => { setSuggestions([]); const current = readParam("publica") !== "0"; updateFilters({ publica: current ? "0" : "1" }); }}
-              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 active:scale-95 ${
-                readParam("publica") !== "0" ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 text-[var(--color-primary)]" : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
-              }`}><GraduationCap className="w-3 h-3" /> P{'\u00fa'}blicas</button>
+               className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 active:scale-95 ${
+                 readParam("publica") !== "0" ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
+               }`}><GraduationCap className="w-3 h-3" /> P{'\u00fa'}blicas</button>
             <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
             <div className="shrink-0 relative">
               <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--color-text-tertiary)] pointer-events-none" />
