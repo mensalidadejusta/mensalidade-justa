@@ -144,8 +144,8 @@ export default function SearchableSelect({ label, value, options, series, grupos
             {/* Sheet */}
             <motion.div
               ref={sheetRef}
-              className="relative w-full sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-[#131314] border border-neutral-800 flex flex-col shadow-2xl overflow-hidden sm:mx-4"
-              style={{ maxHeight: "85dvh" }}
+              className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-[#131314] border border-neutral-800 flex flex-col shadow-2xl overflow-hidden sm:mx-4"
+              style={{ height: "50dvh" }}
               variants={sheetVariants}
               initial="hidden"
               animate="visible"
@@ -183,7 +183,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
               </div>
 
               {/* Options list */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto pb-4">
                 {!showOptions || showOptions.length === 0 ? (
                   <p className="text-center text-xs text-[var(--color-text-tertiary)] py-8">
                     Nenhum resultado encontrado
