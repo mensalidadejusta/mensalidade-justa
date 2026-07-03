@@ -73,7 +73,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
         <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-bg)] animate-slide-up">
           <div className="absolute inset-0 bg-black/60 hidden sm:block" onClick={() => { setOpen(false); setSearch(""); }} />
 
-          <div className="relative flex flex-col h-full sm:h-auto sm:max-w-sm sm:mx-auto sm:mt-16 sm:rounded-2xl sm:max-h-[80vh] sm:shadow-2xl sm:border sm:border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="relative flex flex-col min-h-dvh sm:min-h-0 sm:max-w-sm sm:mx-auto sm:mt-16 sm:rounded-2xl sm:max-h-[80vh] sm:shadow-2xl sm:border sm:border-[var(--color-border)] bg-[var(--color-surface)]">
             <div className="flex items-center justify-between px-4 pt-3 pb-3 border-b border-[var(--color-border)] shrink-0 sm:pt-4 sm:pb-2">
               <h3 className="text-base font-semibold text-[var(--color-text)]">{label}</h3>
               <button onClick={() => { setOpen(false); setSearch(""); }} className="text-sm font-medium text-[var(--color-primary)] transition-colors">Concluir</button>
