@@ -185,6 +185,7 @@ export default function BuscaContent({
         const mapped = (data || []).map((item: any) => ({
           ...item,
           distancia_km: item.distancia_km ?? undefined,
+          etapas_modalidades: item.etapas_modalidades ?? null,
         })) as EscolaResult[];
         setResultadosCoordenadas(mapped);
       } catch {
