@@ -196,6 +196,10 @@ export default function BuscaContent({
       return;
     }
 
+    if (filtro.cidade && filtro.uf) {
+      return;
+    }
+
     if (filtro.buscaRaw) {
       const novosParams = new URLSearchParams();
       novosParams.set("q", filtro.buscaRaw);
