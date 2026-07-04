@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Navigation, Loader2, MapPin, Building, Home, Hash } from "lucide-react";
-import { createClient } from "@/lib/supabase";
 
 export interface SugestaoLocalizacao {
   id: string;
@@ -12,6 +11,8 @@ export interface SugestaoLocalizacao {
   cidade: string;
   uf: string;
   cep?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface FiltroLocalizacao {
@@ -39,6 +40,35 @@ const TIPO_ICON: Record<SugestaoLocalizacao["tipo"], typeof MapPin> = {
   cep: Hash,
 };
 
+const CEP_REGEX = /^(\d{5})-?(\d{3})$/;
+
+type PhotonProperties = {
+  name?: string;
+  street?: string;
+  housenumber?: string;
+  postcode?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  osm_key?: string;
+  osm_value?: string;
+};
+
+type PhotonFeature = {
+  geometry: { coordinates: [number, number]; type: string };
+  properties: PhotonProperties;
+};
+
+type BrasilApiCepV2 = {
+  cep: string;
+  state: string;
+  city: string;
+  neighborhood: string;
+  street: string;
+  service: string;
+  location: { type: string; coordinates: { longitude: string; latitude: string } };
+};
+
 type Props = {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
   onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
@@ -52,127 +82,219 @@ export default function CaixaBuscaLocalizacao({
   initialValue = "",
   className = "",
 }: Props) {
-  const supabase = useRef(createClient());
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
   const [sugestoes, setSugestoes] = useState<SugestaoLocalizacao[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
-  const [loadingSugestoes, setLoadingSugestoes] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [buscouSemResultados, setBuscouSemResultados] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reqIdRef = useRef(0);
 
   function handleChange(value: string) {
     setBuscaRaw(value);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    const trimmed = value.trim();
-    if (trimmed.length < 2) {
+    if (value.trim().length < 2) {
       setSugestoes([]);
       setDropdownAberto(false);
+      setBuscouSemResultados(false);
       setHighlightIndex(-1);
       onLocationChange({ buscaRaw: value });
       return;
     }
 
-    setLoadingSugestoes(true);
-
-    debounceRef.current = setTimeout(async () => {
-      await buscarSugestoes(trimmed);
-      setLoadingSugestoes(false);
-    }, 250);
+    debounceRef.current = setTimeout(() => {
+      buscar(value);
+    }, 300);
   }
 
-  async function buscarSugestoes(query: string) {
-    const normalizado = query
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+  async function buscar(query: string) {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
 
-    const termos = normalizado.split(/\s+/).filter(Boolean);
-    if (termos.length === 0) {
-      setSugestoes([]);
-      setDropdownAberto(false);
-      return;
+    const requestId = ++reqIdRef.current;
+    setCarregando(true);
+    setBuscouSemResultados(false);
+
+    const cepMatch = trimmed.match(CEP_REGEX);
+    if (cepMatch) {
+      const cepLimpo = `${cepMatch[1]}${cepMatch[2]}`;
+      await buscarCep(cepLimpo, requestId);
+    } else {
+      await buscarTexto(trimmed, requestId);
     }
 
-    const likePattern = `%${normalizado}%`;
-    const results: SugestaoLocalizacao[] = [];
-    let idCounter = 0;
+    if (requestId === reqIdRef.current) {
+      setCarregando(false);
+    }
+  }
 
-    const [{ data: cidadesData }, { data: bairrosData }] = await Promise.all([
-      supabase.current
-        .from("tb_cidades")
-        .select(`
-          nome,
-          estado:estado_id!inner ( uf )
-        `)
-        .ilike("nome", likePattern)
-        .limit(5)
-        .order("nome"),
-      supabase.current
-        .from("escolas")
-        .select("bairro, municipio, uf")
-        .not("bairro", "is", null)
-        .or(`bairro.ilike.${likePattern},municipio.ilike.${likePattern}`)
-        .limit(8)
-        .order("bairro"),
-    ]);
+  async function buscarCep(cep: string, requestId: number) {
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${cep}`, {
+        signal: AbortSignal.timeout(8000),
+      });
 
-    if (cidadesData) {
-      for (const c of cidadesData) {
-        const uf = (c.estado as any)?.uf ?? "";
-        if (!uf) continue;
-        idCounter++;
-        results.push({
-          id: `cid-${idCounter}`,
-          textoExibicao: `${c.nome} - ${uf}`,
-          tipo: "cidade",
-          cidade: c.nome,
-          uf,
-        });
+      if (requestId !== reqIdRef.current) return;
+
+      if (!res.ok) {
+        setSugestoes([]);
+        setDropdownAberto(true);
+        setBuscouSemResultados(true);
+        setHighlightIndex(-1);
+        return;
       }
+
+      const data: BrasilApiCepV2 = await res.json();
+
+      if (requestId !== reqIdRef.current) return;
+
+      const latitude = data.location?.coordinates?.latitude
+        ? Number(data.location.coordinates.latitude)
+        : undefined;
+      const longitude = data.location?.coordinates?.longitude
+        ? Number(data.location.coordinates.longitude)
+        : undefined;
+
+      const sugestao: SugestaoLocalizacao = {
+        id: `cep-${cep}`,
+        textoExibicao: `${data.street || ""}, ${data.neighborhood || ""}, ${data.city} - ${data.state}`
+          .replace(/^, /, "")
+          .replace(/, , /, ", "),
+        tipo: "cep",
+        cep: data.cep,
+        bairro: data.neighborhood || undefined,
+        cidade: data.city,
+        uf: data.state,
+        latitude,
+        longitude,
+      };
+
+      setSugestoes([sugestao]);
+      setDropdownAberto(true);
+      setBuscouSemResultados(false);
+      setHighlightIndex(-1);
+    } catch {
+      if (requestId !== reqIdRef.current) return;
+      setSugestoes([]);
+      setDropdownAberto(true);
+      setBuscouSemResultados(true);
+      setHighlightIndex(-1);
     }
+  }
 
-    const vistos = new Set<string>();
+  async function buscarTexto(termo: string, requestId: number) {
+    try {
+      const res = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(termo)}&lang=pt&limit=8&bbox=-73.99,-33.75,-28.84,5.27`,
+        { signal: AbortSignal.timeout(8000) }
+      );
 
-    if (bairrosData) {
-      for (const b of bairrosData) {
-        if (!b.bairro || !b.municipio || !b.uf) continue;
-        const chave = `${b.bairro}-${b.municipio}-${b.uf}`;
+      if (requestId !== reqIdRef.current) return;
+
+      if (!res.ok) {
+        setSugestoes([]);
+        setDropdownAberto(true);
+        setBuscouSemResultados(true);
+        setHighlightIndex(-1);
+        return;
+      }
+
+      const geo = await res.json();
+
+      if (requestId !== reqIdRef.current) return;
+
+      const features: PhotonFeature[] = geo.features || [];
+
+      if (features.length === 0) {
+        setSugestoes([]);
+        setDropdownAberto(true);
+        setBuscouSemResultados(true);
+        setHighlightIndex(-1);
+        return;
+      }
+
+      const results: SugestaoLocalizacao[] = [];
+      const vistos = new Set<string>();
+
+      for (const f of features) {
+        const p = f.properties;
+        if (!p || p.country !== "Brasil") continue;
+
+        const lon = f.geometry?.coordinates?.[0];
+        const lat = f.geometry?.coordinates?.[1];
+        const cidade = p.city || "";
+        const uf = p.state || "";
+
+        if (!cidade && !uf) continue;
+
+        let tipo: SugestaoLocalizacao["tipo"] = "cidade";
+        let texto = "";
+        let bairro: string | undefined;
+
+        const osmKey = p.osm_key || "";
+        const osmValue = p.osm_value || "";
+
+        if (osmKey === "place" && (osmValue === "city" || osmValue === "town" || osmValue === "village" || osmValue === "municipality")) {
+          tipo = "cidade";
+          texto = `${cidade} - ${uf}`;
+        } else if (osmKey === "place" && (osmValue === "suburb" || osmValue === "neighbourhood" || osmValue === "quarter")) {
+          tipo = "bairro";
+          bairro = p.name || "";
+          texto = `${bairro}, ${cidade} - ${uf}`;
+        } else if (osmKey === "highway" || osmValue === "street" || osmValue === "pedestrian" || osmValue === "road") {
+          tipo = "logradouro";
+          const logradouro = [p.housenumber, p.street || p.name].filter(Boolean).join(" ");
+          texto = logradouro ? `${logradouro}, ${cidade} - ${uf}` : `${cidade} - ${uf}`;
+        } else if (osmValue === "locality" || osmValue === "hamlet") {
+          tipo = "cidade";
+          texto = `${p.name || cidade} - ${uf}`;
+        } else {
+          tipo = "logradouro";
+          const logradouro = [p.housenumber, p.street || p.name].filter(Boolean).join(" ");
+          texto = logradouro ? `${logradouro}, ${cidade} - ${uf}` : `${cidade} - ${uf}`;
+        }
+
+        const chave = `${tipo}|${texto}`;
         if (vistos.has(chave)) continue;
         vistos.add(chave);
-        idCounter++;
+
         results.push({
-          id: `bairro-${idCounter}`,
-          textoExibicao: `${b.bairro}, ${b.municipio} - ${b.uf}`,
-          tipo: "bairro",
-          bairro: b.bairro,
-          cidade: b.municipio,
-          uf: b.uf,
+          id: `ph-${results.length}`,
+          textoExibicao: texto,
+          tipo,
+          bairro,
+          cidade,
+          uf,
+          latitude: lat != null ? lat : undefined,
+          longitude: lon != null ? lon : undefined,
         });
       }
+
+      setSugestoes(results.slice(0, 8));
+      setDropdownAberto(results.length > 0);
+      setBuscouSemResultados(results.length === 0);
+      setHighlightIndex(-1);
+    } catch {
+      if (requestId !== reqIdRef.current) return;
+      setSugestoes([]);
+      setDropdownAberto(true);
+      setBuscouSemResultados(true);
+      setHighlightIndex(-1);
     }
-
-    results.sort((a, b) => {
-      const aExato = a.tipo === "cidade" ? 0 : 1;
-      const bExato = b.tipo === "cidade" ? 0 : 1;
-      if (aExato !== bExato) return aExato - bExato;
-      return a.textoExibicao.localeCompare(b.textoExibicao);
-    });
-
-    setSugestoes(results.slice(0, 12));
-    setDropdownAberto(results.length > 0);
-    setHighlightIndex(-1);
   }
 
   function selecionarSugestao(sugestao: SugestaoLocalizacao) {
     setBuscaRaw(sugestao.textoExibicao);
     setSugestoes([]);
     setDropdownAberto(false);
+    setBuscouSemResultados(false);
     setHighlightIndex(-1);
 
     const filtro: FiltroLocalizacao = {
@@ -181,6 +303,8 @@ export default function CaixaBuscaLocalizacao({
       bairro: sugestao.bairro,
       cidade: sugestao.cidade,
       uf: sugestao.uf,
+      latitude: sugestao.latitude,
+      longitude: sugestao.longitude,
     };
     onLocationChange(filtro);
     onSelectSugestao?.(sugestao);
@@ -240,17 +364,18 @@ export default function CaixaBuscaLocalizacao({
       const { latitude, longitude } = pos.coords;
 
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=10&accept-language=pt`,
+        `https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}&lang=pt`,
         { headers: { "User-Agent": "MensalidadeJusta/1.0" } }
       );
       const geo = await response.json();
-      const address = geo.address || {};
+      const feature = geo.features?.[0];
+      const props = feature?.properties || {};
+      const address = props;
 
-      const cidade =
-        address.city || address.town || address.village || address.municipality || address.county || "";
-      const uf = address["ISO3166-2-lvl4"]?.replace("BR-", "") || address.state?.slice(0, 2) || "";
-      const bairro = address.suburb || address.neighbourhood || address.neighborhood || address.district || "";
-      const logradouro = address.road || address.pedestrian || "";
+      const cidade = address.city || address.town || address.village || address.name || "";
+      const uf = address.state || "";
+      const bairro = address.suburb || address.neighbourhood || address.district || "";
+      const logradouro = address.street || address.name || "";
 
       const parts: string[] = [];
       if (logradouro) parts.push(logradouro);
@@ -273,17 +398,22 @@ export default function CaixaBuscaLocalizacao({
         logradouro,
       };
       onLocationChange(filtro);
-    } catch (err: any) {
-      if (err.code === 1) setGeoError("Permiss\u00e3o de localiza\u00e7\u00e3o negada.");
-      else if (err.code === 2) setGeoError("N\u00e3o foi poss\u00edvel obter a localiza\u00e7\u00e3o. Tente novamente.");
-      else if (err.code === 3) setGeoError("Tempo de espera excedido. Verifique o sinal de GPS.");
-      else setGeoError("Erro ao obter localiza\u00e7\u00e3o.");
+    } catch {
+      setGeoError("Erro ao obter localiza\u00e7\u00e3o. Tente novamente.");
     }
     setGeoLoading(false);
   }
 
   function handleFocus() {
-    if (sugestoes.length > 0) setDropdownAberto(true);
+    if (sugestoes.length > 0 || buscouSemResultados) setDropdownAberto(true);
+  }
+
+  function exibirDropdown(): boolean {
+    if (!dropdownAberto) return false;
+    if (carregando) return true;
+    if (sugestoes.length > 0) return true;
+    if (buscouSemResultados) return true;
+    return false;
   }
 
   return (
@@ -307,7 +437,7 @@ export default function CaixaBuscaLocalizacao({
             autoComplete="off"
             spellCheck={false}
           />
-          {loadingSugestoes && buscaRaw.trim().length >= 2 && (
+          {carregando && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <Loader2 className="w-4 h-4 text-[var(--color-text-tertiary)] animate-spin" />
             </div>
@@ -329,46 +459,64 @@ export default function CaixaBuscaLocalizacao({
         </button>
       </div>
 
-      {dropdownAberto && sugestoes.length > 0 && (
+      {exibirDropdown() && (
         <div className="absolute z-50 top-full mt-1 left-0 right-[calc(0%+48px)] sm:right-[calc(0%+104px)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden">
-          <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
-            {sugestoes.map((sugestao, index) => {
-              const IconComponent = TIPO_ICON[sugestao.tipo];
-              const isHighlighted = index === highlightIndex;
-              return (
-                <li
-                  key={sugestao.id}
-                  role="option"
-                  aria-selected={isHighlighted}
-                  onClick={() => selecionarSugestao(sugestao)}
-                  onMouseEnter={() => setHighlightIndex(index)}
-                  className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-150 ${
-                    isHighlighted
-                      ? "bg-[var(--color-primary)]/10"
-                      : "hover:bg-[var(--color-surface-hover)]"
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+          {carregando && (
+            <div className="p-4 space-y-3">
+              <div className="h-4 bg-[var(--color-surface-hover)] rounded animate-pulse" />
+              <div className="h-4 bg-[var(--color-surface-hover)] rounded animate-pulse w-3/4" />
+              <div className="h-4 bg-[var(--color-surface-hover)] rounded animate-pulse w-1/2" />
+            </div>
+          )}
+
+          {!carregando && buscouSemResultados && sugestoes.length === 0 && (
+            <div className="px-4 py-6 text-center">
+              <p className="text-sm text-[var(--color-text-tertiary)]">
+                Nenhum local encontrado com este termo.
+              </p>
+            </div>
+          )}
+
+          {!carregando && sugestoes.length > 0 && (
+            <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
+              {sugestoes.map((sugestao, index) => {
+                const IconComponent = TIPO_ICON[sugestao.tipo];
+                const isHighlighted = index === highlightIndex;
+                return (
+                  <li
+                    key={sugestao.id}
+                    role="option"
+                    aria-selected={isHighlighted}
+                    onClick={() => selecionarSugestao(sugestao)}
+                    onMouseEnter={() => setHighlightIndex(index)}
+                    className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-150 ${
                       isHighlighted
-                        ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
-                        : "bg-[var(--color-surface-hover)] text-[var(--color-text-tertiary)]"
+                        ? "bg-[var(--color-primary)]/10"
+                        : "hover:bg-[var(--color-surface-hover)]"
                     }`}
                   >
-                    <IconComponent className="w-3.5 h-3.5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-[var(--color-text)] truncate font-medium">
-                      {sugestao.textoExibicao}
-                    </p>
-                    <p className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5 font-medium uppercase tracking-wider">
-                      {TIPO_LABEL[sugestao.tipo]}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                    <span
+                      className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+                        isHighlighted
+                          ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
+                          : "bg-[var(--color-surface-hover)] text-[var(--color-text-tertiary)]"
+                      }`}
+                    >
+                      <IconComponent className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-[var(--color-text)] truncate font-medium">
+                        {sugestao.textoExibicao}
+                      </p>
+                      <p className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5 font-medium uppercase tracking-wider">
+                        {TIPO_LABEL[sugestao.tipo]}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
 
