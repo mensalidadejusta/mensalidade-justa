@@ -429,10 +429,6 @@ export default function CaixaBuscaLocalizacao({
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      <label className="block text-xs font-semibold text-[#988d9f] uppercase tracking-wider mb-1.5">
-        Endere{'\u00e7'}o/Regi{'\u00e3'}o
-      </label>
-
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a5260] pointer-events-none z-10" />
@@ -443,7 +439,7 @@ export default function CaixaBuscaLocalizacao({
             onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
-            placeholder="Digite endere\u00e7o, bairro ou cidade..."
+            placeholder="Endere\u00e7o/Regi\u00e3o, bairro ou cidade..."
             className="w-full bg-[#16161a] border border-[#26262b] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#eadfed] placeholder:text-[#5a5260] focus:outline-none focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
