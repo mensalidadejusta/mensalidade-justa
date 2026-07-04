@@ -242,16 +242,27 @@ export default function CaixaBuscaLocalizacao({
     }
   }
 
+  const ESTADO_NOME: Record<string, string> = {
+    AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas",
+    BA: "Bahia", CE: "Ceará", DF: "Distrito Federal", ES: "Espírito Santo",
+    GO: "Goiás", MA: "Maranhão", MT: "Mato Grosso", MS: "Mato Grosso do Sul",
+    MG: "Minas Gerais", PA: "Pará", PB: "Paraíba", PR: "Paraná",
+    PE: "Pernambuco", PI: "Piauí", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte",
+    RS: "Rio Grande do Sul", RO: "Rondônia", RR: "Roraima", SC: "Santa Catarina",
+    SP: "São Paulo", SE: "Sergipe", TO: "Tocantins",
+  };
+
   function buscarEstadosLocal(termo: string): SugestaoLocalizacao[] {
     const normalizado = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const resultados: SugestaoLocalizacao[] = [];
-    for (const [nome, uf] of Object.entries(ESTADO_UF)) {
-      if (nome.includes(normalizado) || uf.toLowerCase() === normalizado || uf.toLowerCase().startsWith(normalizado)) {
+    for (const [uf, nomeCompleto] of Object.entries(ESTADO_NOME)) {
+      const nomeNorm = nomeCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (nomeNorm.includes(normalizado) || uf.toLowerCase() === normalizado || uf.toLowerCase().startsWith(normalizado)) {
         resultados.push({
           id: `est-${uf}`,
-          textoExibicao: `${nome.charAt(0).toUpperCase() + nome.slice(1)} - ${uf}`,
+          textoExibicao: `${nomeCompleto} - ${uf}`,
           tipo: "cidade",
-          cidade: nome.charAt(0).toUpperCase() + nome.slice(1),
+          cidade: nomeCompleto,
           uf,
         });
       }
