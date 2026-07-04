@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, GraduationCap, Search, MapPin, Navigation } from "lucide-react";
+import { DollarSign, GraduationCap, Search, MapPin, Navigation, Loader2 } from "lucide-react";
 import MapaEscolas from "@/components/mapa-escolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -81,6 +81,8 @@ export default function BuscaContent({
   const [showMap, setShowMap] = useState(false);
   const [navTick, setNavTick] = useState(0);
   const [filtroLoc, setFiltroLoc] = useState<FiltroLocalizacao | null>(null);
+  const [resultadosCoordenadas, setResultadosCoordenadas] = useState<EscolaResult[] | null>(null);
+  const [carregandoCoordenadas, setCarregandoCoordenadas] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const uf = filtroLoc?.uf ?? searchParams.get("uf") ?? "";
@@ -127,8 +129,29 @@ export default function BuscaContent({
     if (initialCidades.length > 0) setCidades(initialCidades);
   }, [initialCidades]);
 
-  function handleLocationChange(filtro: FiltroLocalizacao) {
+  async function handleLocationChange(filtro: FiltroLocalizacao) {
     setFiltroLoc(filtro);
+
+    if (filtro.latitude != null && filtro.longitude != null) {
+      setCarregandoCoordenadas(true);
+      try {
+        const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
+          p_lat: filtro.latitude,
+          p_lon: filtro.longitude,
+          p_raio_km: 100,
+        });
+        const mapped = (data || []).map((item: any) => ({
+          ...item,
+          distancia_km: item.distancia_km ?? undefined,
+        })) as EscolaResult[];
+        setResultadosCoordenadas(mapped);
+      } catch {
+        setResultadosCoordenadas([]);
+      }
+      setCarregandoCoordenadas(false);
+      return;
+    }
+
     if (filtro.cidade && filtro.uf) {
       updateFilters({ uf: filtro.uf, cidade: filtro.cidade, q: localQuery });
     } else if (filtro.buscaRaw) {
@@ -171,9 +194,11 @@ export default function BuscaContent({
     return () => document.removeEventListener("click", handler);
   }, [suggestions]);
 
+  const dadosExibir = resultados ?? resultadosCoordenadas;
+
   const sortedResultados = useMemo(
-    () => (resultados ? sortResults(resultados, userLocation) : null),
-    [resultados, userLocation]
+    () => (dadosExibir ? sortResults(dadosExibir, userLocation) : null),
+    [dadosExibir, userLocation]
   );
 
   const hasResults = sortedResultados && sortedResultados.length > 0;
@@ -277,8 +302,15 @@ export default function BuscaContent({
         </div>
 
         <div className="flex-1 px-4 pb-24 overflow-y-auto">
-          {uf && cidade ? (
-            sortedResultados ? (
+          {(uf && cidade) || resultadosCoordenadas ? (
+            carregandoCoordenadas ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-6 h-6 text-[var(--color-primary)] animate-spin" />
+                  <p className="text-sm text-[var(--color-text-tertiary)]">Buscando escolas pr{'\u00f3'}ximas...</p>
+                </div>
+              </div>
+            ) : sortedResultados ? (
               <div className="max-w-lg mx-auto">
                 <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
               </div>
@@ -364,9 +396,16 @@ export default function BuscaContent({
         </div>
 
         <div className="flex-1 px-4 pb-8">
-          {uf && cidade ? (
+          {(uf && cidade) || resultadosCoordenadas ? (
             <div className="max-w-2xl mx-auto">
-              {sortedResultados ? (
+              {carregandoCoordenadas ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-6 h-6 text-[var(--color-primary)] animate-spin" />
+                    <p className="text-sm text-[var(--color-text-tertiary)]">Buscando escolas pr{'\u00f3'}ximas...</p>
+                  </div>
+                </div>
+              ) : sortedResultados ? (
                 <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
               ) : (
                 <div className="text-center text-sm text-[var(--color-text-tertiary)] py-12">
