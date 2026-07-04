@@ -130,7 +130,9 @@ export default function BuscaResults({
                   {escola.series_precos.length > 0 ? (
                     <div className="space-y-1 md:space-y-1.5 flex-1">
                       {serieSlug ? (
-                        escola.series_precos.map((sp) => {
+                        escola.series_precos
+                          .filter((sp) => serieSlug.split(",").includes(sp.serie_slug))
+                          .map((sp) => {
                           const preco = Number(sp.valor_mensalidade);
                           return (
                             <p key={sp.serie_slug} className="text-[11px] md:text-xs leading-5">
