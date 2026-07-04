@@ -1,21 +1,16 @@
 import Link from "next/link";
-import { createServerClient } from "@/lib/supabase";
+import { createServerClient } from "@/lib/supabase-server";
 import { slugify } from "@/lib/utils";
 
-const UFS_PRIORITY = ["SP", "RJ", "MG", "RS", "PR", "BA", "SC", "PE", "CE", "DF", "GO", "AM", "PA", "ES", "MA", "RN", "PB", "AL", "PI", "TO", "MS", "MT", "SE", "RO", "AC", "AP", "RR"];
+const UFS_PRIORITY = ["SP", "RJ", "MG", "RS", "PR", "BA", "SC", "PE", "CE", "DF", "ES"];
 
 export default async function Footer() {
   const supabase = createServerClient();
   const cidadesPorUf: Record<string, { municipio: string; total: number }[]> = {};
 
-  const results = await Promise.all(
-    UFS_PRIORITY.map(async (uf) => {
-      const { data } = await supabase.rpc("get_top_cidades", { p_uf: uf, p_limit: 25 });
-      return { uf, data: data || [] };
-    })
-  );
-  for (const { uf, data } of results) {
-    if (data.length) cidadesPorUf[uf] = data;
+  for (const uf of UFS_PRIORITY) {
+    const { data } = await supabase.rpc("get_top_cidades", { p_uf: uf, p_limit: 25 });
+    if (data?.length) cidadesPorUf[uf] = data;
   }
 
   return (

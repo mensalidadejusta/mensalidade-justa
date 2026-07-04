@@ -9,10 +9,10 @@ async function resolveHost(host) {
   const resolver = new dns.promises.Resolver();
   resolver.setServers(['8.8.8.8', '1.1.1.1']);
   try {
-    const addrs = await resolver.resolve6(host);
+    const addrs = await resolver.resolve4(host);
     return addrs[0];
   } catch {
-    const addrs = await resolver.resolve4(host);
+    const addrs = await resolver.resolve6(host);
     return addrs[0];
   }
 }
@@ -32,8 +32,9 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+const migrationFile = process.argv[2] || '001_create_tables.sql';
 const sql = readFileSync(
-  new URL('../supabase/migrations/001_create_tables.sql', import.meta.url),
+  new URL(`../supabase/migrations/${migrationFile}`, import.meta.url),
   'utf-8'
 );
 
