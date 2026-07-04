@@ -257,7 +257,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
   return (
     <>
       <button onClick={openSheet}
-        className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-surface-hover border border-transparent text-text-secondary hover:bg-surface-hover/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-surface-hover border border-border/50 text-text-secondary hover:bg-surface-hover/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={disabled}
       >
         {getDisplay()}
@@ -266,7 +266,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
       <AnimatePresence>
         {open && sidebar && (
-          <div className="fixed inset-0 z-40 lg:block hidden">
+          <div className="fixed inset-0 z-50 lg:block hidden">
             <motion.div className="absolute inset-0 bg-black/40" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
             <motion.div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-surface border-r border-border shadow-2xl flex flex-col"
               variants={sidebarVariants} initial="hidden" animate="visible" exit="exit"
