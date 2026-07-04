@@ -55,7 +55,12 @@ export default async function Footer() {
             <span className="text-xs text-border">|</span>
             <a href="mailto:mensalidadejustabr@gmail.com" className="text-xs text-text-tertiary hover:text-primary transition-colors">Contato</a>
           </div>
-          <p>&copy; {new Date().getFullYear()} Mensalidade Justa. Dados colaborativos.</p>
+          <div className="flex items-center gap-3">
+            <p>&copy; {new Date().getFullYear()} Mensalidade Justa. Dados colaborativos.</p>
+            <span className="text-[9px] text-text-tertiary/40 select-none" title={`Commit: ${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'dev'}`}>
+              {((process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'dev').slice(0, 7))}
+            </span>
+          </div>
         </div>
       </div>
     </footer>
