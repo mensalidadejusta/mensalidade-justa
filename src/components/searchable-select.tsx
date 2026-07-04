@@ -268,7 +268,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
         {open && sidebar && (
           <div className="fixed inset-0 z-40 lg:block hidden">
             <motion.div className="absolute inset-0 bg-black/40" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
-            <motion.div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-bg border-r border-border shadow-2xl flex flex-col"
+            <motion.div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-surface border-r border-border shadow-2xl flex flex-col"
               variants={sidebarVariants} initial="hidden" animate="visible" exit="exit"
             >
               <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
@@ -314,7 +314,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
             <motion.div className="absolute inset-0 bg-black/70" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
 
             <motion.div ref={sheetRef}
-              className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-bg border border-border flex flex-col shadow-2xl overflow-hidden sm:mx-4"
+              className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-surface border border-border flex flex-col shadow-2xl overflow-hidden sm:mx-4"
               style={{ height: "90dvh" }}
               variants={sheetVariants} initial="hidden" animate="visible" exit="exit"
               drag={typeof window !== "undefined" && window.innerWidth < 640 ? "y" : false}

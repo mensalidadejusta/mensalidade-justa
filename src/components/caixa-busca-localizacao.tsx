@@ -508,6 +508,67 @@ export default function CaixaBuscaLocalizacao({
               <Loader2 className="w-4 h-4 text-text-tertiary animate-spin" />
             </div>
           )}
+
+          {exibirDropdown() && (
+            <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+              {carregando && (
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-surface-hover rounded animate-pulse" />
+                  <div className="h-4 bg-surface-hover rounded animate-pulse w-3/4" />
+                  <div className="h-4 bg-surface-hover rounded animate-pulse w-1/2" />
+                </div>
+              )}
+
+              {!carregando && buscouSemResultados && sugestoes.length === 0 && (
+                <div className="px-4 py-6 text-center">
+                  <p className="text-sm text-text-tertiary">
+                    Nenhum local encontrado com este termo.
+                  </p>
+                </div>
+              )}
+
+              {!carregando && sugestoes.length > 0 && (
+                <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
+                  {sugestoes.map((sugestao, index) => {
+                    const IconComponent = TIPO_ICON[sugestao.tipo];
+                    const isHighlighted = index === highlightIndex;
+                    return (
+                      <li
+                        key={sugestao.id}
+                        role="option"
+                        aria-selected={isHighlighted}
+                        onClick={() => selecionarSugestao(sugestao)}
+                        onMouseEnter={() => setHighlightIndex(index)}
+                        className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-200 ${
+                          isHighlighted
+                            ? "bg-purple-500/10"
+                            : "hover:bg-surface-hover"
+                        }`}
+                      >
+                        <span
+                          className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+                            isHighlighted
+                              ? "bg-purple-500/15 text-purple-500"
+                              : "bg-surface-hover text-text-tertiary"
+                          }`}
+                        >
+                          <IconComponent className="w-3.5 h-3.5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-text truncate font-medium">
+                            {sugestao.textoExibicao}
+                          </p>
+                          <p className="text-[11px] text-text-tertiary mt-0.5 font-medium uppercase tracking-wider">
+                            {TIPO_LABEL[sugestao.tipo]}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -524,67 +585,6 @@ export default function CaixaBuscaLocalizacao({
           <span className="hidden sm:inline">Perto de mim</span>
         </button>
       </div>
-
-      {exibirDropdown() && (
-        <div className="absolute z-50 top-full mt-1 left-0 right-[calc(0%+48px)] sm:right-[calc(0%+104px)] bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
-          {carregando && (
-            <div className="p-4 space-y-3">
-              <div className="h-4 bg-surface-hover rounded animate-pulse" />
-              <div className="h-4 bg-surface-hover rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-surface-hover rounded animate-pulse w-1/2" />
-            </div>
-          )}
-
-          {!carregando && buscouSemResultados && sugestoes.length === 0 && (
-            <div className="px-4 py-6 text-center">
-              <p className="text-sm text-text-tertiary">
-                Nenhum local encontrado com este termo.
-              </p>
-            </div>
-          )}
-
-          {!carregando && sugestoes.length > 0 && (
-            <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
-              {sugestoes.map((sugestao, index) => {
-                const IconComponent = TIPO_ICON[sugestao.tipo];
-                const isHighlighted = index === highlightIndex;
-                return (
-                  <li
-                    key={sugestao.id}
-                    role="option"
-                    aria-selected={isHighlighted}
-                    onClick={() => selecionarSugestao(sugestao)}
-                    onMouseEnter={() => setHighlightIndex(index)}
-                    className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-150 ${
-                      isHighlighted
-                        ? "bg-purple-500/10"
-                        : "hover:bg-surface-hover"
-                    }`}
-                  >
-                    <span
-                      className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-                        isHighlighted
-                          ? "bg-purple-500/15 text-purple-500"
-                          : "bg-surface-hover text-text-tertiary"
-                      }`}
-                    >
-                      <IconComponent className="w-3.5 h-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-text truncate font-medium">
-                        {sugestao.textoExibicao}
-                      </p>
-                      <p className="text-[11px] text-text-tertiary mt-0.5 font-medium uppercase tracking-wider">
-                        {TIPO_LABEL[sugestao.tipo]}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      )}
 
       {geoError && (
         <p className="mt-2 text-xs text-danger font-medium flex items-center gap-1.5">
