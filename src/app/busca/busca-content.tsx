@@ -294,7 +294,7 @@ export default function BuscaContent({
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-text-tertiary z-10" />
           <input
-            className="w-full bg-surface border border-border rounded-xl py-2.5 pl-11 pr-4 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+            className="w-full bg-surface border border-border rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
             placeholder="Buscar escola por nome..."
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
@@ -327,8 +327,8 @@ export default function BuscaContent({
         <div className="px-4 pt-6 pb-4">
           <div className="w-full max-w-lg mx-auto space-y-4">
             <div className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-[400] tracking-tight">
+                <span className="bg-gradient-to-r from-primary via-purple-500 to-coral bg-clip-text text-transparent">
                   Mensalidade Justa
                 </span>
               </h1>
@@ -418,8 +418,8 @@ export default function BuscaContent({
         <div className="pt-10 pb-4 px-4">
           <div className="w-full max-w-2xl mx-auto space-y-5">
             <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-[400] tracking-tight">
+                <span className="bg-gradient-to-r from-primary via-purple-500 to-coral bg-clip-text text-transparent">
                   Mensalidade Justa
                 </span>
               </h1>
