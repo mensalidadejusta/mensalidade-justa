@@ -100,6 +100,7 @@ export default function CaixaBuscaLocalizacao({
 
   function handleChange(value: string) {
     setBuscaRaw(value);
+    onLocationChange({ buscaRaw: value });
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -108,7 +109,6 @@ export default function CaixaBuscaLocalizacao({
       setDropdownAberto(false);
       setBuscouSemResultados(false);
       setHighlightIndex(-1);
-      onLocationChange({ buscaRaw: value });
       return;
     }
 
