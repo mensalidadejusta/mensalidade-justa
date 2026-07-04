@@ -111,6 +111,16 @@ export default function BuscaResults({
                   )}
                 </div>
               </div>
+              {escola.series_precos.length === 0 && escola.dependencia_administrativa !== "Privada" && (
+                <p className="text-[10px] md:text-xs text-text-tertiary font-medium mt-1">
+                  {'Escola p\u00fablica gratuita'}
+                </p>
+              )}
+              {escola.series_precos.length === 0 && escola.dependencia_administrativa === "Privada" && (
+                <p className="text-[10px] md:text-xs text-text-tertiary font-medium mt-1">
+                  Sem mensalidade cadastrada
+                </p>
+              )}
               <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-border/60 space-y-1 md:space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   {escola.series_precos.length > 0 ? (
@@ -141,13 +151,9 @@ export default function BuscaResults({
                         );
                       })}
                     </div>
-                  ) : escola.dependencia_administrativa === "Privada" ? (
-                    <p className="text-[11px] md:text-xs text-text-tertiary font-medium">
-                      Sem mensalidade cadastrada
-                    </p>
                   ) : (
                     <p className="text-[11px] md:text-xs text-text-tertiary font-medium">
-                      {'Escola p\u00fablica gratuita'}
+                      Nenhum pre\u00e7o cadastrado
                     </p>
                   )}
                 </div>

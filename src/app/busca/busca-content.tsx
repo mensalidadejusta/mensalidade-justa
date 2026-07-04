@@ -269,7 +269,19 @@ export default function BuscaContent({
         filtrado = filtrado.filter((e) => {
           if (!e.etapas_modalidades) return false;
           const etapas = e.etapas_modalidades.toLowerCase();
-          return gruposSelecionados.some((g) => etapas.includes(g!.toLowerCase()));
+          return gruposSelecionados.some((g) => {
+            const grupo = g!.toLowerCase();
+            if (grupo.startsWith("ensino fundamental")) {
+              return etapas.includes("ensino fundamental");
+            }
+            if (grupo.startsWith("educação infantil")) {
+              return etapas.includes("educação infantil");
+            }
+            if (grupo.startsWith("ensino médio")) {
+              return etapas.includes("ensino médio");
+            }
+            return etapas.includes(grupo);
+          });
         });
       }
     }
