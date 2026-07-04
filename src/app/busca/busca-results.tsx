@@ -64,12 +64,12 @@ export default function BuscaResults({
               onMouseEnter={() => onHover?.(escola.id)}
               onMouseLeave={() => onHover?.(null)}
             >
-              <div className={`absolute left-0 top-2 bottom-2 w-1 rounded-r-full ${
+              <div className={`absolute left-0 top-0 bottom-0 w-[5px] rounded-l-2xl ${
                 escola.dependencia_administrativa === "Privada"
                   ? "bg-purple-500"
                   : "bg-emerald-500"
               }`} />
-              <div className="flex items-start justify-between gap-2 md:gap-3 pl-2 md:pl-2.5">
+              <div className="flex items-start justify-between gap-2 md:gap-3 pl-3 md:pl-4">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xs md:text-sm font-semibold text-[var(--color-text)] tracking-tight leading-snug">
                     {escola.nome}
