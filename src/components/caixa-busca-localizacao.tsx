@@ -221,7 +221,7 @@ export default function CaixaBuscaLocalizacao({
       .from("tb_cidades")
       .select("nome, estado:estado_id!inner(uf)")
       .ilike("nome", like)
-      .limit(5)
+      .limit(8)
       .order("nome");
 
     if (cidades) {
@@ -273,7 +273,7 @@ export default function CaixaBuscaLocalizacao({
     const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
     if (token) {
       try {
-        const url = `https://api.locationiq.com/v1/autocomplete?key=${token}&q=${encodeURIComponent(termo)}&limit=6&countrycodes=br&accept-language=pt-br`;
+        const url = `https://api.locationiq.com/v1/autocomplete?key=${token}&q=${encodeURIComponent(termo)}&limit=10&countrycodes=br&accept-language=pt-br`;
         const res = await fetch(url);
         if (requestId !== reqIdRef.current) return;
 
@@ -301,11 +301,11 @@ export default function CaixaBuscaLocalizacao({
 
               const cidadeUf = `${cidade}${uf ? ` - ${uf}` : ""}`;
 
-              if (logradouro || addr.house_number || tipoRaw === "road" || osmType === "way") {
+              if (logradouro && (tipoRaw === "road" || osmType === "way" || addr.house_number)) {
                 tipo = "logradouro";
                 const logr = [logradouro, bairro, cidade].filter(Boolean).join(", ");
                 texto = `${logr}${uf ? ` - ${uf}` : ""}`;
-              } else if (tipoRaw === "city" || tipoRaw === "town" || tipoRaw === "village" || tipoRaw === "administrative") {
+              } else if (tipoRaw === "city" || tipoRaw === "town" || tipoRaw === "village" || tipoRaw === "administrative" || tipoRaw === "locality" || tipoRaw === "municipality" || tipoRaw === "county") {
                 tipo = "cidade";
                 texto = cidadeUf || displayName;
               } else if (tipoRaw === "suburb" || tipoRaw === "neighbourhood" || tipoRaw === "quarter" || (bairro && cidade)) {
