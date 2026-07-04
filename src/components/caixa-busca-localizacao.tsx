@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navigation, Loader2, MapPin, Building, Home, Hash } from "lucide-react";
+import { slugify } from "@/lib/utils";
 
 export interface SugestaoLocalizacao {
   id: string;
@@ -28,6 +30,7 @@ export interface FiltroLocalizacao {
 
 interface CaixaBuscaLocalizacaoProps {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
+  onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
   initialValue?: string;
   className?: string;
 }
@@ -74,9 +77,11 @@ type LocationIqSuggestion = {
 
 export default function CaixaBuscaLocalizacao({
   onLocationChange,
+  onSelectSugestao,
   initialValue = "",
   className = "",
 }: CaixaBuscaLocalizacaoProps) {
+  const router = useRouter();
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
   const [sugestoes, setSugestoes] = useState<SugestaoLocalizacao[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
@@ -296,6 +301,30 @@ export default function CaixaBuscaLocalizacao({
     setDropdownAberto(false);
     setBuscouSemResultados(false);
     setHighlightIndex(-1);
+    inputRef.current?.blur();
+
+    if (sugestao.tipo === "cidade" && sugestao.cidade && sugestao.uf) {
+      router.push(`/escolas/${slugify(sugestao.uf)}/${slugify(sugestao.cidade)}`);
+      onLocationChange({
+        buscaRaw: sugestao.textoExibicao,
+        cidade: sugestao.cidade,
+        uf: sugestao.uf,
+      });
+      onSelectSugestao?.(sugestao);
+      return;
+    }
+
+    if (sugestao.tipo === "bairro" && sugestao.bairro && sugestao.cidade && sugestao.uf) {
+      router.push(`/escolas/${slugify(sugestao.uf)}/${slugify(sugestao.cidade)}/${slugify(sugestao.bairro)}`);
+      onLocationChange({
+        buscaRaw: sugestao.textoExibicao,
+        bairro: sugestao.bairro,
+        cidade: sugestao.cidade,
+        uf: sugestao.uf,
+      });
+      onSelectSugestao?.(sugestao);
+      return;
+    }
 
     onLocationChange({
       buscaRaw: sugestao.textoExibicao,
@@ -306,7 +335,7 @@ export default function CaixaBuscaLocalizacao({
       latitude: sugestao.latitude,
       longitude: sugestao.longitude,
     });
-    inputRef.current?.blur();
+    onSelectSugestao?.(sugestao);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
