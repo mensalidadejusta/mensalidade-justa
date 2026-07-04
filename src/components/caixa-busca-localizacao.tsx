@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Navigation, Loader2, MapPin, Building, Home, Hash } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
 export interface SugestaoLocalizacao {
   id: string;
@@ -24,29 +25,6 @@ export interface FiltroLocalizacao {
   longitude?: number;
 }
 
-const MOCK_SUGESTOES: SugestaoLocalizacao[] = [
-  { id: "1", textoExibicao: "Putim, São José dos Campos - SP", tipo: "bairro", bairro: "Putim", cidade: "São José dos Campos", uf: "SP" },
-  { id: "2", textoExibicao: "Putim, Taubaté - SP", tipo: "bairro", bairro: "Putim", cidade: "Taubaté", uf: "SP" },
-  { id: "3", textoExibicao: "Jardim Aquarius, São José dos Campos - SP", tipo: "bairro", bairro: "Jardim Aquarius", cidade: "São José dos Campos", uf: "SP" },
-  { id: "4", textoExibicao: "Vila Adyana, São José dos Campos - SP", tipo: "bairro", bairro: "Vila Adyana", cidade: "São José dos Campos", uf: "SP" },
-  { id: "5", textoExibicao: "Centro, São José dos Campos - SP", tipo: "bairro", bairro: "Centro", cidade: "São José dos Campos", uf: "SP" },
-  { id: "6", textoExibicao: "São José dos Campos - SP", tipo: "cidade", cidade: "São José dos Campos", uf: "SP" },
-  { id: "7", textoExibicao: "São Paulo - SP", tipo: "cidade", cidade: "São Paulo", uf: "SP" },
-  { id: "8", textoExibicao: "Taubaté - SP", tipo: "cidade", cidade: "Taubaté", uf: "SP" },
-  { id: "9", textoExibicao: "Av. São João, 1500 - São José dos Campos - SP", tipo: "logradouro", bairro: "Centro", cidade: "São José dos Campos", uf: "SP" },
-  { id: "10", textoExibicao: "Rua XV de Novembro, 200 - Taubaté - SP", tipo: "logradouro", bairro: "Centro", cidade: "Taubaté", uf: "SP" },
-  { id: "11", textoExibicao: "12242-000 - Putim, São José dos Campos - SP", tipo: "cep", bairro: "Putim", cidade: "São José dos Campos", uf: "SP", cep: "12242-000" },
-  { id: "12", textoExibicao: "12245-000 - Jardim Aquarius, São José dos Campos - SP", tipo: "cep", bairro: "Jardim Aquarius", cidade: "São José dos Campos", uf: "SP", cep: "12245-000" },
-  { id: "13", textoExibicao: "12215-000 - Centro, São José dos Campos - SP", tipo: "cep", bairro: "Centro", cidade: "São José dos Campos", uf: "SP", cep: "12215-000" },
-  { id: "14", textoExibicao: "Rio de Janeiro - RJ", tipo: "cidade", cidade: "Rio de Janeiro", uf: "RJ" },
-  { id: "15", textoExibicao: "Copacabana, Rio de Janeiro - RJ", tipo: "bairro", bairro: "Copacabana", cidade: "Rio de Janeiro", uf: "RJ" },
-  { id: "16", textoExibicao: "Belo Horizonte - MG", tipo: "cidade", cidade: "Belo Horizonte", uf: "MG" },
-  { id: "17", textoExibicao: "Savassi, Belo Horizonte - MG", tipo: "bairro", bairro: "Savassi", cidade: "Belo Horizonte", uf: "MG" },
-  { id: "18", textoExibicao: "Curitiba - PR", tipo: "cidade", cidade: "Curitiba", uf: "PR" },
-  { id: "19", textoExibicao: "Batel, Curitiba - PR", tipo: "bairro", bairro: "Batel", cidade: "Curitiba", uf: "PR" },
-  { id: "20", textoExibicao: "Porto Alegre - RS", tipo: "cidade", cidade: "Porto Alegre", uf: "RS" },
-];
-
 const TIPO_LABEL: Record<SugestaoLocalizacao["tipo"], string> = {
   bairro: "Bairro",
   cidade: "Cidade",
@@ -61,26 +39,6 @@ const TIPO_ICON: Record<SugestaoLocalizacao["tipo"], typeof MapPin> = {
   cep: Hash,
 };
 
-function normalizar(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function buscarSugestoes(query: string): SugestaoLocalizacao[] {
-  const trimmed = query.trim();
-  if (trimmed.length < 3) return [];
-
-  const q = normalizar(trimmed);
-  const termos = q.split(/\s+/).filter(Boolean);
-
-  return MOCK_SUGESTOES.filter((s) => {
-    const texto = normalizar(s.textoExibicao);
-    return termos.every((t) => texto.includes(t));
-  }).slice(0, 8);
-}
-
 type Props = {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
   onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
@@ -94,30 +52,17 @@ export default function CaixaBuscaLocalizacao({
   initialValue = "",
   className = "",
 }: Props) {
+  const supabase = useRef(createClient());
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
   const [sugestoes, setSugestoes] = useState<SugestaoLocalizacao[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [loadingSugestoes, setLoadingSugestoes] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const filtroAtivo = useMemo(() => {
-    const trimmed = buscaRaw.trim();
-    if (!trimmed) return null;
-    const s = sugestoes.length > 0 ? sugestoes[0] : null;
-    if (s) return s;
-    return null;
-  }, [buscaRaw, sugestoes]);
-
-  function buscar(query: string) {
-    const results = buscarSugestoes(query);
-    setSugestoes(results);
-    setDropdownAberto(results.length > 0);
-    setHighlightIndex(-1);
-  }
 
   function handleChange(value: string) {
     setBuscaRaw(value);
@@ -125,7 +70,7 @@ export default function CaixaBuscaLocalizacao({
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     const trimmed = value.trim();
-    if (trimmed.length < 3) {
+    if (trimmed.length < 2) {
       setSugestoes([]);
       setDropdownAberto(false);
       setHighlightIndex(-1);
@@ -133,9 +78,95 @@ export default function CaixaBuscaLocalizacao({
       return;
     }
 
-    debounceRef.current = setTimeout(() => {
-      buscar(value);
-    }, 300);
+    setLoadingSugestoes(true);
+
+    debounceRef.current = setTimeout(async () => {
+      await buscarSugestoes(trimmed);
+      setLoadingSugestoes(false);
+    }, 250);
+  }
+
+  async function buscarSugestoes(query: string) {
+    const normalizado = query
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    const termos = normalizado.split(/\s+/).filter(Boolean);
+    if (termos.length === 0) {
+      setSugestoes([]);
+      setDropdownAberto(false);
+      return;
+    }
+
+    const likePattern = `%${normalizado}%`;
+    const results: SugestaoLocalizacao[] = [];
+    let idCounter = 0;
+
+    const [{ data: cidadesData }, { data: bairrosData }] = await Promise.all([
+      supabase.current
+        .from("tb_cidades")
+        .select(`
+          nome,
+          estado:estado_id!inner ( uf )
+        `)
+        .ilike("nome", likePattern)
+        .limit(5)
+        .order("nome"),
+      supabase.current
+        .from("escolas")
+        .select("bairro, municipio, uf")
+        .not("bairro", "is", null)
+        .or(`bairro.ilike.${likePattern},municipio.ilike.${likePattern}`)
+        .limit(8)
+        .order("bairro"),
+    ]);
+
+    if (cidadesData) {
+      for (const c of cidadesData) {
+        const uf = (c.estado as any)?.uf ?? "";
+        if (!uf) continue;
+        idCounter++;
+        results.push({
+          id: `cid-${idCounter}`,
+          textoExibicao: `${c.nome} - ${uf}`,
+          tipo: "cidade",
+          cidade: c.nome,
+          uf,
+        });
+      }
+    }
+
+    const vistos = new Set<string>();
+
+    if (bairrosData) {
+      for (const b of bairrosData) {
+        if (!b.bairro || !b.municipio || !b.uf) continue;
+        const chave = `${b.bairro}-${b.municipio}-${b.uf}`;
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
+        idCounter++;
+        results.push({
+          id: `bairro-${idCounter}`,
+          textoExibicao: `${b.bairro}, ${b.municipio} - ${b.uf}`,
+          tipo: "bairro",
+          bairro: b.bairro,
+          cidade: b.municipio,
+          uf: b.uf,
+        });
+      }
+    }
+
+    results.sort((a, b) => {
+      const aExato = a.tipo === "cidade" ? 0 : 1;
+      const bExato = b.tipo === "cidade" ? 0 : 1;
+      if (aExato !== bExato) return aExato - bExato;
+      return a.textoExibicao.localeCompare(b.textoExibicao);
+    });
+
+    setSugestoes(results.slice(0, 12));
+    setDropdownAberto(results.length > 0);
+    setHighlightIndex(-1);
   }
 
   function selecionarSugestao(sugestao: SugestaoLocalizacao) {
@@ -276,6 +307,11 @@ export default function CaixaBuscaLocalizacao({
             autoComplete="off"
             spellCheck={false}
           />
+          {loadingSugestoes && buscaRaw.trim().length >= 2 && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 className="w-4 h-4 text-[var(--color-text-tertiary)] animate-spin" />
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -294,7 +330,7 @@ export default function CaixaBuscaLocalizacao({
       </div>
 
       {dropdownAberto && sugestoes.length > 0 && (
-        <div className="absolute z-50 top-full mt-1 left-0 right-[calc(0%+48px)] sm:right-[calc(0%+104px)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden backdrop-blur-md">
+        <div className="absolute z-50 top-full mt-1 left-0 right-[calc(0%+48px)] sm:right-[calc(0%+104px)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden">
           <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
             {sugestoes.map((sugestao, index) => {
               const IconComponent = TIPO_ICON[sugestao.tipo];
