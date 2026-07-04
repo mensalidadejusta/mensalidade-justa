@@ -26,6 +26,7 @@ export type EscolaResult = {
   codigo_inep: string;
   series_precos: SeriePreco[];
   distancia_km?: number;
+  etapas_modalidades?: string | null;
 };
 
 type Props = {
@@ -73,10 +74,19 @@ export default function BuscaResults({
                   <h2 className="text-xs md:text-sm font-semibold text-[var(--color-text)] tracking-tight leading-snug">
                     {escola.nome}
                   </h2>
-                  <p className="text-[10px] md:text-xs text-[var(--color-text-tertiary)] mt-0.5 font-medium">
-                    {escola.bairro && `${escola.bairro}, `}
-                    {escola.municipio} - {escola.uf}
+                  <p className="text-[10px] md:text-xs text-[var(--color-text-tertiary)] mt-0.5 font-medium truncate">
+                    {escola.etapas_modalidades
+                      ? escola.etapas_modalidades.split(",").map((e) => e.trim()).filter(Boolean).slice(0, 3).join(", ")
+                      : `${escola.municipio} - ${escola.uf}`}
                   </p>
+                  {escola.distancia_km !== undefined && (
+                    <p className="text-[10px] md:text-xs text-[var(--color-text-secondary)] mt-0.5 font-semibold">
+                      {escola.distancia_km < 1
+                        ? `${Math.round(escola.distancia_km * 1000)}m`
+                        : `${escola.distancia_km.toFixed(1)} km`}{' '}
+                      de dist{'\u00e2'}ncia
+                    </p>
+                  )}
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1">
                   <span
@@ -90,11 +100,6 @@ export default function BuscaResults({
                       ? "Privada"
                       : "P\u00fablica"}
                   </span>
-                  {escola.distancia_km !== undefined && (
-                    <span className="text-[9px] md:text-[10px] font-semibold text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] px-1.5 md:px-2 py-0.5 rounded-md whitespace-nowrap">
-                      {escola.distancia_km} km
-                    </span>
-                  )}
                 </div>
               </div>
               <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-[var(--color-border)]/60 space-y-1 md:space-y-1.5">

@@ -194,7 +194,22 @@ export default function BuscaContent({
     return () => document.removeEventListener("click", handler);
   }, [suggestions]);
 
-  const dadosExibir = resultados ?? resultadosCoordenadas;
+  const dadosExibir = useMemo(() => {
+    const base = resultados ?? resultadosCoordenadas;
+    if (!base) return null;
+
+    let filtrado = [...base];
+
+    if (showPrivada && !showPublica) {
+      filtrado = filtrado.filter((e) => e.dependencia_administrativa === "Privada");
+    } else if (showPublica && !showPrivada) {
+      filtrado = filtrado.filter((e) => e.dependencia_administrativa !== "Privada");
+    } else if (!showPrivada && !showPublica) {
+      filtrado = [];
+    }
+
+    return filtrado;
+  }, [resultados, resultadosCoordenadas, showPrivada, showPublica]);
 
   const sortedResultados = useMemo(
     () => (dadosExibir ? sortResults(dadosExibir, userLocation) : null),
@@ -211,7 +226,7 @@ export default function BuscaContent({
     <div className="relative w-full" ref={searchRef}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[var(--color-text-tertiary)] z-10" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[#5a5260] z-10" />
           <input
             className="w-full bg-[#16161a] border border-[#26262b] rounded-xl py-2.5 pl-11 pr-4 text-sm text-[#eadfed] placeholder:text-[#5a5260] focus:outline-none focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all duration-300"
             placeholder="Buscar escola por nome..."
@@ -301,7 +316,7 @@ export default function BuscaContent({
           </div>
         </div>
 
-        <div className="flex-1 px-4 pb-24 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-4 pb-24">
           {(uf && cidade) || resultadosCoordenadas ? (
             carregandoCoordenadas ? (
               <div className="flex items-center justify-center py-12">
@@ -310,7 +325,7 @@ export default function BuscaContent({
                   <p className="text-sm text-[var(--color-text-tertiary)]">Buscando escolas pr{'\u00f3'}ximas...</p>
                 </div>
               </div>
-            ) : sortedResultados ? (
+            ) : sortedResultados && sortedResultados.length > 0 ? (
               <div className="max-w-lg mx-auto">
                 <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
               </div>
@@ -334,7 +349,7 @@ export default function BuscaContent({
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex flex-col min-h-dvh">
-        <div className="flex flex-col items-center justify-start flex-1 pt-10 pb-4 px-4">
+        <div className="shrink-0 pt-10 pb-4 px-4">
           <div className="w-full max-w-2xl mx-auto space-y-5">
             <div className="text-center">
               <h1 className="text-4xl font-bold tracking-tight">
@@ -395,7 +410,7 @@ export default function BuscaContent({
           </div>
         </div>
 
-        <div className="flex-1 px-4 pb-8">
+        <div className="flex-1 overflow-y-auto px-4 pb-8">
           {(uf && cidade) || resultadosCoordenadas ? (
             <div className="max-w-2xl mx-auto">
               {carregandoCoordenadas ? (
@@ -405,7 +420,7 @@ export default function BuscaContent({
                     <p className="text-sm text-[var(--color-text-tertiary)]">Buscando escolas pr{'\u00f3'}ximas...</p>
                   </div>
                 </div>
-              ) : sortedResultados ? (
+              ) : sortedResultados && sortedResultados.length > 0 ? (
                 <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
               ) : (
                 <div className="text-center text-sm text-[var(--color-text-tertiary)] py-12">
