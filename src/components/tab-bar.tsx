@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Search, Edit3, User, Info } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, Edit3, User, Info, Map } from "lucide-react";
 import BotaoTema from "@/components/botao-tema";
 
 const tabs = [
@@ -16,8 +16,26 @@ const authPaths = ["/login", "/cadastro", "/recuperar-senha", "/alterar-senha"];
 
 export default function TabBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const isAuth = authPaths.some((p) => pathname.startsWith(p));
   if (isAuth) return null;
+
+  function handleMapToggle() {
+    if (pathname === "/busca") {
+      const params = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : ""
+      );
+      if (params.get("map") === "1") {
+        params.delete("map");
+      } else {
+        params.set("map", "1");
+      }
+      const qs = params.toString();
+      router.push(qs ? `/busca?${qs}` : "/busca");
+    } else {
+      router.push("/busca?map=1");
+    }
+  }
 
   return (
     <>
@@ -38,6 +56,11 @@ export default function TabBar() {
         })}
         <div className="flex flex-col items-center gap-3 mt-auto">
           <BotaoTema />
+          <button onClick={handleMapToggle}
+            className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 text-text-tertiary hover:text-text hover:bg-surface-hover"
+            title="Abrir mapa">
+            <Map className="w-5 h-5" />
+          </button>
           <Link href="/sobre"
             className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 text-text-tertiary hover:text-text hover:bg-surface-hover"
             title="Sobre o projeto">
@@ -65,8 +88,18 @@ export default function TabBar() {
               </Link>
             );
           })}
-        </div>
-      </nav>
+            <button onClick={handleMapToggle}
+              className={`flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 ${
+                pathname === "/busca" && new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("map") === "1"
+                  ? "text-primary"
+                  : "text-text-tertiary"
+              }`}
+            >
+              <Map className="w-[18px] h-[18px]" />
+              Mapa
+            </button>
+          </div>
+        </nav>
     </>
   );
 }

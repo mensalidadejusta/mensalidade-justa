@@ -1,95 +1,120 @@
 # Mensalidade Justa
 
-App para buscar escolas e consultar mensalidades.
+App colaborativo para buscar escolas brasileiras e consultar mensalidades.
 
 ## Stack
 
 - Node.js (ESM), Next.js 16 (App Router, Turbopack), Tailwind CSS v4
-- Supabase (PostgreSQL + PostGIS), Leaflet (mapas)
-- `@supabase/supabase-js` via REST API (HTTPS) — conexão direta PostgreSQL via `pg` **não funciona** desta rede (host só tem IPv6, rede não roteia IPv6). Exceção: script `npm run migrate` usa `pg` com DNS resolution workaround (`scripts/run-migration.js`).
+- Supabase (PostgreSQL + PostGIS) via REST API (`@supabase/supabase-js` + `@supabase/ssr`)
+- Leaflet (mapas), lucide-react (ícones), framer-motion (animações)
+- `next-themes` para alternar tema claro/escuro (`defaultTheme="dark"`, `enableSystem={false}`)
+
+## ⚠️ Turbopack + Tailwind v4: bug crítico
+
+`text-[var(--color-*)]` em className causa injeção de RSC payload no CSS e quebra o build.
+**Nunca use** `text-[var(--color-text)]`, `bg-[var(--color-surface)]`, etc.
+Use os utilitários do tema diretamente: `text-text`, `bg-surface`, `border-border`, `text-text-tertiary`, `bg-surface-hover`.
+
+Também evite `shadow-[...]` com valores complexos — use `shadow-sm`, `shadow-lg`, etc.
+
+`npm run dev` (Turbopack) frequentemente falha com esse erro.
+**Para testar localmente:** `npm run build && npm run start`.
+
+Se o build falhar com `Parsing CSS source code failed` + `self.__next_f.push`, é esse bug.
+Solução: remover todos os `text-[var(--color-*)]` do código e garantir que `@theme` use variáveis CSS corretamente.
 
 ## Comandos
 
 | Comando | Descrição |
 |---------|-----------|
-| `npm run dev` | Servidor Next.js de desenvolvimento (Turbopack) |
-| `npm run build` | Build de produção |
-| `npm run start` | Servidor de produção |
-| `npm run lint` | `next lint` (ESLint via Next.js) |
-| `npm run import` | Importa CSV para `escolas` via Supabase REST API |
-| `npm run migrate` | Executa migration SQL via `pg` direto (com DNS resolution) |
+| `npm run dev` | Dev server (Turbopack — pode falhar) |
+| `npm run build` | Build produção |
+| `npm run start` | Servidor produção |
+| `npm run lint` | `next lint` |
+| `npm run import` | Importa CSV (via Supabase REST upsert) |
+| `npm run migrate [arquivo]` | Migration SQL via `pg` (workaround IPv6) |
 
-Não há testes, nem script de typecheck.
+Não há testes nem typecheck.
 
-## Roteamento (App Router)
+## Estrutura de rotas
 
-- `/` → redireciona para `/busca`
-- `/busca` — Tela principal. **Server Component** (`page.tsx`) busca dados no Supabase com `next: { revalidate: 86400 }` + `generateMetadata` dinâmico. `busca-content.tsx` (Client) gerencia interatividade (filtros, autocomplete com debounce 500ms, geoloc, toggle mapa/lista). `busca-results.tsx` renderiza `<article>` + `<h2>` semântico para SEO.
-- `/escola/[slug]` — Página individual (Server Component + `EscolaDetalhe` client). Slug = `{codigo_inep}-{nome-slugified}`. Usa `get_estatisticas_escola` RPC.
-- `/escolas/[uf]/[cidade]` — Server Component para SEO. Busca paginada (8 páginas de 1000). Slug de cidade via `slugify()`.
-- `/contribuir` — Formulário de contribuição com busca de escola, seleção de série e valores.
-- `/(auth)/` — `login`, `cadastro` (2 etapas: credenciais + endereço opcional), `recuperar-senha`, `alterar-senha`
-- `/perfil` — Perfil do usuário logado
-- `/sobre` — Sobre o projeto
-- `/sitemap.ts` — Sitemap dinâmico (city listing pages + até 1000 schools)
+| Rota | Tipo | Descrição |
+|------|------|-----------|
+| `/` | Redirect | → `/busca` |
+| `/busca` | Server + Client | `page.tsx` (fetch dados + filtro server-side), `busca-content.tsx` (filtros client-side, mapa, geoloc), `busca-results.tsx` (cards) |
+| `/escola/[slug]` | Server + Client | Slug = `{codigo_inep}-{slugified-name}` |
+| `/escolas/[uf]/[cidade]` | Server | Listagem SEO paginada (fetch 8×1000 em paralelo) |
+| `/contribuir` | Client | Formulário de contribuição (requer auth) |
+| `/login`, `/cadastro`, `/recuperar-senha`, `/alterar-senha` | Client | Auth (roteadas via `src/app/(auth)/`) |
+| `/perfil` | Client | Perfil + tema |
+| `/sobre` | Server | Página institucional |
+| `/sitemap.ts` | Dinâmico | Sitemap SEO (até 49k cidades + 1k escolas) |
 
-## Supabase
+## Componentes principais
+
+- **`CaixaBuscaLocalizacao`** — Input de endereço com autocomplete (LocationIQ API). CEP via BrasilAPI. Fallback cidades via Supabase RPC `buscar_cidades` (unaccent ILIKE). Botão "Perto de mim" (geolocation) e toggle mapa.
+- **`BuscaContent`** — Toda interatividade: URL params como state, debounce 500ms, ordenação (com preço > distância), filtragem client-side via `dadosExibir` (useMemo).
+- **`BuscaResults`** — Cards de escola com preços agregados por grupo (min-max + total contribuições). Botão "Contribuir" → `/contribuir?escola=<inep>`. Botão "Convidar" → WhatsApp share.
+- **`SearchableSelect`** — Modal/bottomsheet (mobile) ou sidebar (desktop) para seleção (UF, Cidade, Etapa). Suporta `isMultiple={true}`.
+- **`MapaEscolas`** — Leaflet com lazy import. Múltiplos tiles (Padrão, Satélite, Terreno, Claro, Escuro) com layer control. Marcadores com cor (privada=roxo, pública=verde). Pulse animation na localização do usuário.
+- **`BotaoTema`** — Toggle claro/escuro via `next-themes`. Renderizado na sidebar (acima do link /sobre).
+- **`TabBar`** — Sidebar (desktop) + bottom nav (mobile). Escondida em rotas de auth.
+
+## Tema
+
+- Tema escuro como padrão, sem fallback system. CSS vars em `:root` (claro) e `.dark` (escuro) no `globals.css`.
+- Components usam classes `bg-surface`, `text-text`, `border-border` — nunca `bg-[var(--color-*)]`.
+
+## Banco (Supabase)
 
 **Projeto:** `ijfwdtemkkoiombxtyip`
 
-### Conexão
+Tabelas:
+- `tb_estados` (27) — id UUID, uf VARCHAR(2) UNIQUE, nome
+- `tb_cidades` (5570) — id UUID, estado_id FK, nome; UNIQUE(estado_id, nome)
+- `escolas_raw` (219k) — tabela original, sem uf/municipio, com cidade_id FK, RLS SELECT público
+- `escolas` (VIEW) — join escolas_raw + tb_cidades + tb_estados, expõe uf e municipio, `security_invoker=true`
+- `mensalidades` (0 rows) — tabela original (legacy, não usada pelo app, mas ainda existe)
+- `mensalidades_series` (99 rows) — preços por série. FK escola_id, serie_slug, ano_vigencia, user_id (nullable). UNIQUE(escola_id, serie_slug, ano_vigencia). RLS: SELECT público, INSERT authenticated.
+- `profiles` (2) — vinculada a auth.users via trigger `handle_new_user`.
 
-- `src/lib/supabase.ts` — `createClient()` (browser, `@supabase/ssr`) e `createServerClient()` (SSR/SSG, `persistSession: false`).
-- `src/lib/supabase-server.ts` — `createServerClient()` para Server Components, com `next: { revalidate: 86400 }` via `fetch` customizado (cache de 24h nas respostas REST do Supabase). Usado em `page.tsx` para queries de UFs, cidades e resultados da busca.
-- Middleware (`src/middleware.ts`): usa `@supabase/ssr` `createServerClient` com cookie handling. Matcher: `/((?!_next/static|_next/image|favicon.ico).*)`. Redireciona usuários logados de auth routes para `/busca`.
-- Queries >1000 linhas: usar `.range(offset, offset + 999)` (limite PostgREST).
+RPCs:
+- `get_ufs()` — lista UFs de tb_estados
+- `get_cidades(p_uf)` — cidades de um estado
+- `buscar_cidades(p_termo)` — busca cidades com unaccent ILIKE (limite 8)
+- `buscar_escolas_com_precos_detalhado(p_uf, p_municipio, p_serie_slug, p_termo)` — schools + prices aggregated
+- `escolas_perto_de_mim(p_lat, p_lon, p_raio_km)` — schools num raio com preços + distância
+- `get_top_cidades(p_uf, p_limit)` — top N cidades por qtd de escolas
+- `get_estatisticas_escola(p_escola_id)` — estatísticas por série (médias/min/max + qtd)
+- `excluir_minha_conta()` — deleta conta autenticada (LGPD)
 
-### Tabelas atuais
+Conexão:
+- Browser: `src/lib/supabase.ts` (`createBrowserClient` do `@supabase/ssr`)
+- Server (busca): `src/lib/supabase-server.ts` (fetch com cache 24h + timeout 10s)
+- Server (escola/sitemap/footer): `src/lib/supabase.ts` — `createServerClient()` com `autoRefreshToken: false`, sem cache customizado
+- `pg` direto não funciona (IPv6). Migration usa DNS resolution via Google DNS (`8.8.8.8`).
 
-- `escolas` (~212k registros INEP) — `codigo_inep` (UNIQUE), `nome`, `uf`, `municipio`, `bairro`, `dependencia_administrativa`, `categoria_administrativa`, `latitude`, `longitude`, `geom` (Point 4326), `etapas_modalidades`. RLS: leitura pública.
-- `mensalidades_series` — contribuições de preços por série. FK `escola_id`, `serie_slug`, `serie_nome`, `ano_vigencia`, `valor_mensalidade`, `valor_matricula`, `valor_material`. RLS: leitura pública, insert authenticated. Unique: (escola_id, serie_slug, ano_vigencia).
-- `profiles` — vinculada a `auth.users` via trigger `on_auth_user_created`. Endereço, lat/lng, geom.
+## Fluxo de busca
 
-### RPCs
+1. `page.tsx` (server): fetch `get_ufs()`, `get_cidades(p_uf)`, `buscar_escolas_com_precos_detalhado(...)`. Aplica filtro server-side (privada/pública, maxPrice).
+2. `BuscaContent` (client): recebe resultados. Se geolocalização ativa (URL params `lat`/`lon`), chama `escolas_perto_de_mim`. Filtragem adicional client-side por etapa (serieSlug) via `dadosExibir` (useMemo). Ordenação: escolas com preço primeiro, depois por distância.
+3. Filtro de etapa usa fallback: slug "1-ano-fundamental" → busca grupo "Ensino Fundamental I" → matchea "ensino fundamental" na coluna `etapas_modalidades`.
 
-`get_ufs()`, `get_cidades(text)`, `get_top_cidades(uf, limit)`, `escolas_perto_de_mim(lat, lon, raio_km)`, `buscar_escolas_com_precos(...)`, `get_estatisticas_escola(id)`, `excluir_minha_conta()`.
+## Windows quirks
 
-### Migrations
+- `Remove-Item -Recurse -Force .next` pode falhar com EPERM/EBUSY — executar de novo que resolve
+- Acentos em JSX: usar `{'\u00e7'}` (escape) em vez de caracteres literais. PowerShell 5.1 corrompe UTF-8 ao escrever arquivos.
 
-`supabase/migrations/` (ordem importa). Extensões: `postgis`, `pg_trgm`. O script `npm run migrate` executa `001_create_tables.sql` com `pg` direto (DNS resolution via Google DNS para contornar IPv6). Alternativa: Management API (`SUPABASE_MGMT_TOKEN`).
+## Migrations
 
-## Atenção: encoding no Windows
+Arquivos em `supabase/migrations/` (ordem importa). Aplicar:
+```bash
+npm run migrate 006_normalizacao_estado_cidade.sql
+```
 
-PowerShell (5.1) corrompe UTF-8 ao escrever arquivos. Regras:
-- Usar `String.fromCodePoint(n)` para emojis
-- Usar `{'\u00e7'}` (JSX expression) para acentos em JSX text
-- Em SQL migration: usar `chr(n)` do PostgreSQL
-
-## Configurações
-
-- `tsconfig.json`: `"@/*"` → `"./src/*"`
-- `postcss.config.cjs` (CommonJS, porque `package.json` tem `"type": "module"`)
-- `@tailwindcss/postcss` e `tailwindcss` em `dependencies` (não devDependencies — Vercel não instala dev)
-- Tailwind v4: `@import "tailwindcss"` no CSS, `@custom-variant dark`, `@theme` para custom colors
-- Tema dark: classe `.dark` no `<html>`, gerenciado por `toggle-tema.tsx` (localStorage + prefers-color-scheme)
+Extensões: `postgis`, `pg_trgm`, `unaccent`.
 
 ## Vercel
 
-Deploy automático via GitHub na branch `main`. Env vars necessárias: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-
-## .env
-
-```env
-SUPABASE_URL=https://ijfwdtemkkoiombxtyip.supabase.co
-SUPABASE_SERVICE_KEY=svc_role_key
-NEXT_PUBLIC_SUPABASE_URL=https://ijfwdtemkkoiombxtyip.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=anon_key
-SUPABASE_MGMT_TOKEN=sbp_...
-```
-
-`.env` e `.env.local` — **nunca versionar**.
-
-## Skills disponíveis
-
-- `supabase` — integração com Supabase
-- `supabase-postgres-best-practices` — performance e otimização
+Deploy automático via GitHub (branch main). Env necessárias:
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_LOCATIONIQ_TOKEN`.

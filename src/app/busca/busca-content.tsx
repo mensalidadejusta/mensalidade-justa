@@ -78,7 +78,6 @@ export default function BuscaContent({
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const [showMap, setShowMap] = useState(false);
   const [navTick, setNavTick] = useState(0);
   const [filtroLoc, setFiltroLoc] = useState<FiltroLocalizacao | null>(null);
   const [resultadosCoordenadas, setResultadosCoordenadas] = useState<EscolaResult[] | null>(null);
@@ -90,6 +89,7 @@ export default function BuscaContent({
   const serieSlug = searchParams.get("serie") ?? "";
   const showPrivada = searchParams.get("privada") !== "0";
   const showPublica = searchParams.get("publica") !== "0";
+  const showMap = searchParams.get("map") === "1";
 
   function readParam(key: string): string {
     if (typeof window === "undefined") return searchParams.get(key) ?? "";
@@ -352,8 +352,7 @@ export default function BuscaContent({
               onLocationChange={handleLocationChange}
               className="w-full"
             />
-            <div className="space-y-3">
-              {nomeBuscaInput}
+            {nomeBuscaInput}
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <button
                 onClick={() => {
@@ -432,7 +431,6 @@ export default function BuscaContent({
             </div>
           )}
         </div>
-      </div>
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex min-h-dvh">
@@ -453,11 +451,8 @@ export default function BuscaContent({
             <CaixaBuscaLocalizacao
               onLocationChange={handleLocationChange}
               className="w-full"
-              showMap={showMap}
-              onToggleMap={() => setShowMap((v) => !v)}
             />
-            <div className="space-y-3">
-              {nomeBuscaInput}
+            {nomeBuscaInput}
                 <div className="flex items-center justify-center gap-3 flex-wrap">
                   <button
                     onClick={() => {
@@ -496,7 +491,6 @@ export default function BuscaContent({
                     isMultiple={true}
                   />
                 </div>
-              </div>
             </div>
           </div>
 
