@@ -208,8 +208,21 @@ export default function BuscaContent({
       filtrado = [];
     }
 
+    if (serieSlug) {
+      const slugs = serieSlug.split(",").filter(Boolean);
+      if (slugs.length > 0) {
+        const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
+        const gruposSelecionados = slugs.map((s) => slugToGrupo.get(s)).filter(Boolean);
+        filtrado = filtrado.filter((e) => {
+          if (!e.etapas_modalidades) return false;
+          const etapas = e.etapas_modalidades.toLowerCase();
+          return gruposSelecionados.some((g) => etapas.includes(g!.toLowerCase()));
+        });
+      }
+    }
+
     return filtrado;
-  }, [resultados, resultadosCoordenadas, showPrivada, showPublica]);
+  }, [resultados, resultadosCoordenadas, showPrivada, showPublica, serieSlug]);
 
   const sortedResultados = useMemo(
     () => (dadosExibir ? sortResults(dadosExibir, userLocation) : null),
@@ -257,8 +270,8 @@ export default function BuscaContent({
   return (
     <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)] selection:bg-[var(--color-primary)]/30 flex flex-col">
       {/* ===== MOBILE ===== */}
-      <div className="md:hidden flex flex-col min-h-dvh">
-        <div className="flex flex-col items-center justify-start flex-1 px-4 pt-6 pb-4">
+      <div className="md:hidden">
+        <div className="px-4 pt-6 pb-4">
           <div className="w-full max-w-lg mx-auto space-y-4">
             <div className="text-center">
               <h1 className="text-2xl font-bold tracking-tight">
@@ -316,7 +329,7 @@ export default function BuscaContent({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-24">
+        <div className="px-4 pb-24">
           {(uf && cidade) || resultadosCoordenadas ? (
             carregandoCoordenadas ? (
               <div className="flex items-center justify-center py-12">
@@ -348,8 +361,8 @@ export default function BuscaContent({
       </div>
 
       {/* ===== DESKTOP ===== */}
-      <div className="hidden md:flex flex-col h-dvh">
-        <div className="shrink-0 pt-10 pb-4 px-4">
+      <div className="hidden md:block">
+        <div className="pt-10 pb-4 px-4">
           <div className="w-full max-w-2xl mx-auto space-y-5">
             <div className="text-center">
               <h1 className="text-4xl font-bold tracking-tight">
@@ -410,7 +423,7 @@ export default function BuscaContent({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-8">
+        <div className="px-4 pb-8">
           {(uf && cidade) || resultadosCoordenadas ? (
             <div className="max-w-2xl mx-auto">
               {carregandoCoordenadas ? (

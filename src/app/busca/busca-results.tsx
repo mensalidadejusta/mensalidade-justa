@@ -79,16 +79,8 @@ export default function BuscaResults({
                       ? escola.etapas_modalidades.split(",").map((e) => e.trim()).filter(Boolean).slice(0, 3).join(", ")
                       : `${escola.municipio} - ${escola.uf}`}
                   </p>
-                  {escola.distancia_km !== undefined && (
-                    <p className="text-[10px] md:text-xs text-[var(--color-text-secondary)] mt-0.5 font-semibold">
-                      {escola.distancia_km < 1
-                        ? `${Math.round(escola.distancia_km * 1000)}m`
-                        : `${escola.distancia_km.toFixed(1)} km`}{' '}
-                      de dist{'\u00e2'}ncia
-                    </p>
-                  )}
                 </div>
-                <div className="shrink-0 flex flex-col items-end gap-1">
+                <div className="shrink-0 flex flex-col items-end gap-1.5">
                   <span
                     className={`text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg ${
                       escola.dependencia_administrativa === "Privada"
@@ -100,6 +92,13 @@ export default function BuscaResults({
                       ? "Privada"
                       : "P\u00fablica"}
                   </span>
+                  {escola.distancia_km !== undefined && (
+                    <span className="text-[8px] md:text-[9px] font-semibold text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] px-1.5 md:px-2 py-0.5 rounded-md whitespace-nowrap">
+                      {escola.distancia_km < 1
+                        ? `${Math.round(escola.distancia_km * 1000)}m`
+                        : `${escola.distancia_km.toFixed(1)} km`}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-[var(--color-border)]/60 space-y-1 md:space-y-1.5">
