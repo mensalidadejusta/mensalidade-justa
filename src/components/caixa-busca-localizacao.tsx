@@ -439,7 +439,7 @@ export default function CaixaBuscaLocalizacao({
             onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
-            placeholder="Endere\u00e7o/Regi\u00e3o, bairro ou cidade..."
+            placeholder={"Endere\u00e7o/Regi\u00e3o, bairro ou cidade..."}
             className="w-full bg-[#16161a] border border-[#26262b] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#eadfed] placeholder:text-[#5a5260] focus:outline-none focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
