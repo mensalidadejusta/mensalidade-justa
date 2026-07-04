@@ -351,26 +351,23 @@ export default function BuscaContent({
             <CaixaBuscaLocalizacao
               onLocationChange={handleLocationChange}
               className="w-full"
-              showMap={showMap}
-              onToggleMap={() => setShowMap((v) => !v)}
             />
             <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">{nomeBuscaInput}</div>
-              <button
-                type="button"
-                onClick={() => setShowMap((v) => !v)}
-                className={`shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 ${
-                  showMap
-                    ? "bg-accent-purple/10 text-accent-purple border border-accent-purple/30"
-                    : "bg-surface border border-border/50 text-text-tertiary hover:text-text"
-                }`}
-                title={showMap ? "Fechar mapa" : "Abrir mapa"}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                {showMap ? "Fechar" : "Mapa"}
-              </button>
-            </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">{nomeBuscaInput}</div>
+                <button
+                  type="button"
+                  onClick={() => setShowMap((v) => !v)}
+                  className={`shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 ${
+                    showMap
+                      ? "bg-accent-purple/10 text-accent-purple border border-accent-purple/30"
+                      : "bg-surface border border-border/50 text-text-tertiary hover:text-text"
+                  }`}
+                  title={showMap ? "Fechar mapa" : "Abrir mapa"}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                </button>
+              </div>
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <button
                   onClick={() => {
