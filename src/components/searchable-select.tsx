@@ -257,7 +257,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
   return (
     <>
       <button onClick={openSheet}
-        className="shrink-0 inline-flex items-center gap-1 px-2.5 md:gap-1.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[#16161a] border border-[#26262b] text-[#5a5260] hover:text-[#eadfed] hover:border-[#a855f7]/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={disabled}
       >
         {getDisplay()}

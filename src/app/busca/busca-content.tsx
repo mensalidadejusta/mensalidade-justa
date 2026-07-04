@@ -260,7 +260,7 @@ export default function BuscaContent({
               className="w-full"
             />
             {nomeBuscaInput}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               <button
                 onClick={() => {
                   const current = readParam("privada") !== "0";
@@ -269,7 +269,7 @@ export default function BuscaContent({
                 className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                   showPrivada
                     ? "bg-purple-500/10 border-purple-500/40 text-purple-400"
-                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
+                    : "bg-[#16161a] border-[#26262b] text-[#5a5260] hover:text-[#eadfed] hover:border-[#a855f7]/40"
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5" />
@@ -283,7 +283,7 @@ export default function BuscaContent({
                 className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                   showPublica
                     ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
+                    : "bg-[#16161a] border-[#26262b] text-[#5a5260] hover:text-[#eadfed] hover:border-[#a855f7]/40"
                 }`}
               >
                 <GraduationCap className="w-3.5 h-3.5" />
@@ -353,19 +353,19 @@ export default function BuscaContent({
                 className="w-full"
               />
               {nomeBuscaInput}
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center justify-center gap-3 flex-wrap">
                 <button
                   onClick={() => {
                     const current = readParam("privada") !== "0";
                     updateFilters({ privada: current ? "0" : "1" });
                   }}
-                  className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 active:scale-95 border ${
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                     showPrivada
                       ? "bg-purple-500/10 border-purple-500/40 text-purple-400"
-                      : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                      : "bg-[#16161a] border-[#26262b] text-[#5a5260] hover:text-[#eadfed] hover:border-[#a855f7]/40"
                   }`}
                 >
-                  <DollarSign className="w-4 h-4" />
+                  <DollarSign className="w-3.5 h-3.5" />
                   Privadas
                 </button>
                 <button
@@ -373,10 +373,10 @@ export default function BuscaContent({
                     const current = readParam("publica") !== "0";
                     updateFilters({ publica: current ? "0" : "1" });
                   }}
-                  className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 active:scale-95 border ${
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                     showPublica
                       ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                      : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                      : "bg-[#16161a] border-[#26262b] text-[#5a5260] hover:text-[#eadfed] hover:border-[#a855f7]/40"
                   }`}
                 >
                   <GraduationCap className="w-4 h-4" />
