@@ -294,7 +294,7 @@ export default function BuscaContent({
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-text-tertiary z-10" />
           <input
-            className="w-full bg-surface border border-border rounded-xl py-2.5 pl-11 pr-4 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all duration-300"
+            className="w-full bg-surface border border-border rounded-xl py-2.5 pl-11 pr-4 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
             placeholder="Buscar escola por nome..."
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
@@ -350,7 +350,7 @@ export default function BuscaContent({
                 className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                   showPrivada
                     ? "bg-purple-500/10 border-purple-500/40 text-purple-400"
-                    : "bg-surface border-border text-text-tertiary hover:text-text hover:border-[#a855f7]/40"
+                    : "bg-surface border-border text-text-tertiary hover:text-text hover:border-purple-500/40"
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5" />
@@ -363,8 +363,8 @@ export default function BuscaContent({
                 }}
                 className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                   showPublica
-                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                    : "bg-surface border-border text-text-tertiary hover:text-text hover:border-[#a855f7]/40"
+                    ? "bg-success/10 border-success/40 text-success"
+                    : "bg-surface border-border text-text-tertiary hover:text-text hover:border-purple-500/40"
                 }`}
               >
                 <GraduationCap className="w-3.5 h-3.5" />
@@ -443,7 +443,7 @@ export default function BuscaContent({
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                     showPrivada
                       ? "bg-purple-500/10 border-purple-500/40 text-purple-400"
-                      : "bg-surface border-border text-text-tertiary hover:text-text hover:border-[#a855f7]/40"
+                      : "bg-surface border-border text-text-tertiary hover:text-text hover:border-purple-500/40"
                   }`}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
@@ -456,8 +456,8 @@ export default function BuscaContent({
                   }}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
                     showPublica
-                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                      : "bg-surface border-border text-text-tertiary hover:text-text hover:border-[#a855f7]/40"
+                      ? "bg-success/10 border-success/40 text-success"
+                      : "bg-surface border-border text-text-tertiary hover:text-text hover:border-purple-500/40"
                   }`}
                 >
                   <GraduationCap className="w-4 h-4" />

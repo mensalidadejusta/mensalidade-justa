@@ -499,7 +499,7 @@ export default function CaixaBuscaLocalizacao({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             placeholder={"Endere\u00e7o, bairro ou cidade..."}
-            className="w-full bg-surface border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all duration-300"
+            className="w-full bg-surface border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
           />
@@ -513,7 +513,7 @@ export default function CaixaBuscaLocalizacao({
           type="button"
           onClick={buscarPertoDeMim}
           disabled={geoLoading}
-          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#a855f7]/10 text-[#a855f7] hover:bg-[#a855f7]/20 border border-[#a855f7]/20 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 border border-purple-500/20 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
           title="Usar minha localiza\u00e7\u00e3o atual"
         >
           {geoLoading ? (
@@ -557,14 +557,14 @@ export default function CaixaBuscaLocalizacao({
                     onMouseEnter={() => setHighlightIndex(index)}
                     className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-150 ${
                       isHighlighted
-                        ? "bg-[#a855f7]/10"
+                        ? "bg-purple-500/10"
                         : "hover:bg-surface-hover"
                     }`}
                   >
                     <span
                       className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
                         isHighlighted
-                          ? "bg-[#a855f7]/15 text-[#a855f7]"
+                          ? "bg-purple-500/15 text-purple-500"
                           : "bg-surface-hover text-text-tertiary"
                       }`}
                     >
@@ -587,8 +587,8 @@ export default function CaixaBuscaLocalizacao({
       )}
 
       {geoError && (
-        <p className="mt-2 text-xs text-[#ef4444] font-medium flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444] shrink-0" />
+        <p className="mt-2 text-xs text-danger font-medium flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-danger shrink-0" />
           {geoError}
         </p>
       )}

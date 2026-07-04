@@ -1,36 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #4285f4;
-  --color-primary-hover: #3b78e7;
-  --color-purple: #8b5cf6;
-  --color-coral: #ec4899;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
+  --color-primary: var(--color-accent-primary);
+  --color-primary-hover: var(--color-accent-primary-hover);
+  --color-purple: var(--color-accent-purple);
+  --color-coral: var(--color-accent-coral);
+  --color-success: var(--color-accent-success);
+  --color-danger: var(--color-accent-danger);
 }
 
 @layer base {
   :root {
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --color-bg: #f0f4f9;
     --color-surface: #ffffff;
-    --color-surface-hover: #f2f3f5;
+    --color-surface-hover: #e9eef6;
     --color-border: #e3e3e3;
-    --color-border-hover: #c8c8c8;
+    --color-border-hover: #c7c7c7;
     --color-text: #1f1f1f;
     --color-text-secondary: #474747;
-    --color-text-tertiary: #7a7a7a;
-    --color-bg: #f0f4f9;
+    --color-text-tertiary: #757575;
+
+    --color-accent-primary: #1a73e8;
+    --color-accent-primary-hover: #1557b0;
+    --color-accent-purple: #9333ea;
+    --color-accent-coral: #db2777;
+    --color-accent-success: #137333;
+    --color-accent-danger: #c5221f;
   }
 
   .dark {
-    --color-surface: #1e1e1e;
-    --color-surface-hover: #2a2a2a;
+    --color-bg: #131314;
+    --color-surface: #1e1e1f;
+    --color-surface-hover: #282a2c;
     --color-border: #3c4043;
     --color-border-hover: #5f6368;
-    --color-text: #e8eaed;
-    --color-text-secondary: #9aa0a6;
-    --color-text-tertiary: #80868b;
-    --color-bg: #131314;
+    --color-text: #e3e3e3;
+    --color-text-secondary: #c4c7c5;
+    --color-text-tertiary: #8e918f;
+
+    --color-accent-primary: #a8c7fa;
+    --color-accent-primary-hover: #c2e7ff;
+    --color-accent-purple: #c084fc;
+    --color-accent-coral: #f472b6;
+    --color-accent-success: #6ee7b7;
+    --color-accent-danger: #f28b82;
   }
 
   body {
