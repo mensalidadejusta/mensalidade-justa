@@ -196,9 +196,10 @@ export default function BuscaContent({
     }
 
     if (filtro.cidade && filtro.uf) {
-      updateFilters({ uf: filtro.uf, cidade: filtro.cidade, q: localQuery });
+      updateFilters({ uf: filtro.uf, cidade: filtro.cidade, lat: "", lon: "" });
     } else if (filtro.buscaRaw) {
       updateFilters({ q: filtro.buscaRaw });
+      setResultadosCoordenadas(null);
     }
   }
 
