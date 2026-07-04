@@ -95,10 +95,7 @@ export default function BuscaResults({
                   <h2 className="text-xs md:text-sm font-semibold text-text tracking-tight leading-snug">
                     {escola.nome}
                   </h2>
-                  <p className="text-[10px] md:text-xs text-text-tertiary mt-0.5 font-medium truncate">
-                    {escola.bairro && `${escola.bairro}, `}
-                    {escola.municipio} - {escola.uf}
-                  </p>
+
                   {escola.distancia_km !== undefined && (
                     <span className="inline-block text-[9px] md:text-[10px] font-semibold text-text-secondary bg-surface-hover px-1.5 md:px-2 py-0.5 rounded-md mt-1">
                       {escola.distancia_km < 1
