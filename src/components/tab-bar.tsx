@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Edit3, User, Info } from "lucide-react";
+import BotaoTema from "@/components/botao-tema";
 
 const tabs = [
   { href: "/busca", label: "Busca", icon: Search },
@@ -36,10 +37,9 @@ export default function TabBar() {
           );
         })}
         <div className="flex flex-col items-center gap-3 mt-auto">
+          <BotaoTema />
           <Link href="/sobre"
-            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 ${
-              pathname === "/sobre" ? "bg-surface shadow-sm text-primary" : "text-text-tertiary hover:text-primary hover:bg-surface-hover"
-            }`}
+            className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 text-text-tertiary hover:text-text hover:bg-surface-hover"
             title="Sobre o projeto">
             <Info className="w-5 h-5" />
           </Link>
