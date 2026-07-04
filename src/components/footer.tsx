@@ -9,8 +9,12 @@ export default async function Footer() {
   const cidadesPorUf: Record<string, { municipio: string; total: number }[]> = {};
 
   for (const uf of UFS_PRIORITY) {
-    const { data } = await supabase.rpc("get_top_cidades", { p_uf: uf, p_limit: 25 });
-    if (data?.length) cidadesPorUf[uf] = data;
+    try {
+      const { data } = await supabase.rpc("get_top_cidades", { p_uf: uf, p_limit: 25 });
+      if (data?.length) cidadesPorUf[uf] = data;
+    } catch {
+      // falha silenciosa - build nao pode quebrar se Supabase estiver lento
+    }
   }
 
   return (
