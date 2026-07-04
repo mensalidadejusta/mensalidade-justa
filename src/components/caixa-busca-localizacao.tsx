@@ -499,7 +499,7 @@ export default function CaixaBuscaLocalizacao({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             placeholder={"Endere\u00e7o, bairro ou cidade..."}
-            className="w-full bg-surface border border-border rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-300"
+            className="w-full bg-surface border border-border rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-accent-purple focus:ring-4 focus:ring-accent-purple/10 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
           />
@@ -510,7 +510,7 @@ export default function CaixaBuscaLocalizacao({
           )}
 
           {exibirDropdown() && (
-            <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+            <div className="absolute w-full top-full mt-2 z-50 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
               {carregando && (
                 <div className="p-4 space-y-3">
                   <div className="h-4 bg-surface-hover rounded animate-pulse" />
@@ -541,14 +541,14 @@ export default function CaixaBuscaLocalizacao({
                         onMouseEnter={() => setHighlightIndex(index)}
                         className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-200 ${
                           isHighlighted
-                            ? "bg-purple-500/10"
-                            : "hover:bg-surface-hover"
+                          ? "bg-accent-purple/10"
+                          : "hover:bg-surface-hover"
                         }`}
                       >
                         <span
                           className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
                             isHighlighted
-                              ? "bg-purple-500/15 text-purple-500"
+                              ? "bg-accent-purple/15 text-accent-purple"
                               : "bg-surface-hover text-text-tertiary"
                           }`}
                         >
@@ -574,7 +574,7 @@ export default function CaixaBuscaLocalizacao({
           type="button"
           onClick={buscarPertoDeMim}
           disabled={geoLoading}
-          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full text-sm font-medium bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 border border-purple-500/20 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full text-sm font-medium bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 border border-accent-purple/20 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
           title="Usar minha localiza\u00e7\u00e3o atual"
         >
           {geoLoading ? (
