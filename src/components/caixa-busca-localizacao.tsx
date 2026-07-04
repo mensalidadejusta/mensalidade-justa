@@ -66,6 +66,7 @@ type LocationIqSuggestion = {
     city?: string;
     town?: string;
     village?: string;
+    county?: string;
     state?: string;
     country?: string;
     postcode?: string;
@@ -234,7 +235,7 @@ export default function CaixaBuscaLocalizacao({
         const lat = item.lat ? Number(item.lat) : undefined;
         const lon = item.lon ? Number(item.lon) : undefined;
 
-        const cidade = addr.city || addr.town || addr.village || "";
+        const cidade = addr.city || addr.town || addr.village || addr.county || addr.name || "";
         const uf = addr.state || "";
         const bairro = addr.neighbourhood || addr.suburb || "";
         const logradouro = addr.road || addr.name || "";
