@@ -5,6 +5,23 @@ import { SERIES, GRUPOS } from "@/lib/series";
 
 const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
 
+const ETAPA_CORES: Record<string, string> = {
+  "educação infantil": "bg-pink-200 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+  "ensino fundamental": "bg-sky-200 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300",
+  "ensino médio": "bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  "eja": "bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  "educação profissional": "bg-teal-200 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  "educação especial": "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+};
+
+function etapaCor(etapa: string): string {
+  const chave = etapa.toLowerCase().trim();
+  for (const [prefixo, cor] of Object.entries(ETAPA_CORES)) {
+    if (chave.includes(prefixo)) return cor;
+  }
+  return "bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200";
+}
+
 export type SeriePreco = {
   serie_slug: string;
   serie_nome: string;
@@ -74,10 +91,14 @@ export default function BuscaResults({
                   <h2 className="text-xs md:text-sm font-semibold text-text tracking-tight leading-snug">
                     {escola.nome}
                   </h2>
-                  <p className="text-[10px] md:text-xs text-text-tertiary mt-0.5 font-medium truncate">
+                  <p className="flex flex-wrap gap-1 mt-1">
                     {escola.etapas_modalidades
-                      ? escola.etapas_modalidades.split(",").map((e) => e.trim()).filter(Boolean).slice(0, 3).join(", ")
-                      : `${escola.municipio} - ${escola.uf}`}
+                      ? escola.etapas_modalidades.split(",").map((e) => e.trim()).filter(Boolean).slice(0, 3).map((etapa) => (
+                          <span key={etapa} className={`text-[9px] md:text-[10px] font-semibold px-1.5 md:px-2 py-0.5 rounded-md ${etapaCor(etapa)}`}>
+                            {etapa}
+                          </span>
+                        ))
+                      : <span className="text-[10px] md:text-xs text-text-tertiary font-medium">{escola.municipio} - {escola.uf}</span>}
                   </p>
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
