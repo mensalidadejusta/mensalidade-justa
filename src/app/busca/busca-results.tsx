@@ -199,9 +199,8 @@ export default function BuscaResults({
                       </button>
                     </div>
                   )}
-                </div>
               </div>
-              </div>
+            </div>
             </Link>
           </article>
         );
