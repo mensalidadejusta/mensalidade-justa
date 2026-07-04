@@ -418,7 +418,7 @@ export default function BuscaContent({
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex min-h-dvh">
-        <div className={`transition-all duration-500 ease-in-out ${showMap ? "w-1/2" : "w-full"}`}>
+        <div className={`transition-all duration-500 ease-in-out ${showMap ? "w-2/5" : "w-full"}`}>
           <div className="pt-0 pb-4 px-4">
             <div className={`mx-auto space-y-5 ${showMap ? "max-w-full" : "max-w-2xl"}`}>
               <div className="text-center">
@@ -501,7 +501,7 @@ export default function BuscaContent({
         </div>
 
         {showMap && sortedResultados && (
-          <div className="w-1/2 h-dvh sticky top-0 p-2 transition-all duration-500 ease-in-out">
+          <div className="w-3/5 h-dvh sticky top-0 p-2 transition-all duration-500 ease-in-out">
             <div className="h-full rounded-3xl overflow-hidden border border-border/80 shadow-2xl bg-surface">
               <MapaEscolas escolas={sortedResultados} userLocation={userLocation} hoveredId={hoveredId} />
             </div>
