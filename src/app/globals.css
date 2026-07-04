@@ -30,9 +30,9 @@
   }
 
   .dark {
-    --color-bg: #131314;
-    --color-surface: #1e1e1f;
-    --color-surface-hover: #282a2c;
+    --color-bg: #1a1a1c;
+    --color-surface: #2a2a2e;
+    --color-surface-hover: #333338;
     --color-border: #3c4043;
     --color-border-hover: #5f6368;
     --color-text: #e3e3e3;
