@@ -8,6 +8,7 @@ const tabs = [
   { href: "/busca", label: "Busca", icon: Search },
   { href: "/contribuir", label: "Contribuir", icon: Edit3 },
   { href: "/perfil", label: "Perfil", icon: User },
+  { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
 const authPaths = ["/login", "/cadastro", "/recuperar-senha", "/alterar-senha"];
@@ -36,7 +37,9 @@ export default function TabBar() {
         })}
         <div className="flex flex-col items-center gap-4 mt-auto">
           <Link href="/sobre"
-            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] transition-all duration-300"
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 ${
+              pathname === "/sobre" ? "bg-[var(--color-surface)] shadow-sm text-[var(--color-primary)]" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-hover)]"
+            }`}
             title="Sobre o projeto">
             <Info className="w-5 h-5" />
           </Link>
@@ -47,7 +50,7 @@ export default function TabBar() {
       <nav className="md:hidden sticky bottom-0 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-20">
         <div className="max-w-lg mx-auto flex items-center">
           {tabs.map((tab) => {
-            const active = pathname.startsWith(tab.href);
+            const active = pathname.startsWith(tab.href) || (tab.href === "/sobre" && pathname === "/sobre");
             const Icon = tab.icon;
             return (
               <Link key={tab.href} href={tab.href}
@@ -59,11 +62,6 @@ export default function TabBar() {
               </Link>
             );
           })}
-          <Link href="/sobre"
-            className="flex items-center justify-center w-10 h-10 text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors duration-300"
-            title="Sobre o projeto">
-            <Info className="w-[18px] h-[18px]" />
-          </Link>
         </div>
       </nav>
     </>

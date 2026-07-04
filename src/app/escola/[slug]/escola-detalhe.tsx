@@ -2,7 +2,6 @@
 
 import { Fragment, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import ToggleTema from "@/components/toggle-tema";
 import Link from "next/link";
 import { SERIES } from "@/lib/series";
 
@@ -60,12 +59,9 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
     <div className="min-h-dvh transition-colors">
       <div className="max-w-3xl mx-auto px-4 py-6">
         <header className="flex items-start justify-between mb-6">
-          <div>
-            <button onClick={() => router.back()} className="text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors cursor-pointer">
-              ← Voltar para busca
-            </button>
-          </div>
-          <ToggleTema />
+          <button onClick={() => router.back()} className="text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors cursor-pointer">
+            ← Voltar para busca
+          </button>
         </header>
 
         <main className="space-y-6">

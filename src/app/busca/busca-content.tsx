@@ -83,10 +83,6 @@ export default function BuscaContent({
   const [filtroLoc, setFiltroLoc] = useState<FiltroLocalizacao | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
   const uf = filtroLoc?.uf ?? searchParams.get("uf") ?? "";
   const cidade = filtroLoc?.cidade ?? searchParams.get("cidade") ?? "";
   const serieSlug = searchParams.get("serie") ?? "";
