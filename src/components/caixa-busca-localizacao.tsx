@@ -48,6 +48,9 @@ type PhotonProperties = {
   housenumber?: string;
   postcode?: string;
   city?: string;
+  town?: string;
+  village?: string;
+  municipality?: string;
   state?: string;
   country?: string;
   osm_key?: string;
@@ -225,40 +228,45 @@ export default function CaixaBuscaLocalizacao({
 
       for (const f of features) {
         const p = f.properties;
-        if (!p || p.country !== "Brasil") continue;
+        if (!p) continue;
+
+        const country = (p.country || "").toLowerCase();
+        if (country && country !== "brazil" && country !== "brasil") continue;
 
         const lon = f.geometry?.coordinates?.[0];
         const lat = f.geometry?.coordinates?.[1];
-        const cidade = p.city || "";
+        const cidade = p.city || p.town || p.village || p.municipality || p.name || "";
         const uf = p.state || "";
 
-        if (!cidade && !uf) continue;
+        const osmKey = p.osm_key || "";
+        const osmValue = p.osm_value || "";
+        const nome = p.name || "";
+        const street = p.street || "";
+        const housenumber = p.housenumber || "";
 
         let tipo: SugestaoLocalizacao["tipo"] = "cidade";
         let texto = "";
         let bairro: string | undefined;
 
-        const osmKey = p.osm_key || "";
-        const osmValue = p.osm_value || "";
-
-        if (osmKey === "place" && (osmValue === "city" || osmValue === "town" || osmValue === "village" || osmValue === "municipality")) {
+        if (osmKey === "place" && (osmValue === "city" || osmValue === "town" || osmValue === "village" || osmValue === "municipality" || osmValue === "locality" || osmValue === "hamlet")) {
           tipo = "cidade";
-          texto = `${cidade} - ${uf}`;
+          texto = `${cidade}${uf ? ` - ${uf}` : ""}`;
         } else if (osmKey === "place" && (osmValue === "suburb" || osmValue === "neighbourhood" || osmValue === "quarter")) {
           tipo = "bairro";
-          bairro = p.name || "";
-          texto = `${bairro}, ${cidade} - ${uf}`;
-        } else if (osmKey === "highway" || osmValue === "street" || osmValue === "pedestrian" || osmValue === "road") {
+          bairro = nome || cidade;
+          texto = `${bairro}${cidade && bairro !== cidade ? `, ${cidade}` : ""}${uf ? ` - ${uf}` : ""}`;
+        } else if (street || osmKey === "highway" || osmValue === "street" || osmValue === "road" || osmValue === "pedestrian" || osmValue === "residential") {
           tipo = "logradouro";
-          const logradouro = [p.housenumber, p.street || p.name].filter(Boolean).join(" ");
-          texto = logradouro ? `${logradouro}, ${cidade} - ${uf}` : `${cidade} - ${uf}`;
-        } else if (osmValue === "locality" || osmValue === "hamlet") {
+          const logradouro = [housenumber, street || nome].filter(Boolean).join(" ");
+          texto = logradouro ? `${logradouro}, ${cidade}${uf ? ` - ${uf}` : ""}` : `${cidade}${uf ? ` - ${uf}` : ""}`;
+        } else if (cidade) {
           tipo = "cidade";
-          texto = `${p.name || cidade} - ${uf}`;
-        } else {
+          texto = `${cidade}${uf ? ` - ${uf}` : ""}`;
+        } else if (nome) {
           tipo = "logradouro";
-          const logradouro = [p.housenumber, p.street || p.name].filter(Boolean).join(" ");
-          texto = logradouro ? `${logradouro}, ${cidade} - ${uf}` : `${cidade} - ${uf}`;
+          texto = `${nome}${cidade ? `, ${cidade}` : ""}${uf ? ` - ${uf}` : ""}`;
+        } else {
+          continue;
         }
 
         const chave = `${tipo}|${texto}`;
@@ -277,7 +285,61 @@ export default function CaixaBuscaLocalizacao({
         });
       }
 
-      setSugestoes(results.slice(0, 8));
+      if (results.length === 0) {
+        const supabase = (await import("@/lib/supabase")).createClient();
+        const likePattern = `%${termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}%`;
+        const [{ data: cidadesFallback }, { data: bairrosFallback }] = await Promise.all([
+          supabase
+            .from("tb_cidades")
+            .select("nome, estado:estado_id!inner(uf)")
+            .ilike("nome", likePattern)
+            .limit(5)
+            .order("nome"),
+          supabase
+            .from("escolas")
+            .select("bairro, municipio, uf")
+            .not("bairro", "is", null)
+            .or(`bairro.ilike.${likePattern},municipio.ilike.${likePattern}`)
+            .limit(8)
+            .order("bairro"),
+        ]);
+
+        if (cidadesFallback) {
+          for (const c of cidadesFallback) {
+            const uf = (c.estado as any)?.uf ?? "";
+            if (!uf) continue;
+            const chave = `cidade|${c.nome} - ${uf}`;
+            if (vistos.has(chave)) continue;
+            vistos.add(chave);
+            results.push({
+              id: `fb-cid-${results.length}`,
+              textoExibicao: `${c.nome} - ${uf}`,
+              tipo: "cidade",
+              cidade: c.nome,
+              uf,
+            });
+          }
+        }
+
+        if (bairrosFallback) {
+          for (const b of bairrosFallback) {
+            if (!b.bairro || !b.municipio || !b.uf) continue;
+            const chave = `bairro|${b.bairro}, ${b.municipio} - ${b.uf}`;
+            if (vistos.has(chave)) continue;
+            vistos.add(chave);
+            results.push({
+              id: `fb-bairro-${results.length}`,
+              textoExibicao: `${b.bairro}, ${b.municipio} - ${b.uf}`,
+              tipo: "bairro",
+              bairro: b.bairro,
+              cidade: b.municipio,
+              uf: b.uf,
+            });
+          }
+        }
+      }
+
+      setSugestoes(results.slice(0, 10));
       setDropdownAberto(results.length > 0);
       setBuscouSemResultados(results.length === 0);
       setHighlightIndex(-1);
