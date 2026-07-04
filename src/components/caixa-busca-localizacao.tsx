@@ -214,29 +214,19 @@ export default function CaixaBuscaLocalizacao({
 
   async function buscarCidadesFallback(termo: string, results: SugestaoLocalizacao[], vistos: Set<string>) {
     const supabase = createClient();
-    const normalizado = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const like = `%${normalizado}%`;
-
-    const { data: cidades } = await supabase
-      .from("tb_cidades")
-      .select("nome, estado:estado_id!inner(uf)")
-      .ilike("nome", like)
-      .limit(8)
-      .order("nome");
+    const { data: cidades } = await supabase.rpc("buscar_cidades", { p_termo: termo });
 
     if (cidades) {
       for (const c of cidades) {
-        const uf = (c.estado as any)?.uf ?? "";
-        if (!uf) continue;
-        const chave = `cidade|${c.nome} - ${uf}`;
+        const chave = `cidade|${c.cidade} - ${c.uf}`;
         if (vistos.has(chave)) continue;
         vistos.add(chave);
         results.push({
           id: `sc-${results.length}`,
-          textoExibicao: `${c.nome} - ${uf}`,
+          textoExibicao: `${c.cidade} - ${c.uf}`,
           tipo: "cidade",
-          cidade: c.nome,
-          uf,
+          cidade: c.cidade,
+          uf: c.uf,
         });
       }
     }
