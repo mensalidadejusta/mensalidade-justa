@@ -330,7 +330,7 @@ export default function BuscaContent({
   return (
     <div className="min-h-dvh bg-bg text-text selection:bg-primary/30 flex flex-col">
       {/* ===== MOBILE ===== */}
-      <div className="md:hidden">
+      <div className={`md:hidden flex flex-col min-h-dvh ${!((uf && cidade) || resultadosCoordenadas) ? "justify-center" : ""}`}>
         <div className="px-4 pt-0 pb-4">
           <div className="w-full max-w-lg mx-auto space-y-4">
             <div className="text-center">
@@ -396,9 +396,9 @@ export default function BuscaContent({
             </div>
           </div>
         )}
-        <div className="px-4 pb-24">
-          {(uf && cidade) || resultadosCoordenadas ? (
-            carregandoCoordenadas ? (
+        {((uf && cidade) || resultadosCoordenadas) && (
+          <div className="px-4 pb-24">
+            {carregandoCoordenadas ? (
               <div className="flex items-center justify-center py-12">
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-6 h-6 text-primary animate-spin" />
@@ -413,14 +413,14 @@ export default function BuscaContent({
               <div className="text-center text-sm text-text-tertiary py-12">
                 <p className="font-medium">Nenhuma escola encontrada.</p>
               </div>
-            )
-          ) : null}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex min-h-dvh">
-        <div className={`transition-all duration-500 ease-in-out ${showMap ? "w-2/5" : "w-full"}`}>
+        <div className={`flex flex-col transition-all duration-500 ease-in-out ${showMap ? "w-2/5" : "w-full"} ${!((uf && cidade) || resultadosCoordenadas) ? "justify-center" : ""}`}>
           <div className="pt-0 pb-4 px-4">
             <div className={`mx-auto space-y-5 ${showMap ? "max-w-full" : "max-w-2xl"}`}>
               <div className="text-center">
@@ -480,8 +480,8 @@ export default function BuscaContent({
             </div>
           </div>
 
-          <div className="px-4 pb-8">
-            {(uf && cidade) || resultadosCoordenadas ? (
+          {((uf && cidade) || resultadosCoordenadas) && (
+            <div className="px-4 pb-8">
               <div className={`mx-auto ${showMap ? "max-w-full" : "max-w-6xl"}`}>
                 {carregandoCoordenadas ? (
                   <div className="flex items-center justify-center py-12">
@@ -498,8 +498,8 @@ export default function BuscaContent({
                   </div>
                 )}
               </div>
-            ) : null}
-          </div>
+            </div>
+          )}
         </div>
 
         {showMap && sortedResultados && (
