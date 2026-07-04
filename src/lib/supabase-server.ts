@@ -8,10 +8,16 @@ export function createServerClient() {
       auth: { autoRefreshToken: false, persistSession: false },
       global: {
         fetch: (url: RequestInfo | URL, init?: RequestInit) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10_000);
+          const combined = init?.signal
+            ? AbortSignal.any([init.signal, controller.signal])
+            : controller.signal;
           return fetch(url, {
             ...init,
+            signal: combined,
             next: { revalidate: 86400 } as any,
-          });
+          }).finally(() => clearTimeout(timeoutId));
         },
       },
     }
