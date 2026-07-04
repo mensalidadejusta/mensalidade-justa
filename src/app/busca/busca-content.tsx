@@ -294,7 +294,7 @@ export default function BuscaContent({
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-text-tertiary z-10" />
           <input
-            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-accent-purple focus:ring-4 focus:ring-accent-purple/10 transition-all duration-300"
+            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
             placeholder="Buscar escola por nome..."
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
