@@ -80,6 +80,7 @@ type LocationIqSuggestion = {
   address?: {
     name?: string;
     road?: string;
+    house_number?: string;
     neighbourhood?: string;
     suburb?: string;
     city?: string;
@@ -300,17 +301,17 @@ export default function CaixaBuscaLocalizacao({
 
               const cidadeUf = `${cidade}${uf ? ` - ${uf}` : ""}`;
 
-              if (tipoRaw === "city" || tipoRaw === "town" || tipoRaw === "village" || tipoRaw === "administrative") {
+              if (logradouro || addr.house_number || tipoRaw === "road" || osmType === "way") {
+                tipo = "logradouro";
+                const logr = [logradouro, bairro, cidade].filter(Boolean).join(", ");
+                texto = `${logr}${uf ? ` - ${uf}` : ""}`;
+              } else if (tipoRaw === "city" || tipoRaw === "town" || tipoRaw === "village" || tipoRaw === "administrative") {
                 tipo = "cidade";
                 texto = cidadeUf || displayName;
               } else if (tipoRaw === "suburb" || tipoRaw === "neighbourhood" || tipoRaw === "quarter" || (bairro && cidade)) {
                 tipo = "bairro";
                 displayBairro = bairro || logradouro;
                 texto = `${displayBairro}, ${cidadeUf}`;
-              } else if (tipoRaw === "road" || osmType === "way" || logradouro) {
-                tipo = "logradouro";
-                const logr = [logradouro, bairro, cidade].filter(Boolean).join(", ");
-                texto = `${logr}${uf ? ` - ${uf}` : ""}`;
               } else if (cidade) {
                 tipo = "cidade";
                 texto = cidadeUf;
