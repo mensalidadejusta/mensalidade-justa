@@ -169,7 +169,6 @@ export default function BuscaContent({
     setFiltroLoc(filtro);
 
     if (filtro.latitude != null && filtro.longitude != null) {
-      setCarregandoCoordenadas(true);
       const novosParams = new URLSearchParams();
       novosParams.set("lat", filtro.latitude.toString());
       novosParams.set("lon", filtro.longitude.toString());
@@ -177,6 +176,7 @@ export default function BuscaContent({
       if (filtro.uf) novosParams.set("uf", filtro.uf);
       router.replace(`${pathname}?${novosParams.toString()}`);
       setNavTick((n) => n + 1);
+      setCarregandoCoordenadas(true);
       try {
         const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
           p_lat: filtro.latitude,
@@ -196,14 +196,7 @@ export default function BuscaContent({
       return;
     }
 
-    if (filtro.cidade && filtro.uf) {
-      const novosParams = new URLSearchParams();
-      novosParams.set("uf", filtro.uf);
-      novosParams.set("cidade", filtro.cidade);
-      router.replace(`${pathname}?${novosParams.toString()}`);
-      setNavTick((n) => n + 1);
-      setResultadosCoordenadas(null);
-    } else if (filtro.buscaRaw) {
+    if (filtro.buscaRaw) {
       const novosParams = new URLSearchParams();
       novosParams.set("q", filtro.buscaRaw);
       router.replace(`${pathname}?${novosParams.toString()}`);
@@ -336,8 +329,8 @@ export default function BuscaContent({
     <div className="min-h-dvh bg-bg text-text selection:bg-primary/30 flex flex-col">
       {/* ===== MOBILE ===== */}
       <div className="md:hidden">
-        <div className="px-4 pt-6 pb-4">
-          <div className="w-full max-w-lg mx-auto space-y-4">
+         <div className="px-4 pt-0 pb-4">
+           <div className="w-full max-w-lg mx-auto space-y-4">
             <div className="text-center">
               <h1 className="text-2xl font-[400] tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-purple-500 to-coral bg-clip-text text-transparent">
@@ -420,22 +413,13 @@ export default function BuscaContent({
                 <p className="font-medium">Nenhuma escola encontrada.</p>
               </div>
             )
-          ) : (
-            <div className="flex items-center justify-center h-full text-center text-xs text-text-tertiary px-4">
-              <div>
-                <div className="flex justify-center mb-2">
-                  <MapPin className="w-8 h-8 text-text-tertiary" />
-                </div>
-                <p className="font-medium">Digite um endere{'\u00e7'}o ou cidade para come{'\u00e7'}ar.</p>
-              </div>
-            </div>
-          )}
+          ) : null}
         </div>
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex min-h-dvh">
         <div className={`transition-all duration-500 ease-in-out ${showMap ? "w-1/2" : "w-full"}`}>
-          <div className="pt-10 pb-4 px-4">
+          <div className="pt-0 pb-4 px-4">
             <div className={`mx-auto space-y-5 ${showMap ? "max-w-full" : "max-w-2xl"}`}>
               <div className="text-center">
                 <h1 className="text-4xl font-[400] tracking-tight">
@@ -512,16 +496,7 @@ export default function BuscaContent({
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="flex items-center justify-center py-16 text-center text-sm text-text-tertiary">
-                <div>
-                  <div className="flex justify-center mb-3">
-                    <MapPin className="w-10 h-10 text-text-tertiary" />
-                  </div>
-                  <p className="font-medium">Digite um endere{'\u00e7'}o ou cidade para come{'\u00e7'}ar.</p>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
 
