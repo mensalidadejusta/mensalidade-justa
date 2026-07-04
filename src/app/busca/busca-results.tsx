@@ -131,28 +131,24 @@ export default function BuscaResults({
                           (sp) => slugToGrupo.get(sp.serie_slug) === grupo
                         );
                         if (items.length === 0) return null;
+                        const precos = items
+                          .map((sp) => Number(sp.valor_mensalidade))
+                          .filter((v) => !isNaN(v));
+                        const min = precos.length > 0 ? Math.min(...precos) : null;
+                        const max = precos.length > 0 ? Math.max(...precos) : null;
+                        const qtdTotal = items.reduce((sum, sp) => sum + sp.qtd, 0);
                         return (
-                          <div key={grupo}>
-                            <p className="text-[9px] md:text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-0.5">
-                              {grupo}
-                            </p>
-                            {items.map((sp) => (
-                              <p key={sp.serie_slug} className="text-[11px] md:text-xs leading-5">
-                                <span className="text-text-secondary">
-                                  {sp.serie_nome}:{' '}
-                                </span>
-                                <span className="text-xs md:text-sm font-bold text-primary">
-                                  R$ {Number(sp.valor_mensalidade).toFixed(2)}
-                                </span>
-                                <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal">
-                                  {' /m'}{'\u00ea'}s
-                                </span>
-                                <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-0.5 md:ml-1">
-                                  ({sp.qtd})
-                                </span>
-                              </p>
-                            ))}
-                          </div>
+                          <p key={grupo} className="text-[11px] md:text-xs leading-5">
+                            <span className="text-text-secondary font-medium">{grupo}:{' '}</span>
+                            {min !== null && max !== null ? (
+                              <span className="text-xs md:text-sm font-bold text-primary">
+                                R$ {min.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} - R$ {max.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </span>
+                            ) : null}
+                            <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-1">
+                              ({qtdTotal} {qtdTotal === 1 ? 'contribuição' : 'contribuições'})
+                            </span>
+                          </p>
                         );
                       })}
                     </div>
