@@ -130,33 +130,40 @@ export default function BuscaContent({
   }, [initialCidades]);
 
   useEffect(() => {
-    const lat = searchParams.get("lat");
-    const lon = searchParams.get("lon");
-    if (lat && lon) {
+    function buscarPorUrl() {
+      const params = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : ""
+      );
+      const lat = params.get("lat");
+      const lon = params.get("lon");
+      if (!lat || !lon) return;
       const latNum = Number(lat);
       const lonNum = Number(lon);
-      if (!isNaN(latNum) && !isNaN(lonNum)) {
-        (async () => {
-          setCarregandoCoordenadas(true);
-          try {
-            const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
-              p_lat: latNum,
-              p_lon: lonNum,
-              p_raio_km: 50,
-            });
-            const mapped = (data || []).map((item: any) => ({
-              ...item,
-              distancia_km: item.distancia_km ?? undefined,
-            })) as EscolaResult[];
-            setResultadosCoordenadas(mapped);
-          } catch {
-            setResultadosCoordenadas([]);
-          }
-          setCarregandoCoordenadas(false);
-        })();
-      }
+      if (isNaN(latNum) || isNaN(lonNum)) return;
+      if (resultadosCoordenadas !== null) return;
+
+      (async () => {
+        setCarregandoCoordenadas(true);
+        try {
+          const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
+            p_lat: latNum,
+            p_lon: lonNum,
+            p_raio_km: 50,
+          });
+          const mapped = (data || []).map((item: any) => ({
+            ...item,
+            distancia_km: item.distancia_km ?? undefined,
+          })) as EscolaResult[];
+          setResultadosCoordenadas(mapped);
+        } catch {
+          setResultadosCoordenadas([]);
+        }
+        setCarregandoCoordenadas(false);
+      })();
     }
-  }, []);
+
+    buscarPorUrl();
+  }, [searchParams, resultadosCoordenadas]);
 
   async function handleLocationChange(filtro: FiltroLocalizacao) {
     setFiltroLoc(filtro);
