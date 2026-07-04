@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function SobrePage() {
   return (
-    <div className="min-h-dvh bg-[#f0f4f9] dark:bg-[#131314] transition-colors">
+    <div className="min-h-dvh bg-bg dark:bg-bg transition-colors">
       <div className="max-w-2xl mx-auto px-4 py-10">
         <Link href="/busca" className="text-sm text-text-tertiary hover:text-primary transition-colors">
           {A(0x2190)} Voltar
@@ -18,7 +18,7 @@ export default function SobrePage() {
 
         <main className="mt-6 space-y-8">
           <section className="text-center space-y-3">
-            <h1 className="text-3xl font-bold text-[#1f1f1f] dark:text-white">
+            <h1 className="text-3xl font-bold text-text dark:text-text">
               Mensalidade <span className="bg-gradient-to-r from-[#a855f7] via-[#3b82f6] to-[#f43f5e] bg-clip-text text-transparent">Justa</span>
             </h1>
             <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -30,7 +30,7 @@ export default function SobrePage() {
           <div className="card space-y-3">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{A(0x1F630)}</span>
-              <h2 className="text-lg font-semibold text-[#1f1f1f] dark:text-white">O problema</h2>
+              <h2 className="text-lg font-semibold text-text dark:text-text">O problema</h2>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {A(0x00C9)} uma informa{A(0x00E7)}{A(0x00E3)}o valiosa que fica escondida atr{A(0x00E1)}s do balc{A(0x00E3)}o da secretaria.
@@ -42,7 +42,7 @@ export default function SobrePage() {
           <div className="card space-y-3">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{A(0x1F4A1)}</span>
-              <h2 className="text-lg font-semibold text-[#1f1f1f] dark:text-white">A nossa ideia</h2>
+              <h2 className="text-lg font-semibold text-text dark:text-text">A nossa ideia</h2>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               Foi assim que nasceu o <strong>Mensalidade Justa</strong>. Uma plataforma colaborativa
@@ -54,19 +54,19 @@ export default function SobrePage() {
           <div className="card space-y-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{A(0x1F465)}</span>
-              <h2 className="text-lg font-semibold text-[#1f1f1f] dark:text-white">Para quem {A(0x00E9)}?</h2>
+              <h2 className="text-lg font-semibold text-text dark:text-text">Para quem {A(0x00E9)}?</h2>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-xl shrink-0 mt-0.5">{A(0x1F91D)}</span>
               <div>
-                <h3 className="text-sm font-semibold text-[#1f1f1f] dark:text-white">Pais e respons{A(0x00E1)}veis</h3>
+                <h3 className="text-sm font-semibold text-text dark:text-text">Pais e respons{A(0x00E1)}veis</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">Na hora da matr{A(0x00ED)}cula ou rematr{A(0x00ED)}cula, tenha em m{A(0x00E3)}os os valores praticados por outras fam{A(0x00ED)}lias.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-xl shrink-0 mt-0.5">{A(0x1F3EB)}</span>
               <div>
-                <h3 className="text-sm font-semibold text-[#1f1f1f] dark:text-white">Quem est{A(0x00E1)} mudando de escola</h3>
+                <h3 className="text-sm font-semibold text-text dark:text-text">Quem est{A(0x00E1)} mudando de escola</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">Pesquise por regi{A(0x00E3)}o, compare mensalidades e encontre a institui{A(0x00E7)}{A(0x00E3)}o que cabe no seu or{A(0x00E7)}amento.</p>
               </div>
             </div>
@@ -75,7 +75,7 @@ export default function SobrePage() {
           <div className="card space-y-3 border-blue-200/50 dark:border-blue-800/30">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{A(0x1F512)}</span>
-              <h2 className="text-lg font-semibold text-[#1f1f1f] dark:text-white">Privacidade total</h2>
+              <h2 className="text-lg font-semibold text-text dark:text-text">Privacidade total</h2>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               Seus dados s{A(0x00E3)}o <strong>100% an{A(0x00F4)}nimos</strong>. Nenhuma informa{A(0x00E7)}{A(0x00E3)}o pessoal {A(0x00E9)} exibida.
@@ -86,7 +86,7 @@ export default function SobrePage() {
           <div className="card space-y-3 bg-amber-50/50 dark:bg-amber-900/10 border-amber-200/50 dark:border-amber-800/30">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{A(0x2696)}</span>
-              <h2 className="text-lg font-semibold text-[#1f1f1f] dark:text-white">Aviso importante</h2>
+              <h2 className="text-lg font-semibold text-text dark:text-text">Aviso importante</h2>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               O <strong>Mensalidade Justa</strong> {A(0x00E9)} uma plataforma <strong>colaborativa</strong>.

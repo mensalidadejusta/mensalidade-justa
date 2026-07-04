@@ -38,7 +38,7 @@ function RadioChecked() {
 }
 
 function RadioUnchecked() {
-  return <span className="w-4 h-4 rounded-full border-2 border-neutral-700 bg-transparent shrink-0 mr-3" />;
+  return <span className="w-4 h-4 rounded-full border-2 border-border bg-transparent shrink-0 mr-3" />;
 }
 
 function CheckboxChecked() {
@@ -50,7 +50,7 @@ function CheckboxChecked() {
 }
 
 function CheckboxUnchecked() {
-  return <span className="w-4 h-4 rounded border-2 border-neutral-700 bg-transparent shrink-0 mr-3" />;
+  return <span className="w-4 h-4 rounded border-2 border-border bg-transparent shrink-0 mr-3" />;
 }
 
 export default function SearchableSelect({ label, value, options, series, grupos, onChange, disabled, isMultiple, position = "sheet" }: Props) {
@@ -200,10 +200,10 @@ export default function SearchableSelect({ label, value, options, series, grupos
   };
 
   const optionsList = (
-    <div className="w-full divide-y divide-neutral-800/80 border-t border-b border-neutral-800/80">
+    <div className="w-full divide-y divide-border/80 border-t border-b border-border/80">
       <button
         onClick={() => handleSelect("")}
-        className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors italic hover:bg-neutral-900 text-text-tertiary`}
+        className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors italic hover:bg-surface text-text-tertiary`}
       >
         <span className="flex items-center">
           {multi ? (isAllSelected ? <CheckboxChecked /> : <CheckboxUnchecked />) : (isAllSelected ? <RadioChecked /> : <RadioUnchecked />)}
@@ -222,7 +222,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 const sel = isSelected(s.slug);
                 return (
                   <button key={s.slug} onClick={() => handleSelect(s.slug)}
-                    className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-neutral-100 font-medium" : "text-text-secondary hover:bg-neutral-900"}`}
+                    className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-text font-medium" : "text-text-secondary hover:bg-surface"}`}
                   >
                     <span className="flex items-center min-w-0">
                       <Indicator slug={s.slug} />
@@ -240,7 +240,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
           const sel = isSelected(opt);
           return (
             <button key={opt} onClick={() => handleSelect(opt)}
-              className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-neutral-100 font-medium" : "text-text-secondary hover:bg-neutral-900"}`}
+              className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-text font-medium" : "text-text-secondary hover:bg-surface"}`}
             >
               <span className="flex items-center min-w-0">
                 <Indicator slug={opt} />
@@ -257,7 +257,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
   return (
     <>
       <button onClick={openSheet}
-        className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-[#16161a] border border-[#26262b] text-[#5a5260] hover:text-[#eadfed] hover:border-[#a855f7]/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-surface border border-border text-text-tertiary hover:text-text hover:border-[#a855f7]/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={disabled}
       >
         {getDisplay()}
@@ -268,12 +268,12 @@ export default function SearchableSelect({ label, value, options, series, grupos
         {open && sidebar && (
           <div className="fixed inset-0 z-40 lg:block hidden">
             <motion.div className="absolute inset-0 bg-black/40" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
-            <motion.div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-[#131314] border-r border-neutral-800 shadow-2xl flex flex-col"
+            <motion.div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-bg border-r border-border shadow-2xl flex flex-col"
               variants={sidebarVariants} initial="hidden" animate="visible" exit="exit"
             >
               <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
                 <h2 className="text-base font-semibold text-text">{title}</h2>
-                <button onClick={closeSheet} className="p-1 rounded-lg text-text-tertiary hover:text-text hover:bg-neutral-800 transition-colors">
+                <button onClick={closeSheet} className="p-1 rounded-lg text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -282,7 +282,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
                   <input ref={inputRef}
-                    className="w-full bg-neutral-900 rounded-xl pl-10 pr-4 py-2 text-sm text-text placeholder:text-text-tertiary outline-none border border-neutral-800 transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                    className="w-full bg-surface rounded-xl pl-10 pr-4 py-2 text-sm text-text placeholder:text-text-tertiary outline-none border border-border transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                     placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
               </div>
@@ -293,14 +293,14 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 ) : optionsList}
               </div>
 
-              <div className="shrink-0 border-t border-neutral-800 px-4 py-3 flex gap-2">
+              <div className="shrink-0 border-t border-border px-4 py-3 flex gap-2">
                 <button onClick={applyDraft}
                   className="flex-1 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 active:scale-[0.98]"
                 >
                   Aplicar Filtros
                 </button>
                 <button onClick={clearDraft}
-                  className="px-4 py-2 rounded-xl text-sm font-medium bg-neutral-800 text-text-secondary hover:bg-neutral-700 hover:text-text transition-all duration-200"
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-surface-hover text-text-secondary hover:bg-surface-hover hover:text-text transition-all duration-200"
                 >
                   Limpar
                 </button>
@@ -314,7 +314,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
             <motion.div className="absolute inset-0 bg-black/70" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
 
             <motion.div ref={sheetRef}
-              className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-[#131314] border border-neutral-800 flex flex-col shadow-2xl overflow-hidden sm:mx-4"
+              className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-bg border border-border flex flex-col shadow-2xl overflow-hidden sm:mx-4"
               style={{ height: "90dvh" }}
               variants={sheetVariants} initial="hidden" animate="visible" exit="exit"
               drag={typeof window !== "undefined" && window.innerWidth < 640 ? "y" : false}
@@ -323,7 +323,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
               onDragEnd={handleDragEnd}
             >
               <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing sm:hidden">
-                <div className="w-12 h-1 rounded-full bg-neutral-700" />
+                <div className="w-12 h-1 rounded-full bg-surface-hover" />
               </div>
 
               <div className="flex items-center justify-between px-5 pb-3 shrink-0">
@@ -335,7 +335,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
                   <input ref={inputRef}
-                    className="w-full bg-neutral-900 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text placeholder:text-text-tertiary outline-none border border-neutral-800 transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                    className="w-full bg-surface rounded-xl pl-10 pr-4 py-2.5 text-sm text-text placeholder:text-text-tertiary outline-none border border-border transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                     placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
               </div>

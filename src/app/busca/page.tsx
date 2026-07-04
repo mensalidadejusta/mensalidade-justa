@@ -120,7 +120,7 @@ export default async function BuscaPage({ searchParams }: Props) {
   }
 
   return (
-    <Suspense fallback={<div className="p-12 text-center text-sm text-neutral-500 font-medium animate-pulse bg-neutral-950 min-h-dvh">Iniciando...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-sm text-text-tertiary font-medium animate-pulse bg-bg min-h-dvh">Iniciando...</div>}>
       <BuscaContent ufs={ufs} cidades={cidades} resultados={resultados} />
     </Suspense>
   );

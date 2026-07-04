@@ -490,7 +490,7 @@ export default function CaixaBuscaLocalizacao({
     <div ref={containerRef} className={`relative ${className}`}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a5260] pointer-events-none z-10" />
+          <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
           <input
             ref={inputRef}
             type="text"
@@ -499,13 +499,13 @@ export default function CaixaBuscaLocalizacao({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             placeholder={"Endere\u00e7o, bairro ou cidade..."}
-            className="w-full bg-[#16161a] border border-[#26262b] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#eadfed] placeholder:text-[#5a5260] focus:outline-none focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all duration-300"
+            className="w-full bg-surface border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
           />
           {carregando && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Loader2 className="w-4 h-4 text-[#5a5260] animate-spin" />
+              <Loader2 className="w-4 h-4 text-text-tertiary animate-spin" />
             </div>
           )}
         </div>
@@ -526,7 +526,7 @@ export default function CaixaBuscaLocalizacao({
       </div>
 
       {exibirDropdown() && (
-        <div className="absolute z-50 top-full mt-1 left-0 right-[calc(0%+48px)] sm:right-[calc(0%+104px)] bg-[#16161a] border border-[#26262b] rounded-xl shadow-2xl overflow-hidden">
+        <div className="absolute z-50 top-full mt-1 left-0 right-[calc(0%+48px)] sm:right-[calc(0%+104px)] bg-surface border border-border rounded-xl shadow-2xl overflow-hidden">
           {carregando && (
             <div className="p-4 space-y-3">
               <div className="h-4 bg-[#26262b] rounded animate-pulse" />
@@ -537,7 +537,7 @@ export default function CaixaBuscaLocalizacao({
 
           {!carregando && buscouSemResultados && sugestoes.length === 0 && (
             <div className="px-4 py-6 text-center">
-              <p className="text-sm text-[#5a5260]">
+              <p className="text-sm text-text-tertiary">
                 Nenhum local encontrado com este termo.
               </p>
             </div>
@@ -558,23 +558,23 @@ export default function CaixaBuscaLocalizacao({
                     className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-150 ${
                       isHighlighted
                         ? "bg-[#a855f7]/10"
-                        : "hover:bg-[#1f1f23]"
+                        : "hover:bg-surface-hover"
                     }`}
                   >
                     <span
                       className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
                         isHighlighted
                           ? "bg-[#a855f7]/15 text-[#a855f7]"
-                          : "bg-[#1f1f23] text-[#5a5260]"
+                          : "bg-surface-hover text-text-tertiary"
                       }`}
                     >
                       <IconComponent className="w-3.5 h-3.5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-[#eadfed] truncate font-medium">
+                      <p className="text-sm text-text truncate font-medium">
                         {sugestao.textoExibicao}
                       </p>
-                      <p className="text-[11px] text-[#5a5260] mt-0.5 font-medium uppercase tracking-wider">
+                      <p className="text-[11px] text-text-tertiary mt-0.5 font-medium uppercase tracking-wider">
                         {TIPO_LABEL[sugestao.tipo]}
                       </p>
                     </div>
