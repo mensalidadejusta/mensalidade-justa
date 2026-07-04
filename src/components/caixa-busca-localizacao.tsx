@@ -305,7 +305,8 @@ export default function CaixaBuscaLocalizacao({
     inputRef.current?.blur();
 
     if (sugestao.tipo === "cidade" && sugestao.cidade && sugestao.uf) {
-      router.push(`/escolas/${slugify(sugestao.uf)}/${slugify(sugestao.cidade)}`);
+      const params = new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade });
+      router.push(`/busca?${params.toString()}`);
       onLocationChange({
         buscaRaw: sugestao.textoExibicao,
         cidade: sugestao.cidade,
@@ -316,7 +317,8 @@ export default function CaixaBuscaLocalizacao({
     }
 
     if (sugestao.tipo === "bairro" && sugestao.bairro && sugestao.cidade && sugestao.uf) {
-      router.push(`/escolas/${slugify(sugestao.uf)}/${slugify(sugestao.cidade)}/${slugify(sugestao.bairro)}`);
+      const params = new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade, bairro: sugestao.bairro });
+      router.push(`/busca?${params.toString()}`);
       onLocationChange({
         buscaRaw: sugestao.textoExibicao,
         bairro: sugestao.bairro,
