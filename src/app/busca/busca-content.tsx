@@ -333,8 +333,8 @@ export default function BuscaContent({
     <div className="min-h-dvh bg-bg text-text selection:bg-primary/30 flex flex-col">
       {/* ===== MOBILE ===== */}
       <div className="md:hidden">
-         <div className="px-4 pt-0 pb-4">
-           <div className="w-full max-w-lg mx-auto space-y-4">
+        <div className="px-4 pt-0 pb-4">
+          <div className="w-full max-w-lg mx-auto space-y-4">
             <div className="text-center">
               <h1 className="text-2xl font-[400] tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-purple-500 to-coral bg-clip-text text-transparent">
@@ -365,29 +365,28 @@ export default function BuscaContent({
                 <DollarSign className="w-3.5 h-3.5" />
                 Privadas
               </button>
-                <button
-                  onClick={() => {
-                    const current = readParam("publica") !== "0";
-                    updateFilters({ publica: current ? "0" : "1" });
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-transparent ${
-                    showPublica
-                      ? "bg-[#6ee7b7] text-black"
-                      : "bg-surface-hover text-text-secondary"
-                  }`}
-                >
-                  <GraduationCap className="w-3.5 h-3.5" />
-                  P{'\u00fa'}blicas
-                </button>
-                <SearchableSelect
-                  label="Etapa"
-                  value={serieSlug}
-                  series={SERIES}
-                  grupos={GRUPOS}
-                  onChange={(v) => updateFilters({ serie: v })}
-                  isMultiple={true}
-                />
-              </div>
+              <button
+                onClick={() => {
+                  const current = readParam("publica") !== "0";
+                  updateFilters({ publica: current ? "0" : "1" });
+                }}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-transparent ${
+                  showPublica
+                    ? "bg-[#6ee7b7] text-black"
+                    : "bg-surface-hover text-text-secondary"
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                P{'\u00fa'}blicas
+              </button>
+              <SearchableSelect
+                label="Etapa"
+                value={serieSlug}
+                series={SERIES}
+                grupos={GRUPOS}
+                onChange={(v) => updateFilters({ serie: v })}
+                isMultiple={true}
+              />
             </div>
           </div>
         </div>
@@ -419,6 +418,7 @@ export default function BuscaContent({
             )
           ) : null}
         </div>
+      </div>
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex min-h-dvh">
