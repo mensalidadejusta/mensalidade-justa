@@ -238,7 +238,7 @@ export default function BuscaContent({
   }, [suggestions]);
 
   const dadosExibir = useMemo(() => {
-    const base = resultados ?? resultadosCoordenadas;
+    const base = resultadosCoordenadas ?? resultados;
     if (!base) return null;
 
     let filtrado = [...base];
