@@ -336,13 +336,11 @@ export default function BuscaContent({
                 A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
               </p>
             </div>
-            <div className="relative z-30">
-              <CaixaBuscaLocalizacao
-                onLocationChange={handleLocationChange}
-                className="w-full"
-              />
-            </div>
-            <div className="relative z-10 space-y-3">
+            <CaixaBuscaLocalizacao
+              onLocationChange={handleLocationChange}
+              className="w-full"
+            />
+            <div className="space-y-3">
               {nomeBuscaInput}
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 <button
@@ -432,13 +430,11 @@ export default function BuscaContent({
               </p>
             </div>
 
-            <div className="relative z-30">
-              <CaixaBuscaLocalizacao
-                onLocationChange={handleLocationChange}
-                className="w-full"
-              />
-            </div>
-            <div className="relative z-10 space-y-4">
+            <CaixaBuscaLocalizacao
+              onLocationChange={handleLocationChange}
+              className="w-full"
+            />
+            <div className="space-y-4">
               {nomeBuscaInput}
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <button
