@@ -59,11 +59,16 @@ export default function BuscaResults({
                 isHovered
                   ? "border-[var(--color-primary)]/40 -translate-y-1 shadow-[0_0_20px_-5px_rgba(66,133,244,0.3),0_-4px_20px_-8px_rgba(139,92,246,0.2),0_4px_20px_-8px_rgba(236,72,153,0.15)]"
                   : "border-[var(--color-border)] hover:border-[var(--color-primary)] hover:-translate-y-1 hover:shadow-[0_0_20px_-5px_rgba(66,133,244,0.2),0_-4px_20px_-8px_rgba(139,92,246,0.15),0_4px_20px_-8px_rgba(236,72,153,0.1)]"
-              }`}
+              } relative overflow-hidden`}
               onMouseEnter={() => onHover?.(escola.id)}
               onMouseLeave={() => onHover?.(null)}
             >
-              <div className="flex items-start justify-between gap-2 md:gap-3">
+              <div className={`absolute left-0 top-2 bottom-2 w-1 rounded-r-full ${
+                escola.dependencia_administrativa === "Privada"
+                  ? "bg-purple-500"
+                  : "bg-emerald-500"
+              }`} />
+              <div className="flex items-start justify-between gap-2 md:gap-3 pl-2 md:pl-2.5">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xs md:text-sm font-semibold text-[var(--color-text)] tracking-tight leading-snug">
                     {escola.nome}
