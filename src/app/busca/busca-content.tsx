@@ -350,7 +350,7 @@ export default function BuscaContent({
                   }}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-transparent ${
                     showPrivada
-                      ? "bg-[#1f3b9b] text-white"
+                      ? "bg-[#ad46ff] text-white"
                       : "bg-surface-hover text-text-secondary"
                   }`}
                 >
@@ -444,7 +444,7 @@ export default function BuscaContent({
                   }}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
                     showPrivada
-                      ? "bg-[#1f3b9b] text-white"
+                      ? "bg-[#ad46ff] text-white"
                       : "bg-surface-hover border-transparent text-text-secondary"
                   }`}
                 >
