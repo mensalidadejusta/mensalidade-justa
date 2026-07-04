@@ -1,46 +1,36 @@
 @import "tailwindcss";
 
 @theme {
+  --color-surface: #1e1e1e;
+  --color-surface-hover: #2a2a2a;
+  --color-border: #3c4043;
+  --color-border-hover: #5f6368;
+  --color-text: #e8eaed;
+  --color-text-secondary: #9aa0a6;
+  --color-text-tertiary: #80868b;
+  --color-bg: #131314;
+
   --color-primary: #4285f4;
   --color-primary-hover: #3b78e7;
   --color-purple: #8b5cf6;
   --color-coral: #ec4899;
+
   --color-success: #10b981;
   --color-danger: #ef4444;
 }
 
 @layer base {
-  :root {
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --color-surface: #ffffff;
-    --color-surface-hover: #f2f3f5;
-    --color-border: #e3e3e3;
-    --color-border-hover: #c8c8c8;
-    --color-text: #1f1f1f;
-    --color-text-secondary: #474747;
-    --color-text-tertiary: #7a7a7a;
-    --color-bg: #f0f4f9;
-  }
-
-  .dark {
-    --color-surface: #1e1e1e;
-    --color-surface-hover: #2a2a2a;
-    --color-border: #3c4043;
-    --color-border-hover: #5f6368;
-    --color-text: #e8eaed;
-    --color-text-secondary: #9aa0a6;
-    --color-text-tertiary: #80868b;
-    --color-bg: #131314;
-  }
+  :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
 
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
+
+
 
 @keyframes slide-up {
   from { transform: translateY(100%); opacity: 0; }
