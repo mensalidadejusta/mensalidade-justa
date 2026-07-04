@@ -95,14 +95,9 @@ export default function BuscaResults({
                   <h2 className="text-xs md:text-sm font-semibold text-text tracking-tight leading-snug">
                     {escola.nome}
                   </h2>
-                  <p className="flex flex-wrap gap-1 mt-1">
-                    {escola.etapas_modalidades
-                      ? escola.etapas_modalidades.split(",").map((e) => e.trim()).filter(Boolean).slice(0, 3).map((etapa) => (
-                          <span key={etapa} className={`text-[9px] md:text-[10px] font-semibold px-1.5 md:px-2 py-0.5 rounded-md ${etapaCor(etapa)}`}>
-                            {etapa}
-                          </span>
-                        ))
-                      : <span className="text-[10px] md:text-xs text-text-tertiary font-medium">{escola.municipio} - {escola.uf}</span>}
+                  <p className="text-[10px] md:text-xs text-text-tertiary mt-0.5 font-medium truncate">
+                    {escola.bairro && `${escola.bairro}, `}
+                    {escola.municipio} - {escola.uf}
                   </p>
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
