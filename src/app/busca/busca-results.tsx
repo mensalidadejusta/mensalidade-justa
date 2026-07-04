@@ -90,7 +90,7 @@ export default function BuscaResults({
                   ? "bg-purple-500"
                   : "bg-success"
               }`} />
-              <div className="flex items-start justify-between gap-2 md:gap-3 pl-3 md:pl-4">
+              <div className="flex items-start justify-between gap-2 md:gap-3 pl-1.5 md:pl-2">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xs md:text-sm font-semibold text-text tracking-tight leading-snug">
                     {escola.nome}
@@ -122,7 +122,7 @@ export default function BuscaResults({
                           return (
                             <p key={sp.serie_slug} className="text-[11px] md:text-xs leading-5">
                               <span className="text-text-secondary font-medium">{sp.serie_nome}</span>
-                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-0.5">({sp.qtd}) · </span>
+                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-0.5">({sp.qtd})</span><span className="text-text-secondary font-medium">: </span>
                               {!isNaN(preco) ? (
                           <span className="text-xs md:text-sm font-bold text-primary">
                             R$ {preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -146,7 +146,7 @@ export default function BuscaResults({
                           return (
                             <p key={grupo} className="text-[11px] md:text-xs leading-5">
                               <span className="text-text-secondary font-medium">{grupo.replace("Ensino ", "").replace("Educação ", "")}</span>
-                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal"> ({qtdTotal}) · </span>
+                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal"> ({qtdTotal})</span><span className="text-text-secondary font-medium">: </span>
                               {min !== null && max !== null ? (
                                 <span className="text-xs md:text-sm font-bold text-primary">
                                   R$ {min.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} - R$ {max.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
