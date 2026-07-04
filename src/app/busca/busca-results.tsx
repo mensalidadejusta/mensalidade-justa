@@ -110,16 +110,6 @@ export default function BuscaResults({
                   )}
                 </div>
               </div>
-              {escola.series_precos.length === 0 && escola.dependencia_administrativa !== "Privada" && (
-                <p className="text-[10px] md:text-xs text-text-tertiary font-medium mt-1">
-                  {'Escola p\u00fablica gratuita'}
-                </p>
-              )}
-              {escola.series_precos.length === 0 && escola.dependencia_administrativa === "Privada" && (
-                <p className="text-[10px] md:text-xs text-text-tertiary font-medium mt-1">
-                  Sem mensalidade cadastrada
-                </p>
-              )}
               <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-border/60 space-y-1 md:space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   {escola.series_precos.length > 0 ? (
@@ -169,6 +159,30 @@ export default function BuscaResults({
                             </p>
                           );
                         })
+                      )}
+                    </div>
+                  ) : escola.etapas_modalidades ? (
+                    <div className="space-y-1 md:space-y-1.5 flex-1">
+                      {serieSlug ? (
+                        <p className="text-[11px] md:text-xs leading-5 text-text-secondary">
+                          <span className="font-medium">{slugParaNome.get(serieSlug) || serieSlug}:{' '}</span>
+                          {escola.dependencia_administrativa !== "Privada" ? (
+                            <span className="font-bold text-success">Gratuito</span>
+                          ) : (
+                            <span className="text-text-tertiary">Sem mensalidades ainda. Cadastre a sua e ajude outros responsáveis.</span>
+                          )}
+                        </p>
+                      ) : (
+                        escola.etapas_modalidades.split(",").map((e) => e.trim()).filter(Boolean).map((etapa) => (
+                          <p key={etapa} className="text-[11px] md:text-xs leading-5">
+                            <span className="text-text-secondary font-medium">{etapa}:{' '}</span>
+                            {escola.dependencia_administrativa !== "Privada" ? (
+                              <span className="font-bold text-success">Gratuito</span>
+                            ) : (
+                              <span className="text-text-tertiary">Sem mensalidades ainda. Cadastre a sua e ajude outros responsáveis.</span>
+                            )}
+                          </p>
+                        ))
                       )}
                     </div>
                   ) : (
