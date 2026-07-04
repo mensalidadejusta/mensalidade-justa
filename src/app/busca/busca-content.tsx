@@ -406,7 +406,7 @@ export default function BuscaContent({
                 </div>
               </div>
             ) : sortedResultados && sortedResultados.length > 0 ? (
-              <div className="max-w-lg mx-auto">
+              <div className="w-full mx-auto">
                 <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} serieSlug={serieSlug} />
               </div>
             ) : (
@@ -492,7 +492,7 @@ export default function BuscaContent({
 
         <div className="px-4 pb-8">
           {(uf && cidade) || resultadosCoordenadas ? (
-            <div className="max-w-2xl mx-auto">
+            <div className="w-full max-w-6xl mx-auto">
               {carregandoCoordenadas ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="flex flex-col items-center gap-3">
