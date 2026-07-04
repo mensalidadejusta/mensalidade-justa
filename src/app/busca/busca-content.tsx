@@ -251,8 +251,8 @@ export default function BuscaContent({
                   Mensalidade Justa
                 </span>
               </h1>
-              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-                Compare mensalidades escolares de forma an{'\u00f4'}nima
+              <p className="text-xs text-[var(--color-text-tertiary)] mt-1 leading-relaxed">
+                A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil. Compare mensalidades reais compartilhadas por outros pais de forma an{'\u00f4'}nima.
               </p>
             </div>
             <CaixaBuscaLocalizacao
@@ -342,8 +342,8 @@ export default function BuscaContent({
                   Mensalidade Justa
                 </span>
               </h1>
-              <p className="text-sm text-[var(--color-text-tertiary)] mt-2">
-                Compare mensalidades escolares de forma an{'\u00f4'}nima
+              <p className="text-sm text-[var(--color-text-tertiary)] mt-2 leading-relaxed max-w-lg mx-auto">
+                A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil. Compare mensalidades reais compartilhadas por outros pais de forma an{'\u00f4'}nima.
               </p>
             </div>
 
