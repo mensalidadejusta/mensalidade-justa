@@ -170,12 +170,13 @@ export default function BuscaContent({
 
     if (filtro.latitude != null && filtro.longitude != null) {
       setCarregandoCoordenadas(true);
-      updateFilters({
-        lat: filtro.latitude.toString(),
-        lon: filtro.longitude.toString(),
-        cidade: filtro.cidade || "",
-        uf: filtro.uf || "",
-      });
+      const novosParams = new URLSearchParams();
+      novosParams.set("lat", filtro.latitude.toString());
+      novosParams.set("lon", filtro.longitude.toString());
+      if (filtro.cidade) novosParams.set("cidade", filtro.cidade);
+      if (filtro.uf) novosParams.set("uf", filtro.uf);
+      router.replace(`${pathname}?${novosParams.toString()}`);
+      setNavTick((n) => n + 1);
       try {
         const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
           p_lat: filtro.latitude,
@@ -196,9 +197,17 @@ export default function BuscaContent({
     }
 
     if (filtro.cidade && filtro.uf) {
-      updateFilters({ uf: filtro.uf, cidade: filtro.cidade, lat: "", lon: "" });
+      const novosParams = new URLSearchParams();
+      novosParams.set("uf", filtro.uf);
+      novosParams.set("cidade", filtro.cidade);
+      router.replace(`${pathname}?${novosParams.toString()}`);
+      setNavTick((n) => n + 1);
+      setResultadosCoordenadas(null);
     } else if (filtro.buscaRaw) {
-      updateFilters({ q: filtro.buscaRaw });
+      const novosParams = new URLSearchParams();
+      novosParams.set("q", filtro.buscaRaw);
+      router.replace(`${pathname}?${novosParams.toString()}`);
+      setNavTick((n) => n + 1);
       setResultadosCoordenadas(null);
     }
   }
