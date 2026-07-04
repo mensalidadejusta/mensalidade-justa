@@ -252,7 +252,7 @@ export default function BuscaContent({
                 </span>
               </h1>
               <p className="text-xs text-[var(--color-text-tertiary)] mt-1 leading-relaxed">
-                A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil. Compare mensalidades reais compartilhadas por outros pais.
+                A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
               </p>
             </div>
             <CaixaBuscaLocalizacao
@@ -343,7 +343,7 @@ export default function BuscaContent({
                 </span>
               </h1>
               <p className="text-sm text-[var(--color-text-tertiary)] mt-2 leading-relaxed max-w-lg mx-auto">
-                A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil. Compare mensalidades reais compartilhadas por outros pais.
+                A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
               </p>
             </div>
 
