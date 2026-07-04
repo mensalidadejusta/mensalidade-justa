@@ -310,7 +310,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
         )}
 
         {open && !sidebar && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center lg:hidden">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
             <motion.div className="absolute inset-0 bg-black/70" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
 
             <motion.div ref={sheetRef}

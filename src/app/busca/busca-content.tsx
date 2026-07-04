@@ -31,7 +31,7 @@ function sortResults(
   userLocation: { lat: number; lon: number } | null
 ): EscolaResult[] {
   const withDistance = data.map((e) => {
-    let distancia_km: number | undefined;
+    let distancia_km = e.distancia_km;
     if (userLocation && e.latitude && e.longitude) {
       distancia_km = haversine(
         userLocation.lat,
@@ -348,7 +348,7 @@ export default function BuscaContent({
       </div>
 
       {/* ===== DESKTOP ===== */}
-      <div className="hidden md:flex flex-col min-h-dvh">
+      <div className="hidden md:flex flex-col h-dvh">
         <div className="shrink-0 pt-10 pb-4 px-4">
           <div className="w-full max-w-2xl mx-auto space-y-5">
             <div className="text-center">
