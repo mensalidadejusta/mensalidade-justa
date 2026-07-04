@@ -243,8 +243,8 @@ export default function BuscaContent({
     <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)] selection:bg-[var(--color-primary)]/30 flex flex-col">
       {/* ===== MOBILE ===== */}
       <div className="md:hidden flex flex-col min-h-dvh">
-        <div className="flex flex-col items-center justify-center flex-1 px-4 pt-16 pb-4">
-          <div className="w-full max-w-lg mx-auto space-y-6">
+        <div className="flex flex-col items-center justify-start flex-1 px-4 pt-6 pb-4">
+          <div className="w-full max-w-lg mx-auto space-y-4">
             <div className="text-center">
               <h1 className="text-2xl font-bold tracking-tight">
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -334,8 +334,8 @@ export default function BuscaContent({
 
       {/* ===== DESKTOP ===== */}
       <div className="hidden md:flex flex-col min-h-dvh">
-        <div className="flex flex-col items-center justify-start flex-1 pt-24 pb-4 px-4">
-          <div className="w-full max-w-2xl mx-auto space-y-8">
+        <div className="flex flex-col items-center justify-start flex-1 pt-10 pb-4 px-4">
+          <div className="w-full max-w-2xl mx-auto space-y-5">
             <div className="text-center">
               <h1 className="text-4xl font-bold tracking-tight">
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
