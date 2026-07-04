@@ -90,7 +90,7 @@ export default function BuscaResults({
                   ? "bg-purple-500"
                   : "bg-success"
               }`} />
-              <div className="flex items-start justify-between gap-2 md:gap-3 pl-1.5 md:pl-2">
+              <div className="flex items-start justify-between gap-2 md:gap-3">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xs md:text-sm font-semibold text-text tracking-tight leading-snug">
                     {escola.nome}
