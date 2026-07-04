@@ -102,19 +102,8 @@ export default function BuscaResults({
                   </p>
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  <span
-                    className={`text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg ${
-                      escola.dependencia_administrativa === "Privada"
-                        ? "bg-purple-500/10 text-purple-400"
-                        : "bg-success/10 text-success"
-                    }`}
-                  >
-                    {escola.dependencia_administrativa === "Privada"
-                      ? "Privada"
-                      : "P\u00fablica"}
-                  </span>
                   {escola.distancia_km !== undefined && (
-                    <span className="text-[8px] md:text-[9px] font-semibold text-text-secondary bg-surface-hover px-1.5 md:px-2 py-0.5 rounded-md whitespace-nowrap">
+                    <span className="text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg whitespace-nowrap bg-surface-hover text-text-secondary">
                       {escola.distancia_km < 1
                         ? `${Math.round(escola.distancia_km * 1000)}m`
                         : `${escola.distancia_km.toFixed(1)} km`}
