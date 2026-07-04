@@ -407,7 +407,7 @@ export default function BuscaContent({
               </div>
             ) : sortedResultados && sortedResultados.length > 0 ? (
               <div className="max-w-lg mx-auto">
-                <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
+                <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} serieSlug={serieSlug} />
               </div>
             ) : (
               <div className="text-center text-sm text-text-tertiary py-12">
@@ -501,7 +501,7 @@ export default function BuscaContent({
                   </div>
                 </div>
               ) : sortedResultados && sortedResultados.length > 0 ? (
-                <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
+                <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} serieSlug={serieSlug} />
               ) : (
                 <div className="text-center text-sm text-text-tertiary py-12">
                   <p className="font-medium">Nenhuma escola encontrada.</p>

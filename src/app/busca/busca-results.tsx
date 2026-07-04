@@ -50,12 +50,16 @@ type Props = {
   resultados: EscolaResult[];
   hoveredId?: number | null;
   onHover?: (id: number | null) => void;
+  serieSlug?: string;
 };
+
+const slugParaNome = new Map(SERIES.map((s) => [s.slug, s.nome]));
 
 export default function BuscaResults({
   resultados,
   hoveredId,
   onHover,
+  serieSlug = "",
 }: Props) {
   if (resultados.length === 0) {
     return (
@@ -125,31 +129,50 @@ export default function BuscaResults({
                 <div className="flex items-center justify-between gap-2">
                   {escola.series_precos.length > 0 ? (
                     <div className="space-y-1 md:space-y-1.5 flex-1">
-                      {GRUPOS.map((grupo) => {
-                        const items = escola.series_precos.filter(
-                          (sp) => slugToGrupo.get(sp.serie_slug) === grupo
-                        );
-                        if (items.length === 0) return null;
-                        const precos = items
-                          .map((sp) => Number(sp.valor_mensalidade))
-                          .filter((v) => !isNaN(v));
-                        const min = precos.length > 0 ? Math.min(...precos) : null;
-                        const max = precos.length > 0 ? Math.max(...precos) : null;
-                        const qtdTotal = items.reduce((sum, sp) => sum + sp.qtd, 0);
-                        return (
-                          <p key={grupo} className="text-[11px] md:text-xs leading-5">
-                            <span className="text-text-secondary font-medium">{grupo}:{' '}</span>
-                            {min !== null && max !== null ? (
-                              <span className="text-xs md:text-sm font-bold text-primary">
-                                R$ {min.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} - R$ {max.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      {serieSlug ? (
+                        escola.series_precos.map((sp) => {
+                          const preco = Number(sp.valor_mensalidade);
+                          return (
+                            <p key={sp.serie_slug} className="text-[11px] md:text-xs leading-5">
+                              <span className="text-text-secondary font-medium">{sp.serie_nome}:{' '}</span>
+                              {!isNaN(preco) ? (
+                                <span className="text-xs md:text-sm font-bold text-primary">
+                                  R$ {preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              ) : null}
+                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-1">
+                                ({sp.qtd} {sp.qtd === 1 ? 'contribuição' : 'contribuições'})
                               </span>
-                            ) : null}
-                            <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-1">
-                              ({qtdTotal} {qtdTotal === 1 ? 'contribuição' : 'contribuições'})
-                            </span>
-                          </p>
-                        );
-                      })}
+                            </p>
+                          );
+                        })
+                      ) : (
+                        GRUPOS.map((grupo) => {
+                          const items = escola.series_precos.filter(
+                            (sp) => slugToGrupo.get(sp.serie_slug) === grupo
+                          );
+                          if (items.length === 0) return null;
+                          const precos = items
+                            .map((sp) => Number(sp.valor_mensalidade))
+                            .filter((v) => !isNaN(v));
+                          const min = precos.length > 0 ? Math.min(...precos) : null;
+                          const max = precos.length > 0 ? Math.max(...precos) : null;
+                          const qtdTotal = items.reduce((sum, sp) => sum + sp.qtd, 0);
+                          return (
+                            <p key={grupo} className="text-[11px] md:text-xs leading-5">
+                              <span className="text-text-secondary font-medium">{grupo}:{' '}</span>
+                              {min !== null && max !== null ? (
+                                <span className="text-xs md:text-sm font-bold text-primary">
+                                  R$ {min.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} - R$ {max.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                </span>
+                              ) : null}
+                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-1">
+                                ({qtdTotal} {qtdTotal === 1 ? 'contribuição' : 'contribuições'})
+                              </span>
+                            </p>
+                          );
+                        })
+                      )}
                     </div>
                   ) : (
                     <p className="text-[11px] md:text-xs text-text-tertiary font-medium">
