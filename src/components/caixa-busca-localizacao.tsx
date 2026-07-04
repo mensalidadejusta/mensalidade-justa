@@ -34,6 +34,8 @@ interface CaixaBuscaLocalizacaoProps {
   onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
   initialValue?: string;
   className?: string;
+  showMap?: boolean;
+  onToggleMap?: () => void;
 }
 
 const TIPO_LABEL: Record<SugestaoLocalizacao["tipo"], string> = {
@@ -101,6 +103,8 @@ export default function CaixaBuscaLocalizacao({
   onSelectSugestao,
   initialValue = "",
   className = "",
+  showMap,
+  onToggleMap,
 }: CaixaBuscaLocalizacaoProps) {
   const router = useRouter();
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
@@ -583,6 +587,19 @@ export default function CaixaBuscaLocalizacao({
             <Navigation className="w-4 h-4" />
           )}
           <span className="hidden sm:inline">Perto de mim</span>
+        </button>
+        <button
+          type="button"
+          onClick={onToggleMap}
+          className={`shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-full text-sm font-medium transition-all duration-300 active:scale-95 ${
+            showMap
+              ? "bg-accent-purple/10 text-accent-purple border border-accent-purple/30"
+              : "bg-surface border border-border/50 text-text-tertiary hover:text-text hover:border-border-hover"
+          }`}
+          title={showMap ? "Fechar mapa" : "Abrir mapa"}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+          <span className="hidden sm:inline">{showMap ? "Fechar" : "Mapa"}</span>
         </button>
       </div>
 

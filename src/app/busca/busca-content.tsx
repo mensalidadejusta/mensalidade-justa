@@ -351,6 +351,8 @@ export default function BuscaContent({
             <CaixaBuscaLocalizacao
               onLocationChange={handleLocationChange}
               className="w-full"
+              showMap={showMap}
+              onToggleMap={() => setShowMap((v) => !v)}
             />
             <div className="space-y-3">
               {nomeBuscaInput}
@@ -396,6 +398,13 @@ export default function BuscaContent({
           </div>
         </div>
 
+        {showMap && sortedResultados && (
+          <div className="px-4 pb-4">
+            <div className="h-[300px] rounded-2xl overflow-hidden border border-border shadow-lg">
+              <MapaEscolas escolas={sortedResultados} userLocation={userLocation} hoveredId={hoveredId} />
+            </div>
+          </div>
+        )}
         <div className="px-4 pb-24">
           {(uf && cidade) || resultadosCoordenadas ? (
             carregandoCoordenadas ? (
@@ -428,109 +437,107 @@ export default function BuscaContent({
       </div>
 
       {/* ===== DESKTOP ===== */}
-      <div className="hidden md:block">
-        <div className="pt-10 pb-4 px-4">
-          <div className="w-full max-w-2xl mx-auto space-y-5">
-            <div className="text-center">
-              <h1 className="text-4xl font-[400] tracking-tight">
-                <span className="bg-gradient-to-r from-primary via-purple-500 to-coral bg-clip-text text-transparent">
-                  Mensalidade Justa
-                </span>
-              </h1>
-              <p className="text-sm text-text-tertiary mt-2 leading-relaxed max-w-lg mx-auto">
-                A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
-              </p>
-            </div>
+      <div className="hidden md:flex min-h-dvh">
+        <div className={`transition-all duration-500 ease-in-out ${showMap ? "w-1/2" : "w-full"}`}>
+          <div className="pt-10 pb-4 px-4">
+            <div className={`mx-auto space-y-5 ${showMap ? "max-w-full" : "max-w-2xl"}`}>
+              <div className="text-center">
+                <h1 className="text-4xl font-[400] tracking-tight">
+                  <span className="bg-gradient-to-r from-primary via-purple-500 to-coral bg-clip-text text-transparent">
+                    Mensalidade Justa
+                  </span>
+                </h1>
+                <p className="text-sm text-text-tertiary mt-2 leading-relaxed max-w-lg mx-auto">
+                  A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
+                </p>
+              </div>
 
-            <CaixaBuscaLocalizacao
-              onLocationChange={handleLocationChange}
-              className="w-full"
-            />
-            <div className="space-y-4">
-              {nomeBuscaInput}
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                <button
-                  onClick={() => {
-                    const current = readParam("privada") !== "0";
-                    updateFilters({ privada: current ? "0" : "1" });
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                    showPrivada
-                      ? "bg-[#ad46ff] text-white"
-                      : "bg-surface-hover border-transparent text-text-secondary"
-                  }`}
-                >
-                  <DollarSign className="w-3.5 h-3.5" />
-                  Privadas
-                </button>
-                <button
-                  onClick={() => {
-                    const current = readParam("publica") !== "0";
-                    updateFilters({ publica: current ? "0" : "1" });
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                    showPublica
-                      ? "bg-[#6ee7b7] text-black"
-                      : "bg-surface-hover border-transparent text-text-secondary"
-                  }`}
-                >
-                  <GraduationCap className="w-3.5 h-3.5" />
-                  P{'\u00fa'}blicas
-                </button>
-                <SearchableSelect
-                  label="Etapa"
-                  value={serieSlug}
-                  series={SERIES}
-                  grupos={GRUPOS}
-                  onChange={(v) => updateFilters({ serie: v })}
-                  isMultiple={true}
-                />
+              <CaixaBuscaLocalizacao
+                onLocationChange={handleLocationChange}
+                className="w-full"
+                showMap={showMap}
+                onToggleMap={() => setShowMap((v) => !v)}
+              />
+              <div className="space-y-4">
+                {nomeBuscaInput}
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  <button
+                    onClick={() => {
+                      const current = readParam("privada") !== "0";
+                      updateFilters({ privada: current ? "0" : "1" });
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                      showPrivada
+                        ? "bg-[#ad46ff] text-white"
+                        : "bg-surface-hover border-transparent text-text-secondary"
+                    }`}
+                  >
+                    <DollarSign className="w-3.5 h-3.5" />
+                    Privadas
+                  </button>
+                  <button
+                    onClick={() => {
+                      const current = readParam("publica") !== "0";
+                      updateFilters({ publica: current ? "0" : "1" });
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                      showPublica
+                        ? "bg-[#6ee7b7] text-black"
+                        : "bg-surface-hover border-transparent text-text-secondary"
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    P{'\u00fa'}blicas
+                  </button>
+                  <SearchableSelect
+                    label="Etapa"
+                    value={serieSlug}
+                    series={SERIES}
+                    grupos={GRUPOS}
+                    onChange={(v) => updateFilters({ serie: v })}
+                    isMultiple={true}
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="px-4 pb-8">
-          {(uf && cidade) || resultadosCoordenadas ? (
-            <div className="w-full max-w-6xl mx-auto">
-              {carregandoCoordenadas ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                    <p className="text-sm text-text-tertiary">Buscando escolas pr{'\u00f3'}ximas...</p>
+          <div className="px-4 pb-8">
+            {(uf && cidade) || resultadosCoordenadas ? (
+              <div className={`mx-auto ${showMap ? "max-w-full" : "max-w-6xl"}`}>
+                {carregandoCoordenadas ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                      <p className="text-sm text-text-tertiary">Buscando escolas pr{'\u00f3'}ximas...</p>
+                    </div>
                   </div>
-                </div>
-              ) : sortedResultados && sortedResultados.length > 0 ? (
-                <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} serieSlug={serieSlug} />
-              ) : (
-                <div className="text-center text-sm text-text-tertiary py-12">
-                  <p className="font-medium">Nenhuma escola encontrada.</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-16 text-center text-sm text-text-tertiary">
-              <div>
-                <div className="flex justify-center mb-3">
-                  <MapPin className="w-10 h-10 text-text-tertiary" />
-                </div>
-                <p className="font-medium">Digite um endere{'\u00e7'}o ou cidade para come{'\u00e7'}ar.</p>
+                ) : sortedResultados && sortedResultados.length > 0 ? (
+                  <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} serieSlug={serieSlug} />
+                ) : (
+                  <div className="text-center text-sm text-text-tertiary py-12">
+                    <p className="font-medium">Nenhuma escola encontrada.</p>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center justify-center py-16 text-center text-sm text-text-tertiary">
+                <div>
+                  <div className="flex justify-center mb-3">
+                    <MapPin className="w-10 h-10 text-text-tertiary" />
+                  </div>
+                  <p className="font-medium">Digite um endere{'\u00e7'}o ou cidade para come{'\u00e7'}ar.</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {showMap && sortedResultados && (
-          <div className="fixed inset-0 z-50 bg-bg">
-            <div className="h-full w-full">
+          <div className="w-1/2 h-dvh sticky top-0 p-2 transition-all duration-500 ease-in-out">
+            <div className="h-full rounded-3xl overflow-hidden border border-border/80 shadow-2xl bg-surface">
               <MapaEscolas escolas={sortedResultados} userLocation={userLocation} hoveredId={hoveredId} />
             </div>
-            <button
-              onClick={() => setShowMap(false)}
-              className="absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface/80 border border-border text-text-secondary hover:text-text transition-all duration-300 backdrop-blur-md"
-            >
-              Fechar Mapa
-            </button>
           </div>
         )}
       </div>
