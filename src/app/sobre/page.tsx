@@ -12,7 +12,7 @@ export default function SobrePage() {
   return (
     <div className="min-h-dvh bg-[#f0f4f9] dark:bg-[#131314] transition-colors">
       <div className="max-w-2xl mx-auto px-4 py-10">
-        <Link href="/busca" className="text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors">
+        <Link href="/busca" className="text-sm text-text-tertiary hover:text-primary transition-colors">
           {A(0x2190)} Voltar
         </Link>
 

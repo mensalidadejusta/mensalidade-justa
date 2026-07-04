@@ -80,7 +80,7 @@ export default async function EscolasCidadePage({ params }: Props) {
   return (
     <div className="min-h-dvh transition-colors">
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <Link href="/busca" className="text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors">
+        <Link href="/busca" className="text-sm text-text-tertiary hover:text-primary transition-colors">
           ← Voltar para busca
         </Link>
 
@@ -88,13 +88,13 @@ export default async function EscolasCidadePage({ params }: Props) {
           <h1 className="text-2xl font-semibold">
             Escolas em {cidade}, {ufUpper}
           </h1>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+          <p className="text-sm text-text-secondary mt-1">
             {escolas.length} escola(s) encontrada(s)
           </p>
         </header>
 
         {escolas.length === 0 ? (
-          <div className="card text-center text-sm text-[var(--color-text-tertiary)] py-10">
+          <div className="card text-center text-sm text-text-tertiary py-10">
             Nenhuma escola encontrada nesta cidade.
           </div>
         ) : (
@@ -109,7 +109,7 @@ export default async function EscolasCidadePage({ params }: Props) {
                   <div className="min-w-0 flex-1">
                     <h2 className="text-sm font-medium truncate">{escola.nome}</h2>
                     {escola.bairro && (
-                      <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{escola.bairro}</p>
+                      <p className="text-xs text-text-tertiary mt-0.5">{escola.bairro}</p>
                     )}
                   </div>
                   <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${escola.dependencia_administrativa === "Privada" ? "tag-privada" : "tag-publica"}`}>

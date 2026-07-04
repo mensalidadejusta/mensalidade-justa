@@ -59,7 +59,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
     <div className="min-h-dvh transition-colors">
       <div className="max-w-3xl mx-auto px-4 py-6">
         <header className="flex items-start justify-between mb-6">
-          <button onClick={() => router.back()} className="text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors cursor-pointer">
+          <button onClick={() => router.back()} className="text-sm text-text-tertiary hover:text-primary transition-colors cursor-pointer">
             ← Voltar para busca
           </button>
         </header>
@@ -67,7 +67,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
         <main className="space-y-6">
           <section>
             <h1 className="text-2xl font-semibold">{escola.nome}</h1>
-            <p className="text-sm text-[var(--color-text-secondary)] mt-1">{escola.municipio} \u2014 {escola.uf}</p>
+            <p className="text-sm text-text-secondary mt-1">{escola.municipio} \u2014 {escola.uf}</p>
           </section>
 
           {escola.categoria_administrativa === "Privada" && (
@@ -75,7 +75,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             <h2 className="text-sm font-semibold">Mensalidades</h2>
             {precos.length === 0 ? (
               <div className="space-y-3">
-                <p className="text-sm text-[var(--color-text-tertiary)]">Nenhum valor cadastrado ainda.</p>
+                <p className="text-sm text-text-tertiary">Nenhum valor cadastrado ainda.</p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Link href={"/contribuir?escola=" + escola.codigo_inep}
                     className="flex-1 inline-flex items-center justify-center gap-2 gradient-btn py-2.5 px-5 rounded-xl text-sm">
@@ -88,7 +88,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]">
+                    <tr className="text-xs text-text-tertiary border-b border-border">
                       <th className="text-left py-2 pr-3 font-medium">{'S\u00e9rie'}</th>
                       <th className="text-right py-2 px-2 font-medium">Qtd</th>
                       <th className="text-right py-2 px-2 font-medium">{'M\u00edn'}</th>
@@ -103,16 +103,16 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                       if (!hasData) return null;
                       return (
                         <Fragment key={grupo}>
-                          <tr className="border-b border-[var(--color-border)]">
-                            <td colSpan={5} className="py-2 text-xs font-semibold text-[var(--color-text-secondary)]">{grupo}</td>
+                          <tr className="border-b border-border">
+                            <td colSpan={5} className="py-2 text-xs font-semibold text-text-secondary">{grupo}</td>
                           </tr>
                           {series.map((s) => {
                             const p = precos.find((pr) => pr.serie_slug === s.slug);
                             if (!p || !p.qtd_mensalidade) return null;
                             return (
-                              <tr key={s.slug} className="border-b border-[var(--color-border)] last:border-0">
+                              <tr key={s.slug} className="border-b border-border last:border-0">
                                 <td className="py-2 pr-3">{s.nome}</td>
-                                <td className="py-2 px-2 text-right tabular-nums text-xs text-[var(--color-text-tertiary)]">{p.qtd_mensalidade}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-xs text-text-tertiary">{p.qtd_mensalidade}</td>
                                 <td className="py-2 px-2 text-right tabular-nums">{fmt(p.min_mensalidade)}</td>
                                 <td className="py-2 px-2 text-right tabular-nums font-semibold">{fmt(p.media_mensalidade)}</td>
                                 <td className="py-2 pl-2 text-right tabular-nums">{fmt(p.max_mensalidade)}</td>
@@ -139,9 +139,9 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           <div className="card space-y-4">
             <h2 className="text-sm font-semibold">{'Informa\u00e7\u00f5es da Escola'}</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              {escola.bairro && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Bairro</dt><dd>{escola.bairro}</dd></div>}
+              {escola.bairro && <div><dt className="text-text-tertiary text-xs">Bairro</dt><dd>{escola.bairro}</dd></div>}
               <div>
-                <dt className="text-[var(--color-text-tertiary)] text-xs">{'Depend\u00eancia'}</dt>
+                <dt className="text-text-tertiary text-xs">{'Depend\u00eancia'}</dt>
                 <dd>
                   <span className={"inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full " + (escola.dependencia_administrativa === "Privada" ? "tag-privada" : "tag-publica")}>
                     {escola.dependencia_administrativa === "Privada" ? 'Privada' : 'P\u00fablica'}
@@ -150,17 +150,17 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   {escola.categoria_escola_privada && " \u2014 " + escola.categoria_escola_privada}
                 </dd>
               </div>
-              {escola.localizacao && <div><dt className="text-[var(--color-text-tertiary)] text-xs">{'Localiza\u00e7\u00e3o'}</dt><dd>{escola.localizacao}</dd></div>}
-              {escola.localidade_diferenciada && escola.localidade_diferenciada !== "A escola n\u00e3o est\u00e1 em \u00e1rea de localiza\u00e7\u00e3o diferenciada" && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Localidade</dt><dd>{escola.localidade_diferenciada}</dd></div>}
-              {escola.endereco && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">{'Endere\u00e7o'}</dt><dd className="text-sm">{escola.endereco}</dd></div>}
-              {escola.telefone && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Telefone</dt><dd>{escola.telefone}</dd></div>}
-              {escola.porte_escola && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Porte</dt><dd className="text-xs">{escola.porte_escola}</dd></div>}
-              {escola.etapas_modalidades && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Etapas</dt><dd className="text-xs">{escola.etapas_modalidades}</dd></div>}
-              {escola.outras_ofertas && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">Outras Ofertas</dt><dd className="text-xs">{escola.outras_ofertas}</dd></div>}
-              {escola.conveniada_poder_publico && <div><dt className="text-[var(--color-text-tertiary)] text-xs">Conveniada</dt><dd className="text-xs">{escola.conveniada_poder_publico}</dd></div>}
-              {escola.regulamentacao_conselho && <div><dt className="text-[var(--color-text-tertiary)] text-xs">{'Regulamenta\u00e7\u00e3o'}</dt><dd className="text-xs">{escola.regulamentacao_conselho}</dd></div>}
-              <div><dt className="text-[var(--color-text-tertiary)] text-xs">{'C\u00f3digo INEP'}</dt><dd className="font-mono text-xs">{escola.codigo_inep}</dd></div>
-              {escola.restricao_atendimento && <div className="sm:col-span-2"><dt className="text-[var(--color-text-tertiary)] text-xs">{'Restri\u00e7\u00e3o'}</dt><dd className="text-xs">{escola.restricao_atendimento}</dd></div>}
+              {escola.localizacao && <div><dt className="text-text-tertiary text-xs">{'Localiza\u00e7\u00e3o'}</dt><dd>{escola.localizacao}</dd></div>}
+              {escola.localidade_diferenciada && escola.localidade_diferenciada !== "A escola n\u00e3o est\u00e1 em \u00e1rea de localiza\u00e7\u00e3o diferenciada" && <div><dt className="text-text-tertiary text-xs">Localidade</dt><dd>{escola.localidade_diferenciada}</dd></div>}
+              {escola.endereco && <div className="sm:col-span-2"><dt className="text-text-tertiary text-xs">{'Endere\u00e7o'}</dt><dd className="text-sm">{escola.endereco}</dd></div>}
+              {escola.telefone && <div><dt className="text-text-tertiary text-xs">Telefone</dt><dd>{escola.telefone}</dd></div>}
+              {escola.porte_escola && <div><dt className="text-text-tertiary text-xs">Porte</dt><dd className="text-xs">{escola.porte_escola}</dd></div>}
+              {escola.etapas_modalidades && <div className="sm:col-span-2"><dt className="text-text-tertiary text-xs">Etapas</dt><dd className="text-xs">{escola.etapas_modalidades}</dd></div>}
+              {escola.outras_ofertas && <div className="sm:col-span-2"><dt className="text-text-tertiary text-xs">Outras Ofertas</dt><dd className="text-xs">{escola.outras_ofertas}</dd></div>}
+              {escola.conveniada_poder_publico && <div><dt className="text-text-tertiary text-xs">Conveniada</dt><dd className="text-xs">{escola.conveniada_poder_publico}</dd></div>}
+              {escola.regulamentacao_conselho && <div><dt className="text-text-tertiary text-xs">{'Regulamenta\u00e7\u00e3o'}</dt><dd className="text-xs">{escola.regulamentacao_conselho}</dd></div>}
+              <div><dt className="text-text-tertiary text-xs">{'C\u00f3digo INEP'}</dt><dd className="font-mono text-xs">{escola.codigo_inep}</dd></div>
+              {escola.restricao_atendimento && <div className="sm:col-span-2"><dt className="text-text-tertiary text-xs">{'Restri\u00e7\u00e3o'}</dt><dd className="text-xs">{escola.restricao_atendimento}</dd></div>}
             </dl>
           </div>
 

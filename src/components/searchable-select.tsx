@@ -31,8 +31,8 @@ function normalize(t: string) {
 
 function RadioChecked() {
   return (
-    <span className="w-4 h-4 rounded-full border-2 border-[var(--color-primary)] flex items-center justify-center shrink-0 mr-3">
-      <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+    <span className="w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center shrink-0 mr-3">
+      <span className="w-2 h-2 rounded-full bg-primary" />
     </span>
   );
 }
@@ -43,7 +43,7 @@ function RadioUnchecked() {
 
 function CheckboxChecked() {
   return (
-    <span className="w-4 h-4 rounded bg-[var(--color-primary)] flex items-center justify-center shrink-0 mr-3">
+    <span className="w-4 h-4 rounded bg-primary flex items-center justify-center shrink-0 mr-3">
       <Check className="w-3 h-3 text-white" />
     </span>
   );
@@ -203,7 +203,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
     <div className="w-full divide-y divide-neutral-800/80 border-t border-b border-neutral-800/80">
       <button
         onClick={() => handleSelect("")}
-        className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors italic hover:bg-neutral-900 text-[var(--color-text-tertiary)]`}
+        className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors italic hover:bg-neutral-900 text-text-tertiary`}
       >
         <span className="flex items-center">
           {multi ? (isAllSelected ? <CheckboxChecked /> : <CheckboxUnchecked />) : (isAllSelected ? <RadioChecked /> : <RadioUnchecked />)}
@@ -217,18 +217,18 @@ export default function SearchableSelect({ label, value, options, series, grupos
           if (!items.length) return null;
           return (
             <div key={grupo}>
-              <p className="text-[10px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider px-4 pt-3 pb-1">{grupo}</p>
+              <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider px-4 pt-3 pb-1">{grupo}</p>
               {items.map((s) => {
                 const sel = isSelected(s.slug);
                 return (
                   <button key={s.slug} onClick={() => handleSelect(s.slug)}
-                    className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-[var(--color-primary)]/5 text-neutral-100 font-medium" : "text-[var(--color-text-secondary)] hover:bg-neutral-900"}`}
+                    className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-neutral-100 font-medium" : "text-text-secondary hover:bg-neutral-900"}`}
                   >
                     <span className="flex items-center min-w-0">
                       <Indicator slug={s.slug} />
                       <span className="truncate">{s.nome}</span>
                     </span>
-                    {sel && !multi && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
+                    {sel && !multi && <Check className="w-4 h-4 text-primary shrink-0 ml-2" />}
                   </button>
                 );
               })}
@@ -240,13 +240,13 @@ export default function SearchableSelect({ label, value, options, series, grupos
           const sel = isSelected(opt);
           return (
             <button key={opt} onClick={() => handleSelect(opt)}
-              className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-[var(--color-primary)]/5 text-neutral-100 font-medium" : "text-[var(--color-text-secondary)] hover:bg-neutral-900"}`}
+              className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-neutral-100 font-medium" : "text-text-secondary hover:bg-neutral-900"}`}
             >
               <span className="flex items-center min-w-0">
                 <Indicator slug={opt} />
                 <span className="truncate">{opt}</span>
               </span>
-              {sel && !multi && <Check className="w-4 h-4 text-[var(--color-primary)] shrink-0 ml-2" />}
+              {sel && !multi && <Check className="w-4 h-4 text-primary shrink-0 ml-2" />}
             </button>
           );
         })
@@ -261,7 +261,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
         disabled={disabled}
       >
         {getDisplay()}
-        <ChevronDown className="w-3 h-3 text-[var(--color-text-tertiary)]" />
+        <ChevronDown className="w-3 h-3 text-text-tertiary" />
       </button>
 
       <AnimatePresence>
@@ -272,24 +272,24 @@ export default function SearchableSelect({ label, value, options, series, grupos
               variants={sidebarVariants} initial="hidden" animate="visible" exit="exit"
             >
               <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
-                <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
-                <button onClick={closeSheet} className="p-1 rounded-lg text-[var(--color-text-tertiary)] hover:text-[var(--color-text)] hover:bg-neutral-800 transition-colors">
+                <h2 className="text-base font-semibold text-text">{title}</h2>
+                <button onClick={closeSheet} className="p-1 rounded-lg text-text-tertiary hover:text-text hover:bg-neutral-800 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="px-4 pb-3 shrink-0">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)] pointer-events-none z-10" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
                   <input ref={inputRef}
-                    className="w-full bg-neutral-900 rounded-xl pl-10 pr-4 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] outline-none border border-neutral-800 transition-all duration-300 focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                    className="w-full bg-neutral-900 rounded-xl pl-10 pr-4 py-2 text-sm text-text placeholder:text-text-tertiary outline-none border border-neutral-800 transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                     placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto">
                 {!showOptions || showOptions.length === 0 ? (
-                  <p className="text-center text-xs text-[var(--color-text-tertiary)] py-8">Nenhum resultado encontrado</p>
+                  <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
                 ) : optionsList}
               </div>
 
@@ -300,7 +300,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
                   Aplicar Filtros
                 </button>
                 <button onClick={clearDraft}
-                  className="px-4 py-2 rounded-xl text-sm font-medium bg-neutral-800 text-[var(--color-text-secondary)] hover:bg-neutral-700 hover:text-[var(--color-text)] transition-all duration-200"
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-neutral-800 text-text-secondary hover:bg-neutral-700 hover:text-text transition-all duration-200"
                 >
                   Limpar
                 </button>
@@ -327,22 +327,22 @@ export default function SearchableSelect({ label, value, options, series, grupos
               </div>
 
               <div className="flex items-center justify-between px-5 pb-3 shrink-0">
-                <h2 className="text-base font-semibold text-[var(--color-text)]">{title}</h2>
-                <button onClick={closeSheet} className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">Concluir</button>
+                <h2 className="text-base font-semibold text-text">{title}</h2>
+                <button onClick={closeSheet} className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">Concluir</button>
               </div>
 
               <div className="px-4 pb-3 shrink-0">
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)] pointer-events-none z-10" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
                   <input ref={inputRef}
-                    className="w-full bg-neutral-900 rounded-xl pl-10 pr-4 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] outline-none border border-neutral-800 transition-all duration-300 focus:border-[var(--color-primary)]/50 focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                    className="w-full bg-neutral-900 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text placeholder:text-text-tertiary outline-none border border-neutral-800 transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                     placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto pb-4">
                 {!showOptions || showOptions.length === 0 ? (
-                  <p className="text-center text-xs text-[var(--color-text-tertiary)] py-8">Nenhum resultado encontrado</p>
+                  <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
                 ) : optionsList}
               </div>
             </motion.div>

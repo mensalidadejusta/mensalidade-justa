@@ -291,15 +291,15 @@ export default function BuscaContent({
         </div>
       </div>
       {suggestions.length > 0 && (
-        <div className="absolute top-full mt-2 left-0 right-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl z-30 overflow-hidden">
+        <div className="absolute top-full mt-2 left-0 right-0 bg-surface border border-border rounded-xl shadow-2xl z-30 overflow-hidden">
           {suggestions.map((s) => (
             <Link
               key={s.id}
               href={`/escola/${makeEscolaSlug(s.codigo_inep, s.nome)}`}
-              className="block px-4 py-3 text-sm hover:bg-[var(--color-surface-hover)] border-b border-[var(--color-border)] last:border-0 transition-all duration-200"
+              className="block px-4 py-3 text-sm hover:bg-surface-hover border-b border-border last:border-0 transition-all duration-200"
             >
-              <div className="font-medium text-[var(--color-text)] truncate">{s.nome}</div>
-              <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
+              <div className="font-medium text-text truncate">{s.nome}</div>
+              <div className="text-xs text-text-tertiary mt-0.5">
                 {s.municipio} - {s.uf}
               </div>
             </Link>
@@ -310,7 +310,7 @@ export default function BuscaContent({
   );
 
   return (
-    <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)] selection:bg-[var(--color-primary)]/30 flex flex-col">
+    <div className="min-h-dvh bg-bg text-text selection:bg-primary/30 flex flex-col">
       {/* ===== MOBILE ===== */}
       <div className="md:hidden">
         <div className="px-4 pt-6 pb-4">
@@ -321,7 +321,7 @@ export default function BuscaContent({
                   Mensalidade Justa
                 </span>
               </h1>
-              <p className="text-xs text-[var(--color-text-tertiary)] mt-1 leading-relaxed">
+              <p className="text-xs text-text-tertiary mt-1 leading-relaxed">
                 A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
               </p>
             </div>
@@ -376,8 +376,8 @@ export default function BuscaContent({
             carregandoCoordenadas ? (
               <div className="flex items-center justify-center py-12">
                 <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-6 h-6 text-[var(--color-primary)] animate-spin" />
-                  <p className="text-sm text-[var(--color-text-tertiary)]">Buscando escolas pr{'\u00f3'}ximas...</p>
+                  <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  <p className="text-sm text-text-tertiary">Buscando escolas pr{'\u00f3'}ximas...</p>
                 </div>
               </div>
             ) : sortedResultados && sortedResultados.length > 0 ? (
@@ -385,15 +385,15 @@ export default function BuscaContent({
                 <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
               </div>
             ) : (
-              <div className="text-center text-sm text-[var(--color-text-tertiary)] py-12">
+              <div className="text-center text-sm text-text-tertiary py-12">
                 <p className="font-medium">Nenhuma escola encontrada.</p>
               </div>
             )
           ) : (
-            <div className="flex items-center justify-center h-full text-center text-xs text-[var(--color-text-tertiary)] px-4">
+            <div className="flex items-center justify-center h-full text-center text-xs text-text-tertiary px-4">
               <div>
                 <div className="flex justify-center mb-2">
-                  <MapPin className="w-8 h-8 text-[var(--color-text-tertiary)]" />
+                  <MapPin className="w-8 h-8 text-text-tertiary" />
                 </div>
                 <p className="font-medium">Digite um endere{'\u00e7'}o ou cidade para come{'\u00e7'}ar.</p>
               </div>
@@ -412,7 +412,7 @@ export default function BuscaContent({
                   Mensalidade Justa
                 </span>
               </h1>
-              <p className="text-sm text-[var(--color-text-tertiary)] mt-2 leading-relaxed max-w-lg mx-auto">
+              <p className="text-sm text-text-tertiary mt-2 leading-relaxed max-w-lg mx-auto">
                 A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
               </p>
             </div>
@@ -471,23 +471,23 @@ export default function BuscaContent({
               {carregandoCoordenadas ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-6 h-6 text-[var(--color-primary)] animate-spin" />
-                    <p className="text-sm text-[var(--color-text-tertiary)]">Buscando escolas pr{'\u00f3'}ximas...</p>
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                    <p className="text-sm text-text-tertiary">Buscando escolas pr{'\u00f3'}ximas...</p>
                   </div>
                 </div>
               ) : sortedResultados && sortedResultados.length > 0 ? (
                 <BuscaResults resultados={sortedResultados} hoveredId={hoveredId} onHover={handleHover} />
               ) : (
-                <div className="text-center text-sm text-[var(--color-text-tertiary)] py-12">
+                <div className="text-center text-sm text-text-tertiary py-12">
                   <p className="font-medium">Nenhuma escola encontrada.</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center py-16 text-center text-sm text-[var(--color-text-tertiary)]">
+            <div className="flex items-center justify-center py-16 text-center text-sm text-text-tertiary">
               <div>
                 <div className="flex justify-center mb-3">
-                  <MapPin className="w-10 h-10 text-[var(--color-text-tertiary)]" />
+                  <MapPin className="w-10 h-10 text-text-tertiary" />
                 </div>
                 <p className="font-medium">Digite um endere{'\u00e7'}o ou cidade para come{'\u00e7'}ar.</p>
               </div>
@@ -496,13 +496,13 @@ export default function BuscaContent({
         </div>
 
         {showMap && sortedResultados && (
-          <div className="fixed inset-0 z-50 bg-[var(--color-bg)]">
+          <div className="fixed inset-0 z-50 bg-bg">
             <div className="h-full w-full">
               <MapaEscolas escolas={sortedResultados} userLocation={userLocation} hoveredId={hoveredId} />
             </div>
             <button
               onClick={() => setShowMap(false)}
-              className="absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface)]/80 border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-all duration-300 backdrop-blur-md"
+              className="absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface/80 border border-border text-text-secondary hover:text-text transition-all duration-300 backdrop-blur-md"
             >
               Fechar Mapa
             </button>

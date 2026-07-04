@@ -42,7 +42,7 @@ export default function BuscaResults({
 }: Props) {
   if (resultados.length === 0) {
     return (
-      <div className="text-center text-sm text-[var(--color-text-tertiary)] py-12">
+      <div className="text-center text-sm text-text-tertiary py-12">
         <p className="font-medium">Nenhuma escola corresponde aos filtros.</p>
       </div>
     );
@@ -56,10 +56,10 @@ export default function BuscaResults({
           <article key={escola.id}>
             <Link
               href={`/escola/${makeEscolaSlug(escola.codigo_inep, escola.nome)}`}
-              className={`block bg-[var(--color-surface)] border rounded-2xl p-3 md:p-4 transition-all duration-300 ease-in-out ${
+              className={`block bg-surface border rounded-2xl p-3 md:p-4 transition-all duration-300 ease-in-out ${
                 isHovered
-                  ? "border-[var(--color-primary)]/40 -translate-y-1 shadow-[0_0_20px_-5px_rgba(66,133,244,0.3),0_-4px_20px_-8px_rgba(139,92,246,0.2),0_4px_20px_-8px_rgba(236,72,153,0.15)]"
-                  : "border-[var(--color-border)] hover:border-[var(--color-primary)] hover:-translate-y-1 hover:shadow-[0_0_20px_-5px_rgba(66,133,244,0.2),0_-4px_20px_-8px_rgba(139,92,246,0.15),0_4px_20px_-8px_rgba(236,72,153,0.1)]"
+                  ? "border-primary/40 -translate-y-1 shadow-[0_0_20px_-5px_rgba(66,133,244,0.3),0_-4px_20px_-8px_rgba(139,92,246,0.2),0_4px_20px_-8px_rgba(236,72,153,0.15)]"
+                  : "border-border hover:border-primary hover:-translate-y-1 hover:shadow-[0_0_20px_-5px_rgba(66,133,244,0.2),0_-4px_20px_-8px_rgba(139,92,246,0.15),0_4px_20px_-8px_rgba(236,72,153,0.1)]"
               } relative overflow-hidden`}
               onMouseEnter={() => onHover?.(escola.id)}
               onMouseLeave={() => onHover?.(null)}
@@ -71,10 +71,10 @@ export default function BuscaResults({
               }`} />
               <div className="flex items-start justify-between gap-2 md:gap-3 pl-3 md:pl-4">
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-xs md:text-sm font-semibold text-[var(--color-text)] tracking-tight leading-snug">
+                  <h2 className="text-xs md:text-sm font-semibold text-text tracking-tight leading-snug">
                     {escola.nome}
                   </h2>
-                  <p className="text-[10px] md:text-xs text-[var(--color-text-tertiary)] mt-0.5 font-medium truncate">
+                  <p className="text-[10px] md:text-xs text-text-tertiary mt-0.5 font-medium truncate">
                     {escola.etapas_modalidades
                       ? escola.etapas_modalidades.split(",").map((e) => e.trim()).filter(Boolean).slice(0, 3).join(", ")
                       : `${escola.municipio} - ${escola.uf}`}
@@ -93,7 +93,7 @@ export default function BuscaResults({
                       : "P\u00fablica"}
                   </span>
                   {escola.distancia_km !== undefined && (
-                    <span className="text-[8px] md:text-[9px] font-semibold text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] px-1.5 md:px-2 py-0.5 rounded-md whitespace-nowrap">
+                    <span className="text-[8px] md:text-[9px] font-semibold text-text-secondary bg-surface-hover px-1.5 md:px-2 py-0.5 rounded-md whitespace-nowrap">
                       {escola.distancia_km < 1
                         ? `${Math.round(escola.distancia_km * 1000)}m`
                         : `${escola.distancia_km.toFixed(1)} km`}
@@ -101,7 +101,7 @@ export default function BuscaResults({
                   )}
                 </div>
               </div>
-              <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-[var(--color-border)]/60 space-y-1 md:space-y-1.5">
+              <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-border/60 space-y-1 md:space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   {escola.series_precos.length > 0 ? (
                     <div className="space-y-1 md:space-y-1.5 flex-1">
@@ -112,21 +112,21 @@ export default function BuscaResults({
                         if (items.length === 0) return null;
                         return (
                           <div key={grupo}>
-                            <p className="text-[9px] md:text-[10px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-0.5">
+                            <p className="text-[9px] md:text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-0.5">
                               {grupo}
                             </p>
                             {items.map((sp) => (
                               <p key={sp.serie_slug} className="text-[11px] md:text-xs leading-5">
-                                <span className="text-[var(--color-text-secondary)]">
+                                <span className="text-text-secondary">
                                   {sp.serie_nome}:{' '}
                                 </span>
-                                <span className="text-xs md:text-sm font-bold text-[var(--color-primary)]">
+                                <span className="text-xs md:text-sm font-bold text-primary">
                                   R$ {Number(sp.valor_mensalidade).toFixed(2)}
                                 </span>
-                                <span className="text-[9px] md:text-[10px] text-[var(--color-text-tertiary)] font-normal">
+                                <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal">
                                   {' /m'}{'\u00ea'}s
                                 </span>
-                                <span className="text-[9px] md:text-[10px] text-[var(--color-text-tertiary)] font-normal ml-0.5 md:ml-1">
+                                <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-0.5 md:ml-1">
                                   ({sp.qtd})
                                 </span>
                               </p>
@@ -136,11 +136,11 @@ export default function BuscaResults({
                       })}
                     </div>
                   ) : escola.dependencia_administrativa === "Privada" ? (
-                    <p className="text-[11px] md:text-xs text-[var(--color-text-tertiary)] font-medium">
+                    <p className="text-[11px] md:text-xs text-text-tertiary font-medium">
                       Sem mensalidade cadastrada
                     </p>
                   ) : (
-                    <p className="text-[11px] md:text-xs text-[var(--color-text-tertiary)] font-medium">
+                    <p className="text-[11px] md:text-xs text-text-tertiary font-medium">
                       {'Escola p\u00fablica gratuita'}
                     </p>
                   )}

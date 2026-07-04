@@ -18,7 +18,7 @@ export default async function Footer() {
   }
 
   return (
-    <footer className="border-t border-[var(--color-border)] bg-[var(--color-bg)]">
+    <footer className="border-t border-border bg-bg">
       <div className="max-w-7xl mx-auto px-4 py-10">
         <nav aria-label="Diretório de escolas por cidade">
           <h2 className="text-sm font-semibold mb-6">Explore por Cidades</h2>
@@ -28,7 +28,7 @@ export default async function Footer() {
               if (!cidades?.length) return null;
               return (
                 <div key={uf}>
-                  <h3 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-2">
+                  <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
                     {uf}
                   </h3>
                   <ul className="space-y-1.5">
@@ -36,7 +36,7 @@ export default async function Footer() {
                       <li key={municipio}>
                         <Link
                           href={`/escolas/${uf.toLowerCase()}/${slugify(municipio)}`}
-                          className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors"
+                          className="text-xs text-text-tertiary hover:text-primary transition-colors"
                         >
                           {municipio}
                         </Link>
@@ -49,11 +49,11 @@ export default async function Footer() {
           </div>
         </nav>
 
-        <div className="mt-10 pt-6 border-t border-[var(--color-border)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[var(--color-text-tertiary)]">
+        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-text-tertiary">
           <div className="flex gap-4">
-            <Link href="/sobre" className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors">Sobre</Link>
-            <span className="text-xs text-[var(--color-border)]">|</span>
-            <a href="mailto:mensalidadejustabr@gmail.com" className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] transition-colors">Contato</a>
+            <Link href="/sobre" className="text-xs text-text-tertiary hover:text-primary transition-colors">Sobre</Link>
+            <span className="text-xs text-border">|</span>
+            <a href="mailto:mensalidadejustabr@gmail.com" className="text-xs text-text-tertiary hover:text-primary transition-colors">Contato</a>
           </div>
           <p>&copy; {new Date().getFullYear()} Mensalidade Justa. Dados colaborativos.</p>
         </div>
