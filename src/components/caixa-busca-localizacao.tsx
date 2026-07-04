@@ -529,9 +529,9 @@ export default function CaixaBuscaLocalizacao({
         <div className="absolute z-50 top-full mt-1 left-0 right-[calc(0%+48px)] sm:right-[calc(0%+104px)] bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
           {carregando && (
             <div className="p-4 space-y-3">
-              <div className="h-4 bg-[#26262b] rounded animate-pulse" />
-              <div className="h-4 bg-[#26262b] rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-[#26262b] rounded animate-pulse w-1/2" />
+              <div className="h-4 bg-surface-hover rounded animate-pulse" />
+              <div className="h-4 bg-surface-hover rounded animate-pulse w-3/4" />
+              <div className="h-4 bg-surface-hover rounded animate-pulse w-1/2" />
             </div>
           )}
 

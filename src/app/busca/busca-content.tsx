@@ -302,7 +302,7 @@ export default function BuscaContent({
         </div>
       </div>
       {suggestions.length > 0 && (
-        <div className="absolute top-full mt-2 left-0 right-0 bg-surface border border-border rounded-xl shadow-2xl z-30 overflow-hidden">
+        <div className="absolute top-full mt-2 left-0 right-0 bg-surface border border-border rounded-2xl shadow-xl z-30 overflow-hidden">
           {suggestions.map((s) => (
             <Link
               key={s.id}
