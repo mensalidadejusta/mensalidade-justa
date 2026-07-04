@@ -129,11 +129,46 @@ export default function BuscaContent({
     if (initialCidades.length > 0) setCidades(initialCidades);
   }, [initialCidades]);
 
+  useEffect(() => {
+    const lat = searchParams.get("lat");
+    const lon = searchParams.get("lon");
+    if (lat && lon) {
+      const latNum = Number(lat);
+      const lonNum = Number(lon);
+      if (!isNaN(latNum) && !isNaN(lonNum)) {
+        (async () => {
+          setCarregandoCoordenadas(true);
+          try {
+            const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
+              p_lat: latNum,
+              p_lon: lonNum,
+              p_raio_km: 100,
+            });
+            const mapped = (data || []).map((item: any) => ({
+              ...item,
+              distancia_km: item.distancia_km ?? undefined,
+            })) as EscolaResult[];
+            setResultadosCoordenadas(mapped);
+          } catch {
+            setResultadosCoordenadas([]);
+          }
+          setCarregandoCoordenadas(false);
+        })();
+      }
+    }
+  }, []);
+
   async function handleLocationChange(filtro: FiltroLocalizacao) {
     setFiltroLoc(filtro);
 
     if (filtro.latitude != null && filtro.longitude != null) {
       setCarregandoCoordenadas(true);
+      updateFilters({
+        lat: filtro.latitude.toString(),
+        lon: filtro.longitude.toString(),
+        cidade: filtro.cidade || "",
+        uf: filtro.uf || "",
+      });
       try {
         const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
           p_lat: filtro.latitude,
