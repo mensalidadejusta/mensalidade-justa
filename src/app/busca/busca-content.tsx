@@ -350,10 +350,10 @@ export default function BuscaContent({
                     const current = readParam("privada") !== "0";
                     updateFilters({ privada: current ? "0" : "1" });
                   }}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-transparent ${
                     showPrivada
-                      ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
-                      : "bg-surface-hover border-transparent text-text-secondary"
+                      ? "bg-[#1f3b9b] text-white"
+                      : "bg-surface-hover text-text-secondary"
                   }`}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
@@ -364,10 +364,10 @@ export default function BuscaContent({
                     const current = readParam("publica") !== "0";
                     updateFilters({ publica: current ? "0" : "1" });
                   }}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-transparent ${
                     showPublica
-                      ? "bg-accent-success/10 border-accent-success/30 text-accent-success"
-                      : "bg-surface-hover border-transparent text-text-secondary"
+                      ? "bg-[#6ee7b7] text-black"
+                      : "bg-surface-hover text-text-secondary"
                   }`}
                 >
                   <GraduationCap className="w-3.5 h-3.5" />
@@ -448,7 +448,7 @@ export default function BuscaContent({
                   }}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
                     showPrivada
-                      ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+                      ? "bg-[#1f3b9b] text-white"
                       : "bg-surface-hover border-transparent text-text-secondary"
                   }`}
                 >
@@ -462,7 +462,7 @@ export default function BuscaContent({
                   }}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
                     showPublica
-                      ? "bg-accent-success/10 border-accent-success/30 text-accent-success"
+                      ? "bg-[#6ee7b7] text-black"
                       : "bg-surface-hover border-transparent text-text-secondary"
                   }`}
                 >
