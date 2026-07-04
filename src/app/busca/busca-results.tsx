@@ -121,15 +121,13 @@ export default function BuscaResults({
                           const preco = Number(sp.valor_mensalidade);
                           return (
                             <p key={sp.serie_slug} className="text-[11px] md:text-xs leading-5">
-                              <span className="text-text-secondary font-medium">{sp.serie_nome}:{' '}</span>
+                              <span className="text-text-secondary font-medium">{sp.serie_nome}</span>
+                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-0.5">({sp.qtd}) · </span>
                               {!isNaN(preco) ? (
-                                <span className="text-xs md:text-sm font-bold text-primary">
-                                  R$ {preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
-                              ) : null}
-                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-1">
-                                ({sp.qtd} {sp.qtd === 1 ? 'contribuição' : 'contribuições'})
-                              </span>
+                          <span className="text-xs md:text-sm font-bold text-primary">
+                            R$ {preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        ) : null}
                             </p>
                           );
                         })
@@ -147,15 +145,13 @@ export default function BuscaResults({
                           const qtdTotal = items.reduce((sum, sp) => sum + sp.qtd, 0);
                           return (
                             <p key={grupo} className="text-[11px] md:text-xs leading-5">
-                              <span className="text-text-secondary font-medium">{grupo}:{' '}</span>
+                              <span className="text-text-secondary font-medium">{grupo.replace("Ensino ", "").replace("Educação ", "")}</span>
+                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal"> ({qtdTotal}) · </span>
                               {min !== null && max !== null ? (
                                 <span className="text-xs md:text-sm font-bold text-primary">
                                   R$ {min.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} - R$ {max.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                 </span>
                               ) : null}
-                              <span className="text-[9px] md:text-[10px] text-text-tertiary font-normal ml-1">
-                                ({qtdTotal} {qtdTotal === 1 ? 'contribuição' : 'contribuições'})
-                              </span>
                             </p>
                           );
                         })
