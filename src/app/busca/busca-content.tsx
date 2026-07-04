@@ -304,9 +304,9 @@ export default function BuscaContent({
     <div className="relative w-full" ref={searchRef}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-text-tertiary z-10" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-text-tertiary z-10" />
           <input
-            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_20px_-5px_rgba(66,133,244,0.2),0_-4px_20px_-8px_rgba(139,92,246,0.15),0_4px_20px_-8px_rgba(236,72,153,0.1)]"
+            className="w-full bg-surface border border-border/50 rounded-full py-2 pl-9 pr-3 text-xs text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
             placeholder="Buscar escola por nome..."
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
@@ -355,9 +355,24 @@ export default function BuscaContent({
               onToggleMap={() => setShowMap((v) => !v)}
             />
             <div className="space-y-3">
-              {nomeBuscaInput}
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <button
+            <div className="flex items-center gap-2">
+              <div className="flex-1">{nomeBuscaInput}</div>
+              <button
+                type="button"
+                onClick={() => setShowMap((v) => !v)}
+                className={`shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 ${
+                  showMap
+                    ? "bg-accent-purple/10 text-accent-purple border border-accent-purple/30"
+                    : "bg-surface border border-border/50 text-text-tertiary hover:text-text"
+                }`}
+                title={showMap ? "Fechar mapa" : "Abrir mapa"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                {showMap ? "Fechar" : "Mapa"}
+              </button>
+            </div>
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <button
                   onClick={() => {
                     const current = readParam("privada") !== "0";
                     updateFilters({ privada: current ? "0" : "1" });
@@ -452,14 +467,26 @@ export default function BuscaContent({
                 </p>
               </div>
 
-              <CaixaBuscaLocalizacao
-                onLocationChange={handleLocationChange}
-                className="w-full"
-                showMap={showMap}
-                onToggleMap={() => setShowMap((v) => !v)}
-              />
-              <div className="space-y-4">
-                {nomeBuscaInput}
+            <CaixaBuscaLocalizacao
+              onLocationChange={handleLocationChange}
+              className="w-full"
+            />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">{nomeBuscaInput}</div>
+                <button
+                  type="button"
+                  onClick={() => setShowMap((v) => !v)}
+                  className={`shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 ${
+                    showMap
+                      ? "bg-accent-purple/10 text-accent-purple border border-accent-purple/30"
+                      : "bg-surface border border-border/50 text-text-tertiary hover:text-text"
+                  }`}
+                  title={showMap ? "Fechar mapa" : "Abrir mapa"}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                </button>
+              </div>
                 <div className="flex items-center justify-center gap-3 flex-wrap">
                   <button
                     onClick={() => {
