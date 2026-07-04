@@ -294,7 +294,7 @@ export default function BuscaContent({
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-text-tertiary z-10" />
           <input
-            className="w-full bg-surface border border-border rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-accent-purple focus:ring-4 focus:ring-accent-purple/10 transition-all duration-300"
+            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-accent-purple focus:ring-4 focus:ring-accent-purple/10 transition-all duration-300"
             placeholder="Buscar escola por nome..."
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
@@ -336,48 +336,52 @@ export default function BuscaContent({
                 A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
               </p>
             </div>
-            <CaixaBuscaLocalizacao
-              onLocationChange={handleLocationChange}
-              className="w-full"
-            />
-            {nomeBuscaInput}
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <button
-                onClick={() => {
-                  const current = readParam("privada") !== "0";
-                  updateFilters({ privada: current ? "0" : "1" });
-                }}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
-                  showPrivada
-                    ? "bg-accent-purple/10 border-accent-purple/40 text-accent-purple"
-                    : "bg-surface-hover border-transparent text-text-secondary"
-                }`}
-              >
-                <DollarSign className="w-3.5 h-3.5" />
-                Privadas
-              </button>
-              <button
-                onClick={() => {
-                  const current = readParam("publica") !== "0";
-                  updateFilters({ publica: current ? "0" : "1" });
-                }}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
-                  showPublica
-                    ? "bg-success/10 border-success/40 text-success"
-                    : "bg-surface-hover border-transparent text-text-secondary"
-                }`}
-              >
-                <GraduationCap className="w-3.5 h-3.5" />
-                P{'\u00fa'}blicas
-              </button>
-              <SearchableSelect
-                label="Etapa"
-                value={serieSlug}
-                series={SERIES}
-                grupos={GRUPOS}
-                onChange={(v) => updateFilters({ serie: v })}
-                isMultiple={true}
+            <div className="relative z-30">
+              <CaixaBuscaLocalizacao
+                onLocationChange={handleLocationChange}
+                className="w-full"
               />
+            </div>
+            <div className="relative z-10 space-y-3">
+              {nomeBuscaInput}
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    const current = readParam("privada") !== "0";
+                    updateFilters({ privada: current ? "0" : "1" });
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                    showPrivada
+                      ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+                      : "bg-surface-hover border-transparent text-text-secondary"
+                  }`}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  Privadas
+                </button>
+                <button
+                  onClick={() => {
+                    const current = readParam("publica") !== "0";
+                    updateFilters({ publica: current ? "0" : "1" });
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                    showPublica
+                      ? "bg-accent-success/10 border-accent-success/30 text-accent-success"
+                      : "bg-surface-hover border-transparent text-text-secondary"
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  P{'\u00fa'}blicas
+                </button>
+                <SearchableSelect
+                  label="Etapa"
+                  value={serieSlug}
+                  series={SERIES}
+                  grupos={GRUPOS}
+                  onChange={(v) => updateFilters({ serie: v })}
+                  isMultiple={true}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -428,11 +432,13 @@ export default function BuscaContent({
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="relative z-30">
               <CaixaBuscaLocalizacao
                 onLocationChange={handleLocationChange}
                 className="w-full"
               />
+            </div>
+            <div className="relative z-10 space-y-4">
               {nomeBuscaInput}
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <button
@@ -440,9 +446,9 @@ export default function BuscaContent({
                     const current = readParam("privada") !== "0";
                     updateFilters({ privada: current ? "0" : "1" });
                   }}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
                     showPrivada
-                      ? "bg-accent-purple/10 border-accent-purple/40 text-accent-purple"
+                      ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
                       : "bg-surface-hover border-transparent text-text-secondary"
                   }`}
                 >
@@ -454,9 +460,9 @@ export default function BuscaContent({
                     const current = readParam("publica") !== "0";
                     updateFilters({ publica: current ? "0" : "1" });
                   }}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border ${
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
                     showPublica
-                      ? "bg-success/10 border-success/40 text-success"
+                      ? "bg-accent-success/10 border-accent-success/30 text-accent-success"
                       : "bg-surface-hover border-transparent text-text-secondary"
                   }`}
                 >

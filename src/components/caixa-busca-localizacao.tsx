@@ -499,7 +499,7 @@ export default function CaixaBuscaLocalizacao({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             placeholder={"Endere\u00e7o, bairro ou cidade..."}
-            className="w-full bg-surface border border-border rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-accent-purple focus:ring-4 focus:ring-accent-purple/10 transition-all duration-300"
+            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-accent-purple focus:ring-4 focus:ring-accent-purple/10 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
           />
