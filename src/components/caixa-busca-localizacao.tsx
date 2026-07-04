@@ -92,7 +92,6 @@ export default function CaixaBuscaLocalizacao({
 
   function handleChange(value: string) {
     setBuscaRaw(value);
-    onLocationChange({ buscaRaw: value });
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
