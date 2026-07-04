@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Navigation, Loader2, MapPin, Building, Home, Hash } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
 export interface SugestaoLocalizacao {
   id: string;
@@ -42,36 +43,6 @@ const TIPO_ICON: Record<SugestaoLocalizacao["tipo"], typeof MapPin> = {
 
 const CEP_REGEX = /^(\d{5})-?(\d{3})$/;
 
-type PhotonProperties = {
-  name?: string;
-  street?: string;
-  housenumber?: string;
-  postcode?: string;
-  city?: string;
-  town?: string;
-  village?: string;
-  municipality?: string;
-  state?: string;
-  country?: string;
-  osm_key?: string;
-  osm_value?: string;
-};
-
-type PhotonFeature = {
-  geometry: { coordinates: [number, number]; type: string };
-  properties: PhotonProperties;
-};
-
-type BrasilApiCepV2 = {
-  cep: string;
-  state: string;
-  city: string;
-  neighborhood: string;
-  street: string;
-  service: string;
-  location: { type: string; coordinates: { longitude: string; latitude: string } };
-};
-
 type Props = {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
   onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
@@ -85,6 +56,7 @@ export default function CaixaBuscaLocalizacao({
   initialValue = "",
   className = "",
 }: Props) {
+  const supabase = useRef(createClient());
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
   const [sugestoes, setSugestoes] = useState<SugestaoLocalizacao[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
@@ -104,7 +76,8 @@ export default function CaixaBuscaLocalizacao({
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (value.trim().length < 2) {
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
       setSugestoes([]);
       setDropdownAberto(false);
       setBuscouSemResultados(false);
@@ -112,25 +85,22 @@ export default function CaixaBuscaLocalizacao({
       return;
     }
 
+    setCarregando(true);
+
     debounceRef.current = setTimeout(() => {
-      buscar(value);
+      buscar(trimmed);
     }, 300);
   }
 
   async function buscar(query: string) {
-    const trimmed = query.trim();
-    if (trimmed.length < 2) return;
-
     const requestId = ++reqIdRef.current;
-    setCarregando(true);
-    setBuscouSemResultados(false);
 
-    const cepMatch = trimmed.match(CEP_REGEX);
+    const cepMatch = query.match(CEP_REGEX);
     if (cepMatch) {
       const cepLimpo = `${cepMatch[1]}${cepMatch[2]}`;
       await buscarCep(cepLimpo, requestId);
     } else {
-      await buscarTexto(trimmed, requestId);
+      await buscarTexto(query, requestId);
     }
 
     if (requestId === reqIdRef.current) {
@@ -140,10 +110,7 @@ export default function CaixaBuscaLocalizacao({
 
   async function buscarCep(cep: string, requestId: number) {
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${cep}`, {
-        signal: AbortSignal.timeout(8000),
-      });
-
+      const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${cep}`);
       if (requestId !== reqIdRef.current) return;
 
       if (!res.ok) {
@@ -154,8 +121,7 @@ export default function CaixaBuscaLocalizacao({
         return;
       }
 
-      const data: BrasilApiCepV2 = await res.json();
-
+      const data = await res.json();
       if (requestId !== reqIdRef.current) return;
 
       const latitude = data.location?.coordinates?.latitude
@@ -167,9 +133,8 @@ export default function CaixaBuscaLocalizacao({
 
       const sugestao: SugestaoLocalizacao = {
         id: `cep-${cep}`,
-        textoExibicao: `${data.street || ""}, ${data.neighborhood || ""}, ${data.city} - ${data.state}`
-          .replace(/^, /, "")
-          .replace(/, , /, ", "),
+        textoExibicao: [data.street, data.neighborhood, `${data.city} - ${data.state}`]
+          .filter(Boolean).join(", "),
         tipo: "cep",
         cep: data.cep,
         bairro: data.neighborhood || undefined,
@@ -193,12 +158,83 @@ export default function CaixaBuscaLocalizacao({
   }
 
   async function buscarTexto(termo: string, requestId: number) {
+    const results: SugestaoLocalizacao[] = [];
+    const vistos = new Set<string>();
+
+    const normalizado = termo
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    const likePattern = `%${normalizado}%`;
+
+    try {
+      const [{ data: cidades }, { data: bairros }] = await Promise.all([
+        supabase.current
+          .from("tb_cidades")
+          .select("nome, estado:estado_id!inner(uf)")
+          .ilike("nome", likePattern)
+          .limit(5)
+          .order("nome"),
+        supabase.current
+          .from("escolas")
+          .select("bairro, municipio, uf")
+          .not("bairro", "is", null)
+          .or(`bairro.ilike.${likePattern},municipio.ilike.${likePattern}`)
+          .limit(8)
+          .order("bairro"),
+      ]);
+
+      if (requestId !== reqIdRef.current) return;
+
+      if (cidades) {
+        for (const c of cidades) {
+          const uf = (c.estado as any)?.uf ?? "";
+          if (!uf) continue;
+          const chave = `${c.nome}-${uf}`;
+          if (vistos.has(chave)) continue;
+          vistos.add(chave);
+          results.push({
+            id: `cid-${results.length}`,
+            textoExibicao: `${c.nome} - ${uf}`,
+            tipo: "cidade",
+            cidade: c.nome,
+            uf,
+          });
+        }
+      }
+
+      if (bairros) {
+        for (const b of bairros) {
+          if (!b.bairro || !b.municipio || !b.uf) continue;
+          const chave = `b-${b.bairro}-${b.municipio}-${b.uf}`;
+          if (vistos.has(chave)) continue;
+          vistos.add(chave);
+          results.push({
+            id: `bairro-${results.length}`,
+            textoExibicao: `${b.bairro}, ${b.municipio} - ${b.uf}`,
+            tipo: "bairro",
+            bairro: b.bairro,
+            cidade: b.municipio,
+            uf: b.uf,
+          });
+        }
+      }
+
+      if (results.length > 0) {
+        setSugestoes(results.slice(0, 10));
+        setDropdownAberto(true);
+        setBuscouSemResultados(false);
+        setHighlightIndex(-1);
+        return;
+      }
+    } catch {
+      if (requestId !== reqIdRef.current) return;
+    }
+
     try {
       const res = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(termo)}&lang=pt&limit=8&bbox=-73.99,-33.75,-28.84,5.27`,
-        { signal: AbortSignal.timeout(8000) }
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(termo)}&lang=pt&limit=5&bbox=-73.99,-33.75,-28.84,5.27`
       );
-
       if (requestId !== reqIdRef.current) return;
 
       if (!res.ok) {
@@ -210,21 +246,9 @@ export default function CaixaBuscaLocalizacao({
       }
 
       const geo = await res.json();
-
       if (requestId !== reqIdRef.current) return;
 
-      const features: PhotonFeature[] = geo.features || [];
-
-      if (features.length === 0) {
-        setSugestoes([]);
-        setDropdownAberto(true);
-        setBuscouSemResultados(true);
-        setHighlightIndex(-1);
-        return;
-      }
-
-      const results: SugestaoLocalizacao[] = [];
-      const vistos = new Set<string>();
+      const features: any[] = geo.features || [];
 
       for (const f of features) {
         const p = f.properties;
@@ -235,36 +259,26 @@ export default function CaixaBuscaLocalizacao({
 
         const lon = f.geometry?.coordinates?.[0];
         const lat = f.geometry?.coordinates?.[1];
-        const cidade = p.city || p.town || p.village || p.municipality || p.name || "";
+        const cidade = p.city || p.town || p.name || "";
         const uf = p.state || "";
-
-        const osmKey = p.osm_key || "";
-        const osmValue = p.osm_value || "";
         const nome = p.name || "";
         const street = p.street || "";
-        const housenumber = p.housenumber || "";
+        const osmValue = p.osm_value || "";
 
         let tipo: SugestaoLocalizacao["tipo"] = "cidade";
         let texto = "";
         let bairro: string | undefined;
 
-        if (osmKey === "place" && (osmValue === "city" || osmValue === "town" || osmValue === "village" || osmValue === "municipality" || osmValue === "locality" || osmValue === "hamlet")) {
-          tipo = "cidade";
-          texto = `${cidade}${uf ? ` - ${uf}` : ""}`;
-        } else if (osmKey === "place" && (osmValue === "suburb" || osmValue === "neighbourhood" || osmValue === "quarter")) {
+        if (osmValue === "suburb" || osmValue === "neighbourhood" || osmValue === "quarter") {
           tipo = "bairro";
-          bairro = nome || cidade;
-          texto = `${bairro}${cidade && bairro !== cidade ? `, ${cidade}` : ""}${uf ? ` - ${uf}` : ""}`;
-        } else if (street || osmKey === "highway" || osmValue === "street" || osmValue === "road" || osmValue === "pedestrian" || osmValue === "residential") {
+          bairro = nome;
+          texto = `${bairro}, ${cidade}${uf ? ` - ${uf}` : ""}`;
+        } else if (street || osmValue === "street" || osmValue === "road") {
           tipo = "logradouro";
-          const logradouro = [housenumber, street || nome].filter(Boolean).join(" ");
-          texto = logradouro ? `${logradouro}, ${cidade}${uf ? ` - ${uf}` : ""}` : `${cidade}${uf ? ` - ${uf}` : ""}`;
+          texto = `${street || nome}, ${cidade}${uf ? ` - ${uf}` : ""}`;
         } else if (cidade) {
           tipo = "cidade";
           texto = `${cidade}${uf ? ` - ${uf}` : ""}`;
-        } else if (nome) {
-          tipo = "logradouro";
-          texto = `${nome}${cidade ? `, ${cidade}` : ""}${uf ? ` - ${uf}` : ""}`;
         } else {
           continue;
         }
@@ -283,60 +297,6 @@ export default function CaixaBuscaLocalizacao({
           latitude: lat != null ? lat : undefined,
           longitude: lon != null ? lon : undefined,
         });
-      }
-
-      if (results.length === 0) {
-        const supabase = (await import("@/lib/supabase")).createClient();
-        const likePattern = `%${termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}%`;
-        const [{ data: cidadesFallback }, { data: bairrosFallback }] = await Promise.all([
-          supabase
-            .from("tb_cidades")
-            .select("nome, estado:estado_id!inner(uf)")
-            .ilike("nome", likePattern)
-            .limit(5)
-            .order("nome"),
-          supabase
-            .from("escolas")
-            .select("bairro, municipio, uf")
-            .not("bairro", "is", null)
-            .or(`bairro.ilike.${likePattern},municipio.ilike.${likePattern}`)
-            .limit(8)
-            .order("bairro"),
-        ]);
-
-        if (cidadesFallback) {
-          for (const c of cidadesFallback) {
-            const uf = (c.estado as any)?.uf ?? "";
-            if (!uf) continue;
-            const chave = `cidade|${c.nome} - ${uf}`;
-            if (vistos.has(chave)) continue;
-            vistos.add(chave);
-            results.push({
-              id: `fb-cid-${results.length}`,
-              textoExibicao: `${c.nome} - ${uf}`,
-              tipo: "cidade",
-              cidade: c.nome,
-              uf,
-            });
-          }
-        }
-
-        if (bairrosFallback) {
-          for (const b of bairrosFallback) {
-            if (!b.bairro || !b.municipio || !b.uf) continue;
-            const chave = `bairro|${b.bairro}, ${b.municipio} - ${b.uf}`;
-            if (vistos.has(chave)) continue;
-            vistos.add(chave);
-            results.push({
-              id: `fb-bairro-${results.length}`,
-              textoExibicao: `${b.bairro}, ${b.municipio} - ${b.uf}`,
-              tipo: "bairro",
-              bairro: b.bairro,
-              cidade: b.municipio,
-              uf: b.uf,
-            });
-          }
-        }
       }
 
       setSugestoes(results.slice(0, 10));
@@ -359,7 +319,7 @@ export default function CaixaBuscaLocalizacao({
     setBuscouSemResultados(false);
     setHighlightIndex(-1);
 
-    const filtro: FiltroLocalizacao = {
+    onLocationChange({
       buscaRaw: sugestao.textoExibicao,
       cep: sugestao.cep,
       bairro: sugestao.bairro,
@@ -367,8 +327,7 @@ export default function CaixaBuscaLocalizacao({
       uf: sugestao.uf,
       latitude: sugestao.latitude,
       longitude: sugestao.longitude,
-    };
-    onLocationChange(filtro);
+    });
     onSelectSugestao?.(sugestao);
     inputRef.current?.blur();
   }
@@ -410,7 +369,7 @@ export default function CaixaBuscaLocalizacao({
 
   async function buscarPertoDeMim() {
     if (!navigator.geolocation) {
-      setGeoError("Geolocaliza\u00e7\u00e3o n\u00e3o suportada neste navegador.");
+      setGeoError("Geolocaliza\u00e7\u00e3o n\u00e3o suportada.");
       return;
     }
     setGeoLoading(true);
@@ -423,45 +382,31 @@ export default function CaixaBuscaLocalizacao({
           maximumAge: 60000,
         });
       });
-      const { latitude, longitude } = pos.coords;
 
-      const response = await fetch(
-        `https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}&lang=pt`,
-        { headers: { "User-Agent": "MensalidadeJusta/1.0" } }
-      );
-      const geo = await response.json();
-      const feature = geo.features?.[0];
-      const props = feature?.properties || {};
-      const address = props;
+      try {
+        const res = await fetch(
+          `https://photon.komoot.io/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&lang=pt`
+        );
+        if (res.ok) {
+          const geo = await res.json();
+          const props = geo.features?.[0]?.properties || {};
+          const cidade = props.city || props.town || props.name || "";
+          const uf = props.state || "";
 
-      const cidade = address.city || address.town || address.village || address.name || "";
-      const uf = address.state || "";
-      const bairro = address.suburb || address.neighbourhood || address.district || "";
-      const logradouro = address.street || address.name || "";
-
-      const parts: string[] = [];
-      if (logradouro) parts.push(logradouro);
-      if (bairro) parts.push(bairro);
-      if (cidade) parts.push(cidade);
-      if (uf) parts.push(uf);
-
-      const displayStr = parts.join(", ");
-      setBuscaRaw(displayStr);
-      setSugestoes([]);
-      setDropdownAberto(false);
-
-      const filtro: FiltroLocalizacao = {
-        buscaRaw: displayStr,
-        latitude,
-        longitude,
-        cidade,
-        uf,
-        bairro,
-        logradouro,
-      };
-      onLocationChange(filtro);
+          setBuscaRaw(`${cidade}${uf ? ` - ${uf}` : ""}`);
+          onLocationChange({
+            buscaRaw: `${cidade}${uf ? ` - ${uf}` : ""}`,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            cidade,
+            uf,
+          });
+        }
+      } catch {
+        setGeoError("Erro ao obter localiza\u00e7\u00e3o.");
+      }
     } catch {
-      setGeoError("Erro ao obter localiza\u00e7\u00e3o. Tente novamente.");
+      setGeoError("Erro ao obter localiza\u00e7\u00e3o.");
     }
     setGeoLoading(false);
   }
