@@ -35,7 +35,7 @@ export default function TabBar() {
             </Link>
           );
         })}
-        <div className="flex flex-col items-center gap-4 mt-auto">
+        <div className="flex flex-col items-center gap-3 mt-auto">
           <Link href="/sobre"
             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 ${
               pathname === "/sobre" ? "bg-surface shadow-sm text-primary" : "text-text-tertiary hover:text-primary hover:bg-surface-hover"
@@ -43,6 +43,9 @@ export default function TabBar() {
             title="Sobre o projeto">
             <Info className="w-5 h-5" />
           </Link>
+          <span className="text-[9px] text-text-tertiary/30 select-none" title={process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'dev'}>
+            {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'dev').slice(0, 7)}
+          </span>
         </div>
       </nav>
 
