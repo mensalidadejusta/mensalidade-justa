@@ -142,7 +142,7 @@ export default function BuscaContent({
             const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
               p_lat: latNum,
               p_lon: lonNum,
-              p_raio_km: 100,
+              p_raio_km: 50,
             });
             const mapped = (data || []).map((item: any) => ({
               ...item,
@@ -173,7 +173,7 @@ export default function BuscaContent({
         const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
           p_lat: filtro.latitude,
           p_lon: filtro.longitude,
-          p_raio_km: 100,
+          p_raio_km: 50,
         });
         const mapped = (data || []).map((item: any) => ({
           ...item,
