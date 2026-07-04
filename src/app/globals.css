@@ -7,6 +7,14 @@
   --color-coral: var(--color-accent-coral);
   --color-success: var(--color-accent-success);
   --color-danger: var(--color-accent-danger);
+  --color-surface: var(--color-surface);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-border: var(--color-border);
+  --color-border-hover: var(--color-border-hover);
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-bg: var(--color-bg);
 }
 
 @layer base {
@@ -30,9 +38,9 @@
   }
 
   .dark {
-    --color-bg: #1a1a1c;
-    --color-surface: #2a2a2e;
-    --color-surface-hover: #333338;
+    --color-bg: #131314;
+    --color-surface: #1e1f20;
+    --color-surface-hover: #282a2c;
     --color-border: #3c4043;
     --color-border-hover: #5f6368;
     --color-text: #e3e3e3;
