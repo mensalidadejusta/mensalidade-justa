@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import ConfiguracaoTema from "@/components/configuracao-tema";
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -61,16 +62,18 @@ export default function PerfilPage() {
         <p className="text-sm text-gray-400 break-all">{user.email}</p>
       </div>
 
-      <div className="card divide-y divide-gray-100">
+      <div className="card divide-y divide-border/60">
         <Link href="/alterar-senha" className="flex items-center justify-between py-4 text-sm hover:text-primary transition-colors">
           <span>🔑 Alterar senha</span>
-          <span className="text-gray-300">→</span>
+          <span className="text-text-tertiary">→</span>
         </Link>
         <button onClick={handleLogout} className="flex items-center justify-between w-full py-4 text-sm hover:text-primary transition-colors text-left">
           <span>🚪 Sair</span>
-          <span className="text-gray-300">→</span>
+          <span className="text-text-tertiary">→</span>
         </button>
       </div>
+
+      <ConfiguracaoTema />
 
       <div className="card border-danger/20">
         <h2 className="text-sm font-semibold text-danger mb-2">🗑️ Excluir conta</h2>
