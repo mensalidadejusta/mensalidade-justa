@@ -360,54 +360,44 @@ export default function CaixaBuscaLocalizacao({
         });
       });
 
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      let cidade = "";
+      let uf = "";
+      let bairro = "";
+      let logradouro = "";
+
       const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
       if (token) {
         try {
           const res = await fetch(
-            `https://api.locationiq.com/v1/reverse?key=${token}&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=pt-br`
+            `https://api.locationiq.com/v1/reverse?key=${token}&lat=${lat}&lon=${lon}&format=json&accept-language=pt-br`
           );
           if (res.ok) {
             const geo = await res.json();
             const addr = geo.address || {};
-            const cidade = addr.city || addr.town || addr.village || addr.county || "";
-            const uf = addr.state || "";
-            const bairro = addr.neighbourhood || addr.suburb || "";
-            const logradouro = addr.road || addr.name || "";
-
-            const partes = [logradouro, bairro, cidade, uf].filter(Boolean);
-            const texto = partes.join(", ");
-
-            setBuscaRaw(texto);
-            setSugestoes([]);
-            setDropdownAberto(false);
-            onLocationChange({
-              buscaRaw: texto,
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              cidade,
-              uf,
-              bairro: bairro || undefined,
-              logradouro: logradouro || undefined,
-            });
+            cidade = addr.city || addr.town || addr.village || addr.county || "";
+            uf = addr.state || "";
+            bairro = addr.neighbourhood || addr.suburb || "";
+            logradouro = addr.road || addr.name || "";
           }
-        } catch {
-          const texto = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-          setBuscaRaw(texto);
-          onLocationChange({
-            buscaRaw: texto,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-        }
-      } else {
-        const texto = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-        setBuscaRaw(texto);
-        onLocationChange({
-          buscaRaw: texto,
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
+        } catch {}
       }
+
+      const partes = [logradouro, bairro, cidade, uf].filter(Boolean);
+      const texto = partes.length > 0 ? partes.join(", ") : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      setBuscaRaw(texto);
+      setSugestoes([]);
+      setDropdownAberto(false);
+      onLocationChange({
+        buscaRaw: texto,
+        latitude: lat,
+        longitude: lon,
+        cidade: cidade || undefined,
+        uf: uf || undefined,
+        bairro: bairro || undefined,
+        logradouro: logradouro || undefined,
+      });
     } catch (err: any) {
       if (err.code === 1) setGeoError("Permiss\u00e3o de localiza\u00e7\u00e3o negada.");
       else setGeoError("Erro ao obter localiza\u00e7\u00e3o.");
