@@ -270,78 +270,54 @@ export default function CaixaBuscaLocalizacao({
       results.push(e);
     }
 
-    const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
-    if (token) {
-      try {
-        const url = `https://api.locationiq.com/v1/autocomplete?key=${token}&q=${encodeURIComponent(termo)}&limit=10&countrycodes=br&accept-language=pt-br`;
-        const res = await fetch(url);
-        if (requestId !== reqIdRef.current) return;
+    const normalizado = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const pareceEndereco = /\b(rua|av|avenida|travessa|praça|alameda|rodovia|estrada|beco|viela)\b/.test(normalizado) || /\d{3,}/.test(termo);
 
-        if (res.ok) {
-          const data: LocationIqSuggestion[] = await res.json();
+    if (pareceEndereco) {
+      const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
+      if (token) {
+        try {
+          const url = `https://api.locationiq.com/v1/autocomplete?key=${token}&q=${encodeURIComponent(termo)}&limit=5&countrycodes=br&accept-language=pt-br`;
+          const res = await fetch(url);
           if (requestId !== reqIdRef.current) return;
 
-          if (Array.isArray(data)) {
-            for (const item of data) {
-              const addr = item.address || {};
-              const displayName = item.display_name || "";
-              const lat = item.lat ? Number(item.lat) : undefined;
-              const lon = item.lon ? Number(item.lon) : undefined;
+          if (res.ok) {
+            const data: LocationIqSuggestion[] = await res.json();
+            if (requestId !== reqIdRef.current) return;
 
-              const cidade = addr.city || addr.town || addr.village || addr.county || addr.name || "";
-              const uf = normalizarUf(addr.state || "");
-              const bairro = addr.neighbourhood || addr.suburb || "";
-              const logradouro = addr.road || addr.name || "";
-              const tipoRaw = item.type || "";
-              const osmType = item.osm_type || "";
+            if (Array.isArray(data)) {
+              for (const item of data) {
+                const addr = item.address || {};
+                const lat = item.lat ? Number(item.lat) : undefined;
+                const lon = item.lon ? Number(item.lon) : undefined;
+                const logradouro = addr.road || addr.name || "";
+                const bairro = addr.neighbourhood || addr.suburb || "";
+                const cidade = addr.city || addr.town || addr.village || addr.county || "";
+                const uf = normalizarUf(addr.state || "");
 
-              let tipo: SugestaoLocalizacao["tipo"] = "cidade";
-              let texto = "";
-              let displayBairro: string | undefined;
+                if (!logradouro) continue;
 
-              const cidadeUf = `${cidade}${uf ? ` - ${uf}` : ""}`;
+                const texto = [logradouro, bairro, cidade, uf].filter(Boolean).join(", ");
+                const chave = `logradouro|${texto}`;
+                if (vistos.has(chave)) continue;
+                vistos.add(chave);
 
-              if (logradouro && (tipoRaw === "road" || osmType === "way" || addr.house_number)) {
-                tipo = "logradouro";
-                const logr = [logradouro, bairro, cidade].filter(Boolean).join(", ");
-                texto = `${logr}${uf ? ` - ${uf}` : ""}`;
-              } else if (tipoRaw === "city" || tipoRaw === "town" || tipoRaw === "village" || tipoRaw === "administrative" || tipoRaw === "locality" || tipoRaw === "municipality" || tipoRaw === "county") {
-                tipo = "cidade";
-                texto = cidadeUf || displayName;
-              } else if (tipoRaw === "suburb" || tipoRaw === "neighbourhood" || tipoRaw === "quarter" || (bairro && cidade)) {
-                tipo = "bairro";
-                displayBairro = bairro || logradouro;
-                texto = `${displayBairro}, ${cidadeUf}`;
-              } else if (cidade) {
-                tipo = "cidade";
-                texto = cidadeUf;
-              } else {
-                tipo = "logradouro";
-                texto = displayName;
+                results.push({
+                  id: `liq-${results.length}`,
+                  textoExibicao: texto,
+                  tipo: "logradouro",
+                  bairro: bairro || undefined,
+                  cidade,
+                  uf,
+                  latitude: lat,
+                  longitude: lon,
+                });
               }
-
-              const chave = `${tipo}|${texto}`;
-              if (vistos.has(chave)) continue;
-              vistos.add(chave);
-
-              results.push({
-                id: `liq-${item.place_id || results.length}`,
-                textoExibicao: texto,
-                tipo,
-                bairro: displayBairro,
-                cidade: cidade || "",
-                uf: uf || "",
-                latitude: lat,
-                longitude: lon,
-              });
             }
           }
-        }
-      } catch {}
-    }
-
-    const temCidade = results.some((r) => r.tipo === "cidade");
-    if (!temCidade) {
+        } catch {}
+      }
+    } else {
       await buscarCidadesFallback(termo, results, vistos);
     }
 
