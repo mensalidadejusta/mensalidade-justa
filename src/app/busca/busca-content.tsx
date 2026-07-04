@@ -151,6 +151,7 @@ export default function BuscaContent({
             distancia_km: item.distancia_km ?? undefined,
           })) as EscolaResult[];
           setResultadosCoordenadas(mapped);
+          setUserLocation({ lat: latNum, lon: lonNum });
         } catch {
           setResultadosCoordenadas([]);
         }
@@ -185,6 +186,7 @@ export default function BuscaContent({
           etapas_modalidades: item.etapas_modalidades ?? null,
         })) as EscolaResult[];
         setResultadosCoordenadas(mapped);
+        setUserLocation({ lat: filtro.latitude, lon: filtro.longitude });
       } catch {
         setResultadosCoordenadas([]);
       }
