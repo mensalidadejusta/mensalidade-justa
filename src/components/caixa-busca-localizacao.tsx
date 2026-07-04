@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navigation, Loader2, MapPin, Building, Home, Hash } from "lucide-react";
 import { slugify } from "@/lib/utils";
+import { createClient } from "@/lib/supabase";
 
 export interface SugestaoLocalizacao {
   id: string;
@@ -210,6 +211,60 @@ export default function CaixaBuscaLocalizacao({
     }
   }
 
+  async function buscarSupabase(termo: string, results: SugestaoLocalizacao[], vistos: Set<string>) {
+    const supabase = createClient();
+    const normalizado = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const like = `%${normalizado}%`;
+
+    const [{ data: cidades }, { data: bairros }] = await Promise.all([
+      supabase.from("tb_cidades")
+        .select("nome, estado:estado_id!inner(uf)")
+        .ilike("nome", like)
+        .limit(5)
+        .order("nome"),
+      supabase.from("escolas")
+        .select("bairro, municipio, uf")
+        .not("bairro", "is", null)
+        .or(`bairro.ilike.${like},municipio.ilike.${like}`)
+        .limit(8)
+        .order("bairro"),
+    ]);
+
+    if (cidades) {
+      for (const c of cidades) {
+        const uf = (c.estado as any)?.uf ?? "";
+        if (!uf) continue;
+        const chave = `cidade|${c.nome} - ${uf}`;
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
+        results.push({
+          id: `sc-${results.length}`,
+          textoExibicao: `${c.nome} - ${uf}`,
+          tipo: "cidade",
+          cidade: c.nome,
+          uf,
+        });
+      }
+    }
+
+    if (bairros) {
+      for (const b of bairros) {
+        if (!b.bairro || !b.municipio || !b.uf) continue;
+        const chave = `bairro|${b.bairro}, ${b.municipio} - ${b.uf}`;
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
+        results.push({
+          id: `sb-${results.length}`,
+          textoExibicao: `${b.bairro}, ${b.municipio} - ${b.uf}`,
+          tipo: "bairro",
+          bairro: b.bairro,
+          cidade: b.municipio,
+          uf: b.uf,
+        });
+      }
+    }
+  }
+
   async function buscarLocationIQ(termo: string, requestId: number) {
     const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
     if (!token) {
@@ -301,7 +356,9 @@ export default function CaixaBuscaLocalizacao({
         });
       }
 
-      setSugestoes(results.slice(0, 8));
+      await buscarSupabase(termo, results, vistos);
+
+      setSugestoes(results.slice(0, 10));
       setDropdownAberto(results.length > 0);
       setBuscouSemResultados(results.length === 0);
       setHighlightIndex(-1);
