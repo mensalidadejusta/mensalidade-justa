@@ -2,13 +2,25 @@
 
 import { useEffect, useRef } from "react";
 
-type Escola = { id: number; nome: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string };
-type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null };
+type SeriePreco = { serie_slug?: string; valor_mensalidade: number | null };
+type Escola = { id: number; nome: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; series_precos?: SeriePreco[] };
+type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
 
-export default function MapaEscolas({ escolas, userLocation, hoveredId }: Props) {
+function mediaPreco(e: Escola, serieSlug?: string): string {
+  const precos = (e.series_precos || [])
+    .filter((s) => !serieSlug || s.serie_slug === serieSlug)
+    .map((s) => s.valor_mensalidade)
+    .filter((v): v is number => v != null);
+  if (precos.length === 0) return "";
+  const media = precos.reduce((a, b) => a + b, 0) / precos.length;
+  return media >= 1000 ? `R$ ${(media / 1000).toFixed(1).replace(".0", "")}k` : `R$ ${Math.round(media)}`;
+}
+
+export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, onBoundsChange }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const state = useRef<any>(null);
   const lastDataKey = useRef("");
+  const lastBoundsKey = useRef("");
 
   function buildKey() {
     const locKey = userLocation ? `${userLocation.lat.toFixed(4)}${userLocation.lon.toFixed(4)}` : "0";
@@ -21,19 +33,32 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId }: Props)
     const { map, L, markers, userMarker } = s;
     markers.clearLayers();
 
-    const vals = escolas.filter((e) => e.latitude && e.longitude);
-    if (!vals.length && !userLocation) return;
+    const z = map.getZoom();
+    const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
+    let todas = escolas.filter((e) => e.latitude && e.longitude);
+    const comPreco = todas.filter((e) => e.dependencia_administrativa === "Privada" && mediaPreco(e, serieSlug));
+    const semPreco = todas.filter((e) => e.dependencia_administrativa !== "Privada" || !mediaPreco(e, serieSlug));
+    const ordenadas = [...comPreco, ...semPreco];
+    const selecionadas = ordenadas.slice(0, Math.min(ordenadas.length, limite));
+    if (!selecionadas.length && !userLocation) return;
 
     const bounds = L.latLngBounds([]);
 
-    for (const e of vals) {
+    for (const e of selecionadas) {
       const p: [number, number] = [e.latitude!, e.longitude!];
       bounds.extend(p);
-      const color = e.dependencia_administrativa === "Privada" ? "#a855f7" : "#34d399";
+      const priv = e.dependencia_administrativa === "Privada";
+      const color = priv ? "#a855f7" : "#34d399";
+      const preco = priv ? mediaPreco(e, serieSlug) : "";
       const h = hoveredId === e.id;
-      const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: "#fff", weight: h ? 3 : 2, fillOpacity: h ? 1 : 0.8 });
+      const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: "#222", weight: h ? 2.5 : 1.5, fillOpacity: h ? 1 : 0.85 });
       m._eid = e.id;
-      m.bindTooltip(e.nome, { direction: "top", offset: [0, -8] });
+      if (preco) {
+        m.bindTooltip(
+          `<span style="color:${color};font-weight:700;font-size:11px">${preco}</span>`,
+          { permanent: true, direction: "top", offset: [0, -12], className: "" }
+        );
+      }
       markers.addLayer(m);
     }
 
@@ -63,20 +88,12 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId }: Props)
     }
 
     if (updateView && bounds.isValid()) {
-      if (vals.length === 1 && !userLocation) map.setView([vals[0].latitude!, vals[0].longitude!], 14);
-      else map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      const lastPan = s.lastPanAt || 0;
+      if (Date.now() - lastPan > 2000) {
+        if (selecionadas.length === 1 && !userLocation) map.setView([selecionadas[0].latitude!, selecionadas[0].longitude!], 14);
+        else map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      }
     }
-  }
-
-  function updateHover() {
-    const s = state.current;
-    if (!s) return;
-    s.markers.eachLayer((m: any) => {
-      if (m._eid === undefined) return;
-      const h = hoveredId === m._eid;
-      m.setRadius(h ? 10 : 7);
-      m.setStyle({ weight: h ? 3 : 2, fillOpacity: h ? 1 : 0.8 });
-    });
   }
 
   useEffect(() => {
@@ -98,8 +115,24 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId }: Props)
       tiles["Padrão"].addTo(map);
       L.control.layers(tiles, {}, { position: "topright", collapsed: true }).addTo(map);
 
-      state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null } };
+      state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null }, lastPanAt: 0 };
       lastDataKey.current = buildKey();
+
+      if (onBoundsChange) {
+        lastBoundsKey.current = "init";
+        map.on("moveend", () => {
+          const b = map.getBounds();
+          const key = `${b.getSouth().toFixed(3)}-${b.getWest().toFixed(3)}-${b.getNorth().toFixed(3)}-${b.getEast().toFixed(3)}`;
+          if (key === lastBoundsKey.current) return;
+          lastBoundsKey.current = key;
+          state.current.lastPanAt = Date.now();
+          onBoundsChange({
+            minLat: b.getSouth(), minLon: b.getWest(),
+            maxLat: b.getNorth(), maxLon: b.getEast(),
+          });
+        });
+      }
+
       syncMarkers(true);
     })();
   }, []);
@@ -108,13 +141,9 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId }: Props)
     const s = state.current;
     if (!s) return;
     const newKey = buildKey();
-    if (newKey !== lastDataKey.current) {
-      lastDataKey.current = newKey;
-      syncMarkers(true);
-    } else {
-      updateHover();
-    }
-  }, [escolas, userLocation, hoveredId]);
+    syncMarkers(true);
+    lastDataKey.current = newKey;
+  }, [escolas, userLocation, hoveredId, serieSlug]);
 
   return <div ref={el} className="w-full h-full rounded-xl z-0" />;
 }

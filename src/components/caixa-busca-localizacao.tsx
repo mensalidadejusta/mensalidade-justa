@@ -34,6 +34,7 @@ interface CaixaBuscaLocalizacaoProps {
   onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
   initialValue?: string;
   className?: string;
+  iconOnlyGeo?: boolean;
 }
 
 const TIPO_LABEL: Record<SugestaoLocalizacao["tipo"], string> = {
@@ -101,6 +102,7 @@ export default function CaixaBuscaLocalizacao({
   onSelectSugestao,
   initialValue = "",
   className = "",
+  iconOnlyGeo,
 }: CaixaBuscaLocalizacaoProps) {
   const router = useRouter();
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
@@ -588,7 +590,7 @@ export default function CaixaBuscaLocalizacao({
           ) : (
             <Navigation className="w-4 h-4" />
           )}
-          <span className="hidden sm:inline">Perto de mim</span>
+          <span className={`${iconOnlyGeo ? "hidden" : "hidden sm:inline"}`}>Perto de mim</span>
         </button>
       </div>
 
