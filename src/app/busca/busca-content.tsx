@@ -86,6 +86,16 @@ export default function BuscaContent({
   const showPrivada = searchParams.get("privada") !== "0";
   const showPublica = searchParams.get("publica") !== "0";
   const showMap = searchParams.get("map") === "1";
+  const temBusca = !!(uf && cidade) || !!resultadosCoordenadas;
+
+  const counts = useMemo(() => {
+    const base = resultadosCoordenadas ?? resultados;
+    if (!base) return { privadas: 0, publicas: 0 };
+    return {
+      privadas: base.filter((e) => e.dependencia_administrativa === "Privada").length,
+      publicas: base.filter((e) => e.dependencia_administrativa !== "Privada").length,
+    };
+  }, [resultados, resultadosCoordenadas]);
 
   function readParam(key: string): string {
     if (typeof window === "undefined") return searchParams.get(key) ?? "";
@@ -162,11 +172,44 @@ export default function BuscaContent({
     buscarPorUrl();
   }, [searchParams, resultadosCoordenadas]);
 
+  useEffect(() => {
+    if (!showMap || temBusca) return;
+    if (resultadosCoordenadas !== null) return;
+    if (typeof window === "undefined" || !navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const novosParams = new URLSearchParams(window.location.search);
+        novosParams.set("lat", lat.toString());
+        novosParams.set("lon", lon.toString());
+        router.replace(`${pathname}?${novosParams.toString()}`);
+        setCarregandoCoordenadas(true);
+        try {
+          const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
+            p_lat: lat, p_lon: lon, p_raio_km: 50,
+          });
+          const mapped = (data || []).map((item: any) => ({
+            ...item, distancia_km: item.distancia_km ?? undefined,
+          })) as EscolaResult[];
+          setResultadosCoordenadas(mapped);
+          setUserLocation({ lat, lon });
+        } catch {
+          setResultadosCoordenadas([]);
+        }
+        setCarregandoCoordenadas(false);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, [showMap]);
+
   async function handleLocationChange(filtro: FiltroLocalizacao) {
     setFiltroLoc(filtro);
 
     if (filtro.latitude != null && filtro.longitude != null) {
-      const novosParams = new URLSearchParams();
+      const novosParams = new URLSearchParams(window.location.search);
       novosParams.set("lat", filtro.latitude.toString());
       novosParams.set("lon", filtro.longitude.toString());
       if (filtro.cidade) novosParams.set("cidade", filtro.cidade);
@@ -199,7 +242,7 @@ export default function BuscaContent({
     }
 
     if (filtro.buscaRaw) {
-      const novosParams = new URLSearchParams();
+      const novosParams = new URLSearchParams(window.location.search);
       novosParams.set("q", filtro.buscaRaw);
       router.replace(`${pathname}?${novosParams.toString()}`);
       setNavTick((n) => n + 1);
@@ -361,7 +404,7 @@ export default function BuscaContent({
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5" />
-                Privadas
+                Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
               </button>
               <button
                 onClick={() => {
@@ -375,7 +418,7 @@ export default function BuscaContent({
                 }`}
               >
                 <GraduationCap className="w-3.5 h-3.5" />
-                P{'\u00fa'}blicas
+                P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
               </button>
               <SearchableSelect
                 label="Etapa"
@@ -452,7 +495,7 @@ export default function BuscaContent({
                     }`}
                   >
                     <DollarSign className="w-3.5 h-3.5" />
-                    Privadas
+                    Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
                   </button>
                   <button
                     onClick={() => {
@@ -466,7 +509,7 @@ export default function BuscaContent({
                     }`}
                   >
                     <GraduationCap className="w-3.5 h-3.5" />
-                    P{'\u00fa'}blicas
+                    P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
                   </button>
                   <SearchableSelect
                     label="Etapa"

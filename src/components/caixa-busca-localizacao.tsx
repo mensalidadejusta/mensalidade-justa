@@ -341,8 +341,14 @@ export default function CaixaBuscaLocalizacao({
     setHighlightIndex(-1);
     inputRef.current?.blur();
 
+    function comMap(p: URLSearchParams) {
+      const current = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      if (current.get("map")) p.set("map", "1");
+      return p;
+    }
+
     if (sugestao.tipo === "cidade" && sugestao.cidade && sugestao.uf) {
-      const params = new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade });
+      const params = comMap(new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade }));
       router.push(`/busca?${params.toString()}`);
       onLocationChange({
         buscaRaw: sugestao.textoExibicao,
@@ -354,7 +360,7 @@ export default function CaixaBuscaLocalizacao({
     }
 
     if (sugestao.tipo === "bairro" && sugestao.bairro && sugestao.cidade && sugestao.uf) {
-      const params = new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade, bairro: sugestao.bairro });
+      const params = comMap(new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade, bairro: sugestao.bairro }));
       router.push(`/busca?${params.toString()}`);
       onLocationChange({
         buscaRaw: sugestao.textoExibicao,
