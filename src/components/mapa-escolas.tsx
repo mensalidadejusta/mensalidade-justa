@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { SERIES } from "@/lib/series";
+import { makeEscolaSlug } from "@/lib/utils";
 
-type SeriePreco = { serie_slug?: string; valor_mensalidade: number | null };
-type Escola = { id: number; nome: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; series_precos?: SeriePreco[] };
+type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: number | null; valor_matricula: number | null; valor_material: number | null; qtd: number };
+type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
 type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
 
+const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
+const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
+
 function mediaPreco(e: Escola, serieSlug?: string): string {
-  const precos = (e.series_precos || [])
+  const precos = e.series_precos
     .filter((s) => !serieSlug || s.serie_slug === serieSlug)
     .map((s) => s.valor_mensalidade)
     .filter((v): v is number => v != null);
@@ -21,6 +26,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   const state = useRef<any>(null);
   const lastDataKey = useRef("");
   const lastBoundsKey = useRef("");
+  const openPopupId = useRef<number | null>(null);
 
   function buildKey() {
     const locKey = userLocation ? `${userLocation.lat.toFixed(4)}${userLocation.lon.toFixed(4)}` : "0";
@@ -53,11 +59,42 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const h = hoveredId === e.id;
       const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: "#222", weight: h ? 2.5 : 1.5, fillOpacity: h ? 1 : 0.85 });
       m._eid = e.id;
+      const endereco = e.bairro || "";
+      let precosHtml = "";
+      if (e.series_precos.length) {
+        for (const grupo of GRUPOS) {
+          const items = e.series_precos.filter((sp) => slugToGrupo.get(sp.serie_slug) === grupo);
+          if (!items.length) continue;
+          const precos = items.map((s) => Number(s.valor_mensalidade)).filter((v) => !isNaN(v));
+          const min = precos.length > 0 ? Math.min(...precos) : 0;
+          const max = precos.length > 0 ? Math.max(...precos) : 0;
+          const qtd = items.reduce((s, it) => s + it.qtd, 0);
+          const label = grupo.replace("Educa\u00e7\u00e3o Infantil", "Infantil").replace("Ensino M\u00e9dio", "Ens. M\u00e9dio").replace("Ensino ", "");
+          const faixa = min === max ? `R$ ${min.toLocaleString("pt-BR")}` : `R$ ${min.toLocaleString("pt-BR")} - R$ ${max.toLocaleString("pt-BR")}`;
+          precosHtml += `<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;line-height:1.7"><span><span style="font-weight:600">${label}</span> <span style="color:var(--color-text-tertiary);font-size:10px">(${qtd})</span></span><span style="font-weight:700;color:var(--color-price-text);white-space:nowrap">${faixa}</span></div>`;
+        }
+      } else if (!priv) {
+        precosHtml = `<div style="font-size:11px;color:#34d399;font-weight:600">Gratuito</div>`;
+      } else {
+        precosHtml = `<div style="font-size:11px;color:#888">Sem mensalidades cadastradas</div>`;
+      }
+      const slug = makeEscolaSlug(e.codigo_inep, e.nome);
+      m.bindPopup(`
+        <div style="font-family:sans-serif;max-width:300px;background:var(--color-surface);color:var(--color-text);border-radius:12px;padding:8px 12px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:2px">${e.nome}</div>
+          ${endereco ? `<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">${endereco}</div>` : ""}
+          ${precosHtml}
+          <a href="/escola/${slug}" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:6px;padding:6px 0;background:var(--color-surface-hover);border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:var(--color-primary);text-decoration:none">Ver detalhes</a>
+        </div>
+      `, { offset: [0, -8], maxWidth: 320, className: "school-popup", closeOnClick: false });
       if (preco) {
-        m.bindTooltip(
-          `<span style="color:${color};font-weight:700;font-size:11px">${preco}</span>`,
-          { permanent: true, direction: "top", offset: [0, -12], className: "" }
-        );
+        const tooltipHtml = `<span style="color:var(--color-price-text);font-weight:700;font-size:11px">${preco}</span>`;
+        m.bindTooltip(tooltipHtml, { permanent: true, direction: "top", offset: [0, -12], className: "price-tip" });
+        m.on("popupopen", () => { openPopupId.current = e.id; if (m._tooltip) m.closeTooltip(); });
+        m.on("popupclose", () => { openPopupId.current = null; m.bindTooltip(tooltipHtml, { permanent: true, direction: "top", offset: [0, -12], className: "price-tip" }); });
+      } else {
+        m.on("popupopen", () => { openPopupId.current = e.id; });
+        m.on("popupclose", () => { openPopupId.current = null; });
       }
       markers.addLayer(m);
     }
@@ -120,7 +157,9 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
       if (onBoundsChange) {
         lastBoundsKey.current = "init";
+        map.on("click", (e: any) => { if (!e.layer) map.closePopup(); });
         map.on("moveend", () => {
+          if (openPopupId.current !== null) return;
           const b = map.getBounds();
           const key = `${b.getSouth().toFixed(3)}-${b.getWest().toFixed(3)}-${b.getNorth().toFixed(3)}-${b.getEast().toFixed(3)}`;
           if (key === lastBoundsKey.current) return;
@@ -142,6 +181,14 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     if (!s) return;
     const newKey = buildKey();
     syncMarkers(true);
+    if (openPopupId.current !== null) {
+      s.markers.eachLayer((layer: any) => {
+        if (layer._eid === openPopupId.current && layer.getPopup) {
+          const p = layer.getPopup();
+          if (p && !p.isOpen()) layer.openPopup();
+        }
+      });
+    }
     lastDataKey.current = newKey;
   }, [escolas, userLocation, hoveredId, serieSlug]);
 
