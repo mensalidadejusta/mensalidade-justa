@@ -239,6 +239,7 @@ export default function BuscaContent({
     }
 
     if (filtro.cidade && filtro.uf) {
+      setResultadosCoordenadas(null);
       return;
     }
 
