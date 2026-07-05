@@ -343,15 +343,7 @@ export default function CaixaBuscaLocalizacao({
     setHighlightIndex(-1);
     inputRef.current?.blur();
 
-    function comMap(p: URLSearchParams) {
-      const current = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-      if (current.get("map")) p.set("map", "1");
-      return p;
-    }
-
     if (sugestao.tipo === "cidade" && sugestao.cidade && sugestao.uf) {
-      const params = comMap(new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade }));
-      router.push(`/busca?${params.toString()}`);
       onLocationChange({
         buscaRaw: sugestao.textoExibicao,
         cidade: sugestao.cidade,
@@ -362,8 +354,6 @@ export default function CaixaBuscaLocalizacao({
     }
 
     if (sugestao.tipo === "bairro" && sugestao.bairro && sugestao.cidade && sugestao.uf) {
-      const params = comMap(new URLSearchParams({ uf: sugestao.uf, cidade: sugestao.cidade, bairro: sugestao.bairro }));
-      router.push(`/busca?${params.toString()}`);
       onLocationChange({
         buscaRaw: sugestao.textoExibicao,
         bairro: sugestao.bairro,
@@ -395,9 +385,14 @@ export default function CaixaBuscaLocalizacao({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlightIndex((prev) => (prev > 0 ? prev - 1 : sugestoes.length - 1));
-    } else if (e.key === "Enter" && highlightIndex >= 0) {
-      e.preventDefault();
-      selecionarSugestao(sugestoes[highlightIndex]);
+    } else if (e.key === "Enter") {
+      if (highlightIndex >= 0) {
+        e.preventDefault();
+        selecionarSugestao(sugestoes[highlightIndex]);
+      } else if (buscaRaw.trim().length >= 2) {
+        e.preventDefault();
+        onLocationChange({ buscaRaw: buscaRaw.trim() });
+      }
     } else if (e.key === "Escape") {
       setDropdownAberto(false);
       setHighlightIndex(-1);

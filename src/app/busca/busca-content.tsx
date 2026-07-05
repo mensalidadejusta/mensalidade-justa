@@ -239,6 +239,11 @@ export default function BuscaContent({
     }
 
     if (filtro.cidade && filtro.uf) {
+      const novosParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      novosParams.set("uf", filtro.uf);
+      novosParams.set("cidade", filtro.cidade);
+      router.replace(`${pathname}?${novosParams.toString()}`);
+      setNavTick((n) => n + 1);
       setResultadosCoordenadas(null);
       return;
     }
