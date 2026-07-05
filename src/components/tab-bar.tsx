@@ -98,6 +98,10 @@ export default function TabBar() {
               <Map className="w-[18px] h-[18px]" />
               Mapa
             </button>
+            <div className="flex-1 flex flex-col items-center py-2 text-[10px] gap-0.5 text-text-tertiary">
+              <BotaoTema />
+              <span>Tema</span>
+            </div>
           </div>
         </nav>
     </>
