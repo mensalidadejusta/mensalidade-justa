@@ -341,10 +341,13 @@ export default function BuscaContent({
 
   const handleMapBoundsChange = useCallback(async (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => {
     const id = ++mapReqId.current;
+    const clat = (bounds.minLat + bounds.maxLat) / 2;
+    const clon = (bounds.minLon + bounds.maxLon) / 2;
     try {
       const { data } = await supabase.current.rpc("escolas_no_mapa", {
         p_min_lat: bounds.minLat, p_min_lon: bounds.minLon,
         p_max_lat: bounds.maxLat, p_max_lon: bounds.maxLon,
+        p_center_lat: clat, p_center_lon: clon,
         p_limit: 200,
       });
       if (id !== mapReqId.current) return;
