@@ -15,8 +15,9 @@ export default function RecuperarSenhaPage() {
     setError("");
     setLoading(true);
     const supabase = createClient();
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/alterar-senha`,
+      redirectTo: `${origin}/alterar-senha`,
     });
     setLoading(false);
     if (error) return setError(error.message);
