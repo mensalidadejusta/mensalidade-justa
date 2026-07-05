@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createServerClient } from "@/lib/supabase-server";
 import { slugify } from "@/lib/utils";
 
-const UFS_PRIORITY = ["SP", "RJ", "MG", "RS", "PR", "BA", "SC", "PE", "CE", "DF", "ES"];
+const UFS_PRIORITY = ["SP", "RJ", "MG", "RS", "PR", "BA"];
 
 export default async function Footer() {
   const supabase = createServerClient();
@@ -10,7 +10,7 @@ export default async function Footer() {
 
   for (const uf of UFS_PRIORITY) {
     try {
-      const { data } = await supabase.rpc("get_top_cidades", { p_uf: uf, p_limit: 25 });
+      const { data } = await supabase.rpc("get_top_cidades", { p_uf: uf, p_limit: 10 });
       if (data?.length) cidadesPorUf[uf] = data;
     } catch {
       // falha silenciosa - build nao pode quebrar se Supabase estiver lento

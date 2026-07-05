@@ -18,7 +18,7 @@ async function getEscolas(uf: string, cidadeSlug: string) {
   if (!cidadeMatch) return { escolas: [], cidade: cidadeSlug };
 
   // Fetch all pages in parallel
-  const ranges = Array.from({ length: 8 }, (_, i) => i * 1000);
+  const ranges = Array.from({ length: 3 }, (_, i) => i * 1000);
   const pages = await Promise.all(
     ranges.map((offset) =>
       supabase
