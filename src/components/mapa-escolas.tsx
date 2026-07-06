@@ -27,13 +27,15 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   const lastDataKey = useRef("");
   const lastBoundsKey = useRef("");
   const openPopupId = useRef<number | null>(null);
+  const isInitialLoadOrFilterChange = useRef(true);
+  const lastMapCenterKey = useRef("");
 
   function buildKey() {
     const locKey = userLocation ? `${userLocation.lat.toFixed(4)}${userLocation.lon.toFixed(4)}` : "0";
     return `${escolas.length}-${locKey}`;
   }
 
-  function syncMarkers(updateView: boolean) {
+  function syncMarkers(ajustarCamera: boolean) {
     const s = state.current;
     if (!s) return;
     const { map, L, markers, userMarker } = s;
@@ -124,9 +126,10 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       userMarker.current = null;
     }
 
-    if (updateView && bounds.isValid()) {
+    if (ajustarCamera && isInitialLoadOrFilterChange.current && bounds.isValid()) {
       if (selecionadas.length === 1 && !userLocation) map.setView([selecionadas[0].latitude!, selecionadas[0].longitude!], 14);
       else map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      isInitialLoadOrFilterChange.current = false;
     }
   }
 
@@ -139,17 +142,17 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
 
       const tiles: Record<string, any> = {
-        "Padrão": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }),
-        "Satélite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "&copy; Esri", maxZoom: 19 }),
+        "Padr\u00e3o": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }),
+        "Sat\u00e9lite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "&copy; Esri", maxZoom: 19 }),
         "Terreno": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenTopoMap", maxZoom: 17 }),
         "Claro": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
         "Escuro": L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
       };
 
-      tiles["Padrão"].addTo(map);
+      tiles["Padr\u00e3o"].addTo(map);
       L.control.layers(tiles, {}, { position: "topright", collapsed: true }).addTo(map);
 
-      state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null }, lastPanAt: 0 };
+      state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null } };
       lastDataKey.current = buildKey();
 
       if (onBoundsChange) {
@@ -157,11 +160,11 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         map.on("click", (e: any) => { if (!e.layer) map.closePopup(); });
         map.on("moveend", () => {
           if (openPopupId.current !== null) return;
+          isInitialLoadOrFilterChange.current = false;
           const b = map.getBounds();
           const key = `${b.getSouth().toFixed(3)}-${b.getWest().toFixed(3)}-${b.getNorth().toFixed(3)}-${b.getEast().toFixed(3)}`;
           if (key === lastBoundsKey.current) return;
           lastBoundsKey.current = key;
-          state.current.lastPanAt = Date.now();
           onBoundsChange({
             minLat: b.getSouth(), minLon: b.getWest(),
             maxLat: b.getNorth(), maxLon: b.getEast(),
@@ -177,7 +180,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     const s = state.current;
     if (!s) return;
     const newKey = buildKey();
-    syncMarkers(true);
+    syncMarkers(false);
     if (openPopupId.current !== null) {
       s.markers.eachLayer((layer: any) => {
         if (layer._eid === openPopupId.current && layer.getPopup) {
@@ -191,6 +194,10 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
   useEffect(() => {
     if (!mapCenter || !state.current) return;
+    const key = `${mapCenter.lat.toFixed(4)}-${mapCenter.lon.toFixed(4)}`;
+    if (key === lastMapCenterKey.current) return;
+    lastMapCenterKey.current = key;
+    isInitialLoadOrFilterChange.current = true;
     state.current.map.setView([mapCenter.lat, mapCenter.lon], 14, { animate: true });
   }, [mapCenter]);
 
