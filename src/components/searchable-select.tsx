@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
 import { Search, ChevronDown, Check, X } from "lucide-react";
 
 type SerieItem = { slug: string; nome: string; grupo: string };
@@ -170,29 +169,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   const isAllSelected = sidebar ? !draftValue : !value;
 
-  const handleDragEnd = useCallback((_: any, info: any) => {
-    if (info.offset.y > 150) closeSheet();
-  }, []);
-
   const showOptions = isSeries ? filteredSeries : filteredOptions;
-
-  const sheetVariants = {
-    hidden: { y: "100%" },
-    visible: { y: 0, transition: { type: "spring" as const, damping: 25, stiffness: 200 } },
-    exit: { y: "100%", transition: { type: "spring" as const, damping: 20, stiffness: 200 } },
-  };
-
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.15 } },
-  };
-
-  const sidebarVariants = {
-    hidden: { x: "-100%" },
-    visible: { x: 0, transition: { type: "spring" as const, damping: 25, stiffness: 200 } },
-    exit: { x: "-100%", transition: { type: "spring" as const, damping: 20, stiffness: 200 } },
-  };
 
   const Indicator = ({ slug }: { slug: string }) => {
     if (multi) return isSelected(slug) ? <CheckboxChecked /> : <CheckboxUnchecked />;
@@ -264,91 +241,82 @@ export default function SearchableSelect({ label, value, options, series, grupos
         <ChevronDown className="w-3 h-3 text-text-tertiary" />
       </button>
 
-      <AnimatePresence>
-        {open ? (
-          sidebar ? (
-            <div key="sidebar" className="fixed inset-0 z-50 lg:block hidden">
-              <motion.div className="absolute inset-0 bg-black/40" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
-              <motion.div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-surface border-r border-border shadow-2xl flex flex-col"
-                variants={sidebarVariants} initial="hidden" animate="visible" exit="exit"
-              >
-                <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
-                  <h2 className="text-base font-semibold text-text">{title}</h2>
-                  <button onClick={closeSheet} className="p-1 rounded-lg text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="px-4 pb-3 shrink-0">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
-                    <input ref={inputRef}
-                      className="w-full bg-surface rounded-xl pl-10 pr-4 py-2 text-sm text-text placeholder:text-text-tertiary outline-none border border-border transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                      placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                  {!showOptions || showOptions.length === 0 ? (
-                    <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
-                  ) : optionsList}
-                </div>
-
-                <div className="shrink-0 border-t border-border px-4 py-3 flex gap-2">
-                  <button onClick={applyDraft}
-                    className="flex-1 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 active:scale-[0.98]"
-                  >
-                    Aplicar Filtros
-                  </button>
-                  <button onClick={clearDraft}
-                    className="px-4 py-2 rounded-xl text-sm font-medium bg-surface-hover text-text-secondary hover:bg-surface-hover hover:text-text transition-all duration-200"
-                  >
-                    Limpar
-                  </button>
-                </div>
-              </motion.div>
+      {open && sidebar && (
+        <div className="fixed inset-0 z-50 lg:block hidden animate-fade-in">
+          <div className="absolute inset-0 bg-black/40" onClick={closeSheet} />
+          <div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-surface border-r border-border shadow-2xl flex flex-col animate-slide-up">
+            <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
+              <h2 className="text-base font-semibold text-text">{title}</h2>
+              <button onClick={closeSheet} className="p-1 rounded-lg text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          ) : (
-            <div key="sheet" className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
-              <motion.div className="absolute inset-0 bg-black/70" variants={overlayVariants} initial="hidden" animate="visible" exit="exit" onClick={closeSheet} />
 
-              <motion.div ref={sheetRef}
-                className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-surface border border-border flex flex-col shadow-2xl overflow-hidden sm:mx-4"
-                style={{ height: "90dvh" }}
-                variants={sheetVariants} initial="hidden" animate="visible" exit="exit"
-                drag={typeof window !== "undefined" && window.innerWidth < 640 ? "y" : false}
-                dragConstraints={{ top: 0, bottom: 0 }}
-                dragElastic={{ top: 0, bottom: 0.5 }}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing sm:hidden">
-                  <div className="w-12 h-1 rounded-full bg-surface-hover" />
-                </div>
-
-                <div className="flex items-center justify-between px-5 pb-3 shrink-0">
-                  <h2 className="text-base font-semibold text-text">{title}</h2>
-                  <button onClick={closeSheet} className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">Concluir</button>
-                </div>
-
-                <div className="px-4 pb-3 shrink-0">
-                  <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
-                    <input ref={inputRef}
-                      className="w-full bg-surface rounded-xl pl-10 pr-4 py-2.5 text-sm text-text placeholder:text-text-tertiary outline-none border border-border transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                      placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto pb-4">
-                  {!showOptions || showOptions.length === 0 ? (
-                    <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
-                  ) : optionsList}
-                </div>
-              </motion.div>
+            <div className="px-4 pb-3 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
+                <input ref={inputRef}
+                  className="w-full bg-surface rounded-xl pl-10 pr-4 py-2 text-sm text-text placeholder:text-text-tertiary outline-none border border-border transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                  placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
             </div>
-          )
-        ) : null}
-      </AnimatePresence>
+
+            <div className="flex-1 overflow-y-auto">
+              {!showOptions || showOptions.length === 0 ? (
+                <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
+              ) : optionsList}
+            </div>
+
+            <div className="shrink-0 border-t border-border px-4 py-3 flex gap-2">
+              <button onClick={applyDraft}
+                className="flex-1 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 active:scale-[0.98]"
+              >
+                Aplicar Filtros
+              </button>
+              <button onClick={clearDraft}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-surface-hover text-text-secondary hover:bg-surface-hover hover:text-text transition-all duration-200"
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {open && !sidebar && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center animate-fade-in">
+          <div className="absolute inset-0 bg-black/70" onClick={closeSheet} />
+
+          <div ref={sheetRef}
+            className="fixed bottom-0 inset-x-0 w-full sm:relative sm:max-w-lg sm:rounded-2xl rounded-t-[2rem] bg-surface border border-border flex flex-col shadow-2xl overflow-hidden sm:mx-4 animate-bottom-sheet-in"
+            style={{ height: "90dvh" }}
+          >
+            <div className="flex justify-center pt-3 pb-2 shrink-0 sm:hidden">
+              <div className="w-12 h-1 rounded-full bg-surface-hover" />
+            </div>
+
+            <div className="flex items-center justify-between px-5 pb-3 shrink-0">
+              <h2 className="text-base font-semibold text-text">{title}</h2>
+              <button onClick={closeSheet} className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">Concluir</button>
+            </div>
+
+            <div className="px-4 pb-3 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
+                <input ref={inputRef}
+                  className="w-full bg-surface rounded-xl pl-10 pr-4 py-2.5 text-sm text-text placeholder:text-text-tertiary outline-none border border-border transition-all duration-300 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                  placeholder="Digite para buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pb-4">
+              {!showOptions || showOptions.length === 0 ? (
+                <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
+              ) : optionsList}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
