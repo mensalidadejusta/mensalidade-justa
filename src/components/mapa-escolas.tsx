@@ -136,43 +136,49 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   useEffect(() => {
     if (!el.current || state.current) return;
     (async () => {
-      const mod = await import("leaflet");
-      await import("leaflet/dist/leaflet.css");
-      const L = mod.default || mod;
-      const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
+      try {
+        const mod = await import("leaflet");
+        await import("leaflet/dist/leaflet.css");
+        const L = mod.default || mod;
+        const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
 
-      const tiles: Record<string, any> = {
-        "Padr\u00e3o": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }),
-        "Sat\u00e9lite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "&copy; Esri", maxZoom: 19 }),
-        "Terreno": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenTopoMap", maxZoom: 17 }),
-        "Claro": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
-        "Escuro": L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
-      };
+        const tiles: Record<string, any> = {
+          "Padr\u00e3o": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }),
+          "Sat\u00e9lite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "&copy; Esri", maxZoom: 19 }),
+          "Terreno": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenTopoMap", maxZoom: 17 }),
+          "Claro": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
+          "Escuro": L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: "&copy; CARTO", maxZoom: 19 }),
+        };
 
-      tiles["Padr\u00e3o"].addTo(map);
-      L.control.layers(tiles, {}, { position: "topright", collapsed: true }).addTo(map);
+        tiles["Padr\u00e3o"].addTo(map);
+        L.control.layers(tiles, {}, { position: "topright", collapsed: true }).addTo(map);
 
-      state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null } };
-      lastDataKey.current = buildKey();
+        state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null } };
+        lastDataKey.current = buildKey();
 
-      if (onBoundsChange) {
-        lastBoundsKey.current = "init";
-        map.on("click", (e: any) => { if (!e.layer) map.closePopup(); });
-        map.on("moveend", () => {
-          if (openPopupId.current !== null) return;
-          isInitialLoadOrFilterChange.current = false;
-          const b = map.getBounds();
-          const key = `${b.getSouth().toFixed(3)}-${b.getWest().toFixed(3)}-${b.getNorth().toFixed(3)}-${b.getEast().toFixed(3)}`;
-          if (key === lastBoundsKey.current) return;
-          lastBoundsKey.current = key;
-          onBoundsChange({
-            minLat: b.getSouth(), minLon: b.getWest(),
-            maxLat: b.getNorth(), maxLon: b.getEast(),
+        if (onBoundsChange) {
+          lastBoundsKey.current = "init";
+          map.on("click", (e: any) => { if (!e.layer) map.closePopup(); });
+          map.on("moveend", () => {
+            if (openPopupId.current !== null) return;
+            isInitialLoadOrFilterChange.current = false;
+            const b = map.getBounds();
+            const key = `${b.getSouth().toFixed(3)}-${b.getWest().toFixed(3)}-${b.getNorth().toFixed(3)}-${b.getEast().toFixed(3)}`;
+            if (key === lastBoundsKey.current) return;
+            lastBoundsKey.current = key;
+            if (onBoundsChange) {
+              onBoundsChange({
+                minLat: b.getSouth(), minLon: b.getWest(),
+                maxLat: b.getNorth(), maxLon: b.getEast(),
+              });
+            }
           });
-        });
-      }
+        }
 
-      syncMarkers(true);
+        try { syncMarkers(true); } catch {}
+      } catch (e) {
+        console.error("MapaEscolas init error:", e);
+      }
     })();
   }, []);
 
