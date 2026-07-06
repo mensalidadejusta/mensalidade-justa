@@ -7,6 +7,15 @@ const CEP_REGEX = /^\d{5}-?\d{3}$/;
 const FETCH_TIMEOUT_MS = 5000;
 const NOMINATIM_UA = "MensalidadeJustaApp/1.0 (contato@mensalidadejusta.com.br)";
 
+function slugify(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 const CATEGORIA_CORES: Record<string, string> = {
   Cidade: "bg-sky-200 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300",
   Bairro: "bg-teal-200 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
@@ -29,6 +38,7 @@ function classificarTipo(item: any): string {
 
 export interface LocalizacaoResult {
   label: string;
+  slug: string;
   lat: number;
   lng: number;
 }
@@ -135,7 +145,7 @@ export default function CaixaBuscaLocalizacao({
       let lng: number | null = null;
       try {
         const geoRes = await fetchComTimeout(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoStr)}&countrycodes=br&limit=1`,
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoStr)}&countrycodes=br&limit=1&accept-language=pt`,
           { headers: { "User-Agent": NOMINATIM_UA } }
         );
         if (isActive() && geoRes.ok) {
@@ -178,7 +188,7 @@ export default function CaixaBuscaLocalizacao({
   async function buscarNominatim(query: string, isActive: () => boolean) {
     try {
       const res = await fetchComTimeout(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&addressdetails=1&limit=5`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&addressdetails=1&limit=5&accept-language=pt`,
         { headers: { "User-Agent": NOMINATIM_UA } }
       );
       if (!isActive()) return;
@@ -251,7 +261,9 @@ export default function CaixaBuscaLocalizacao({
     });
 
     if (lat != null && lng != null && onLocationSelect) {
-      onLocationSelect({ label: sugestao.label || sugestao.textoExibicao, lat, lng });
+      const label = sugestao.label || sugestao.textoExibicao;
+      const slug = slugify(sugestao.cidade && sugestao.uf ? `${sugestao.cidade}-${sugestao.uf}` : label);
+      onLocationSelect({ label, slug, lat, lng });
     }
   }
 
