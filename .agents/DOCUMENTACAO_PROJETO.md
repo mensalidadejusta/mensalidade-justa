@@ -66,7 +66,7 @@ usando Server Components para dados iniciais e Client Components para interativi
   "Linguagem": "TypeScript 6.0.3",
   "Estilos": "Tailwind CSS 4.3.2 + PostCSS",
   "Ícones": "lucide-react 1.23.0",
-  "Animação": "framer-motion 12.42.2",
+  "Animação": "CSS animations (framer-motion removido por incompatibilidade React 19)",
   "Banco": "Supabase (PostgreSQL 15 + PostGIS)",
   "ORM/Client": "@supabase/supabase-js 2.49.0",
   "SSR Auth": "@supabase/ssr 0.12.0",
@@ -1343,7 +1343,7 @@ type Props = {
 ### Modos
 
 **Sheet (padrão):**
-- Mobile: bottom sheet (framer-motion, 90dvh, drag to dismiss)
+- Mobile: bottom sheet (CSS animations, 90dvh, drag removido por crash React 19)
 - Desktop: modal centralizado (max-w-lg)
 - Overflow: hidden no body quando aberto
 - Input de busca com debounce
@@ -1369,14 +1369,26 @@ function handleSelect(val: string) {
 - Opção "Todos" / "Todas as etapas"
 - Agrupa séries por grupo (Educação Infantil, Fundamental I/II, Médio)
 
-### Animações (framer-motion)
+### Animações (CSS)
+
+**framo-motion removido** — causava `TypeError: Cannot read properties of undefined (reading 'map')` + loop infinito de renderização no React 19 devido a incompatibilidade com `React.Children.forEach` na versão 12.42.2.
+
+Substituído por classes CSS definidas em `globals.css`:
+- `animate-fade-in`: fade-in 0.2s ease-out (overlay)
+- `animate-slide-up`: slide-up 0.3s cubic-bezier (sidebar)
+- `animate-bottom-sheet-in`: bottom-sheet-in 0.35s cubic-bezier (mobile sheet)
+
+O `drag` do bottom sheet foi removido (não essencial).
 
 ```tsx
-const sheetVariants = {
-  hidden: { y: "100%" },
-  visible: { y: 0, transition: { type: "spring", damping: 25, stiffness: 200 } },
-  exit: { y: "100%", transition: { type: "spring", damping: 20, stiffness: 200 } },
-};
+{open && !sidebar && (
+  <div className="fixed inset-0 z-50 ... animate-fade-in">
+    <div className="absolute inset-0 bg-black/70" onClick={closeSheet} />
+    <div ref={sheetRef} className="... animate-bottom-sheet-in" style={{ height: "90dvh" }}>
+      ...
+    </div>
+  </div>
+)}
 ```
 
 ---
@@ -2061,6 +2073,126 @@ Conexão PostgreSQL direta não funciona porque o host só tem IPv6.
 
 `Remove-Item -Recurse -Force .next` pode falhar com EPERM/EBUSY.
 Executar de novo que resolve.
+
+---
+
+## 33. Bugs Corrigidos e Proteções Defensivas
+
+### 33.1 framer-motion AnimatePresence + React 19
+
+**Sintoma:** `TypeError: Cannot read properties of undefined (reading 'map')` no chunk do framer-motion + loop infinito de `postMessage` no scheduler do React.
+
+**Causa:** framer-motion 12.42.2 usa `React.Children.forEach()` internamente no `AnimatePresence`. React 19 modificou a API `Children`, fazendo com que o callback receba `false`/`undefined` em vez de null quando o children é `{cond && <Elemento/>}` avaliando para `false`. O `.map()` subsequente no `AnimatePresence` quebra.
+
+**Solução:** Remoção completa do `AnimatePresence` e `motion.div` do `SearchableSelect`. Substituído por `<div>` puros com classes CSS:
+- `animate-fade-in` para o overlay
+- `animate-slide-up` para a sidebar
+- `animate-bottom-sheet-in` para o bottom sheet
+
+```tsx
+// ANTES (crash):
+<AnimatePresence>
+  {open && sidebar && (<motion.div .../>)}
+  {open && !sidebar && (<motion.div .../>)}
+</AnimatePresence>
+
+// DEPOIS (CSS):
+{open && sidebar && (<div className="animate-fade-in"><div className="animate-slide-up">...</div></div>)}
+{open && !sidebar && (<div className="animate-fade-in"><div ref={sheetRef} className="animate-bottom-sheet-in">...</div></div>)}
+```
+
+### 33.2 RPC `escolas_perto_de_mim` não retorna `series_precos`
+
+**Sintoma:** `TypeError: Cannot read properties of undefined (reading 'length')` ao carregar página com `?lat=...&lon=...`.
+
+**Causa:** A RPC `escolas_perto_de_mim` retorna as colunas `(id, nome, uf, municipio, bairro, dependencia_administrativa, latitude, longitude, distancia_km)` — **não inclui** `series_precos`. O componente `BuscaResults` acessava `escola.series_precos.length` diretamente, quebrando quando o dado vinha desta RPC (via geolocalização ou coordenadas na URL).
+
+**Solução:** Guard `Array.isArray` na prop antes de acessar:
+
+```tsx
+const precosArr = Array.isArray(escola.series_precos) ? escola.series_precos : [];
+{precosArr.length > 0 ? (
+  // renderiza preços
+) : (
+  // fallback: "Sem mensalidades" ou "Gratuito"
+)}
+```
+
+### 33.3 Array.isArray Guards em todo `.map()` do bundle `/busca`
+
+**Sintoma:** `TypeError: Cannot read properties of undefined (reading 'map')` no bundle da rota `/busca`.
+
+**Causa:** Props de componentes (ex: `resultados`, `escolas`) podem chegar como `{}` (objeto vazio) em vez de array em certos fluxos assíncronos. O guard `if (x.length === 0)` não protege contra `{}` porque `{}.length` é `undefined` (não `0`), então o `=== 0` falha e o `.map()` subsequente quebra.
+
+**Solução:** Substituir `x.length === 0` por `Array.isArray(x)` em TODOS os pontos de entrada de arrays:
+
+```tsx
+// ❌ FRÁGIL:
+if (resultados.length === 0) return <Empty />;
+resultados.map(...)
+
+// ✅ RESILIENTE:
+const lista = Array.isArray(resultados) ? resultados : [];
+if (lista.length === 0) return <Empty />;
+lista.map(...)
+```
+
+**Arquivos corrigidos:**
+- `busca-results.tsx` — `resultados` prop
+- `schema-escolas.tsx` — `escolas` prop + `series_precos` interno
+- `mapa-escolas.tsx` — `escolas` prop + `series_precos` interno + `mediaPreco()`
+- `searchable-select.tsx` — `filteredOptions` array
+
+### 33.4 Mapa: feedback loop no fitBounds durante interação do usuário
+
+**Sintoma:** Ao arrastar ou dar zoom no mapa Leaflet, a câmera "pulava" sozinha, interrompendo a navegação.
+
+**Causa:** `onBoundsChange` disparava `syncMarkers(true)`, que chamava `fitBounds()`/`setView()` mesmo quando o usuário estava interagindo com o mapa — criando um loop: usuário move → `fitBounds` → moveend → mais dados → `fitBounds` de novo.
+
+**Solução:** Ref `isInitialLoadOrFilterChange` que só permite ajuste de câmera na carga inicial ou quando `mapCenter` muda (filtro externo). Interações do usuário (drag/zoom) desativam a flag imediatamente.
+
+```tsx
+const isInitialLoadOrFilterChange = useRef(true);
+
+// No moveend (usuário interagiu):
+map.on("moveend", () => {
+  isInitialLoadOrFilterChange.current = false;  // ← desliga flag
+  onBoundsChange({...});
+});
+
+// No syncMarkers:
+if (ajustarCamera && isInitialLoadOrFilterChange.current && bounds.isValid()) {
+  map.fitBounds(bounds);
+  isInitialLoadOrFilterChange.current = false;  // ← desliga após ajustar
+}
+
+// Quando mapCenter muda (filtro externo):
+useEffect(() => {
+  isInitialLoadOrFilterChange.current = true;   // ← religa flag
+  map.setView([mapCenter.lat, mapCenter.lon], 14);
+}, [mapCenter]);
+```
+
+### 33.5 Timeout nas APIs externas (BrasilAPI + LocationIQ)
+
+**Sintoma:** Input de endereço travava se BrasilAPI ou LocationIQ estivessem lentos.
+
+**Causa:** `fetch()` sem timeout nas chamadas para `brasilapi.com.br` e `api.locationiq.com`.
+
+**Solução:** Helper `fetchComTimeout()` com `AbortController` + 3000ms:
+
+```tsx
+const FETCH_TIMEOUT_MS = 3000;
+
+function fetchComTimeout(input, init?): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+```
+
+**Fallback de CEP:** Se a BrasilAPI falhar, o CEP é interpretado como busca textual de cidade via RPC `buscar_cidades` do Supabase.
 
 ---
 
