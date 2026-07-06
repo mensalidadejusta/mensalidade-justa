@@ -13,6 +13,7 @@ import CaixaBuscaLocalizacao from "@/components/caixa-busca-localizacao";
 import BuscaResults from "./busca-results";
 import type { EscolaResult } from "./busca-results";
 import type { FiltroLocalizacao } from "@/components/caixa-busca-localizacao";
+import SchemaEscolas from "@/components/schema-escolas";
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -80,6 +81,7 @@ export default function BuscaContent({
   const [carregandoCoordenadas, setCarregandoCoordenadas] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mapReqId = useRef(0);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lon: number } | null>(null);
 
   const uf = filtroLoc?.uf ?? searchParams.get("uf") ?? "";
   const cidade = filtroLoc?.cidade ?? searchParams.get("cidade") ?? "";
@@ -149,6 +151,8 @@ export default function BuscaContent({
       if (isNaN(latNum) || isNaN(lonNum)) return;
       if (resultadosCoordenadas !== null) return;
 
+      setMapCenter({ lat: latNum, lon: lonNum });
+
       (async () => {
         setCarregandoCoordenadas(true);
         try {
@@ -210,6 +214,7 @@ export default function BuscaContent({
     setFiltroLoc(filtro);
 
     if (filtro.latitude != null && filtro.longitude != null) {
+      setMapCenter({ lat: filtro.latitude, lon: filtro.longitude });
       const novosParams = new URLSearchParams(window.location.search);
       novosParams.set("lat", filtro.latitude.toString());
       novosParams.set("lon", filtro.longitude.toString());
@@ -242,6 +247,8 @@ export default function BuscaContent({
       const novosParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
       novosParams.set("uf", filtro.uf);
       novosParams.set("cidade", filtro.cidade);
+      novosParams.delete("lat");
+      novosParams.delete("lon");
       router.replace(`${pathname}?${novosParams.toString()}`);
       setNavTick((n) => n + 1);
       setResultadosCoordenadas(null);
@@ -249,11 +256,27 @@ export default function BuscaContent({
     }
 
     if (filtro.buscaRaw) {
-      const novosParams = new URLSearchParams(window.location.search);
-      novosParams.set("q", filtro.buscaRaw);
-      router.replace(`${pathname}?${novosParams.toString()}`);
-      setNavTick((n) => n + 1);
-      setResultadosCoordenadas(null);
+      let cidade = "", uf = "";
+      try {
+        const raw: any = await supabase.current.rpc("buscar_cidades", { p_termo: filtro.buscaRaw });
+        if (raw.data?.length) { cidade = raw.data[0].cidade; uf = raw.data[0].uf; }
+      } catch {}
+      if (cidade && uf) {
+        const novosParams = new URLSearchParams(window.location.search);
+        novosParams.set("uf", uf);
+        novosParams.set("cidade", cidade);
+        novosParams.delete("lat");
+        novosParams.delete("lon");
+        router.replace(`${pathname}?${novosParams.toString()}`);
+        setNavTick((n) => n + 1);
+        setResultadosCoordenadas(null);
+      } else {
+        const novosParams = new URLSearchParams(window.location.search);
+        novosParams.set("q", filtro.buscaRaw);
+        router.replace(`${pathname}?${novosParams.toString()}`);
+        setNavTick((n) => n + 1);
+        setResultadosCoordenadas(null);
+      }
     }
   }
 
@@ -410,6 +433,7 @@ export default function BuscaContent({
               userLocation={userLocation}
               hoveredId={hoveredId}
               serieSlug={serieSlug}
+              mapCenter={mapCenter}
               onBoundsChange={handleMapBoundsChange}
             />
           </div>
@@ -526,7 +550,7 @@ export default function BuscaContent({
           {showMap && sortedResultados && (
             <div className="px-4 pb-4">
               <div className="h-[300px] rounded-2xl overflow-hidden border border-border shadow-lg">
-                <MapaEscolas escolas={sortedResultados} userLocation={userLocation} hoveredId={hoveredId} serieSlug={serieSlug} onBoundsChange={handleMapBoundsChange} />
+                <MapaEscolas escolas={sortedResultados} userLocation={userLocation} hoveredId={hoveredId} serieSlug={serieSlug} mapCenter={mapCenter} onBoundsChange={handleMapBoundsChange} />
               </div>
             </div>
           )}
@@ -701,6 +725,40 @@ export default function BuscaContent({
           </div>
         )}
       </div>
+
+      <SchemaEscolas escolas={dadosExibir || []} />
+
+      <section aria-label="Diret\u00f3rio de Escolas para Motores de Busca" className="sr-only">
+        <ul>
+          {(dadosExibir || []).map((escola) => (
+            <li key={escola.id}>
+              <article>
+                <h2>{escola.nome}</h2>
+                <p>
+                  {escola.bairro ? `${escola.bairro}, ` : ""}
+                  {escola.municipio} - {escola.uf}
+                </p>
+                <p>
+                  {escola.dependencia_administrativa === "Privada"
+                    ? "Escola Privada"
+                    : "Escola P\u00fablica"}
+                </p>
+                {escola.series_precos.length > 0 && (
+                  <ul>
+                    {escola.series_precos.map((sp) => (
+                      <li key={sp.serie_slug}>
+                        {sp.serie_nome}: R$ {sp.valor_mensalidade != null
+                          ? sp.valor_mensalidade.toFixed(2)
+                          : "---"}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

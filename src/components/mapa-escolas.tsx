@@ -6,7 +6,7 @@ import { makeEscolaSlug } from "@/lib/utils";
 
 type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: number | null; valor_matricula: number | null; valor_material: number | null; qtd: number };
 type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
-type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
+type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
 
 const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
 const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
@@ -21,7 +21,7 @@ function mediaPreco(e: Escola, serieSlug?: string): string {
   return media >= 1000 ? `R$ ${(media / 1000).toFixed(1).replace(".0", "")}k` : `R$ ${Math.round(media)}`;
 }
 
-export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, onBoundsChange }: Props) {
+export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, onBoundsChange }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const state = useRef<any>(null);
   const lastDataKey = useRef("");
@@ -125,11 +125,8 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     }
 
     if (updateView && bounds.isValid()) {
-      const lastPan = s.lastPanAt || 0;
-      if (Date.now() - lastPan > 2000) {
-        if (selecionadas.length === 1 && !userLocation) map.setView([selecionadas[0].latitude!, selecionadas[0].longitude!], 14);
-        else map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-      }
+      if (selecionadas.length === 1 && !userLocation) map.setView([selecionadas[0].latitude!, selecionadas[0].longitude!], 14);
+      else map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
     }
   }
 
@@ -191,6 +188,11 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     }
     lastDataKey.current = newKey;
   }, [escolas, userLocation, hoveredId, serieSlug]);
+
+  useEffect(() => {
+    if (!mapCenter || !state.current) return;
+    state.current.map.setView([mapCenter.lat, mapCenter.lon], 14, { animate: true });
+  }, [mapCenter]);
 
   return <div ref={el} className="w-full h-full rounded-xl z-0" />;
 }

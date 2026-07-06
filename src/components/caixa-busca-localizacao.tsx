@@ -52,6 +52,14 @@ const TIPO_ICON: Record<SugestaoLocalizacao["tipo"], typeof MapPin> = {
 };
 
 const CEP_REGEX = /^(\d{5})-?(\d{3})$/;
+const FETCH_TIMEOUT_MS = 3000;
+
+function fetchComTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
 
 const ESTADO_UF: Record<string, string> = {
   "acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM",
@@ -165,15 +173,11 @@ export default function CaixaBuscaLocalizacao({
 
   async function buscarCep(cep: string, requestId: number) {
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${cep}`);
+      const res = await fetchComTimeout(`https://brasilapi.com.br/api/cep/v2/${cep}`);
       if (requestId !== reqIdRef.current) return;
 
       if (!res.ok) {
-        setSugestoes([]);
-        setDropdownAberto(true);
-        setBuscouSemResultados(true);
-        setHighlightIndex(-1);
-        return;
+        throw new Error("CEP nao encontrado");
       }
 
       const data = await res.json();
@@ -207,9 +211,16 @@ export default function CaixaBuscaLocalizacao({
       setHighlightIndex(-1);
     } catch {
       if (requestId !== reqIdRef.current) return;
-      setSugestoes([]);
-      setDropdownAberto(true);
-      setBuscouSemResultados(true);
+
+      // Fallback: tenta como busca textual de cidade
+      const results: SugestaoLocalizacao[] = [];
+      const vistos = new Set<string>();
+      await buscarCidadesFallback(cep, results, vistos);
+      if (requestId !== reqIdRef.current) return;
+
+      setSugestoes(results.slice(0, 10));
+      setDropdownAberto(results.length > 0);
+      setBuscouSemResultados(results.length === 0);
       setHighlightIndex(-1);
     }
   }
@@ -281,7 +292,7 @@ export default function CaixaBuscaLocalizacao({
       if (token) {
         try {
           const url = `https://api.locationiq.com/v1/autocomplete?key=${token}&q=${encodeURIComponent(termo)}&limit=5&countrycodes=br&accept-language=pt-br`;
-          const res = await fetch(url);
+          const res = await fetchComTimeout(url);
           if (requestId !== reqIdRef.current) return;
 
           if (res.ok) {
@@ -318,11 +329,14 @@ export default function CaixaBuscaLocalizacao({
               }
             }
           }
-        } catch {}
+        } catch {
+          // Silently fall through to cidades fallback
+        }
       }
-    } else {
-      await buscarCidadesFallback(termo, results, vistos);
     }
+
+    // Always seek city/school fallback to complement results
+    await buscarCidadesFallback(termo, results, vistos);
 
     results.sort((a, b) => {
       const prioridade: Record<string, number> = { cidade: 0, bairro: 1, logradouro: 2, cep: 3 };
@@ -386,11 +400,12 @@ export default function CaixaBuscaLocalizacao({
       e.preventDefault();
       setHighlightIndex((prev) => (prev > 0 ? prev - 1 : sugestoes.length - 1));
     } else if (e.key === "Enter") {
-      if (highlightIndex >= 0) {
-        e.preventDefault();
+      e.preventDefault();
+      if (highlightIndex >= 0 && sugestoes[highlightIndex]) {
         selecionarSugestao(sugestoes[highlightIndex]);
-      } else if (buscaRaw.trim().length >= 2) {
-        e.preventDefault();
+      } else if (sugestoes.length > 0) {
+        selecionarSugestao(sugestoes[0]);
+      } else if (buscaRaw.trim().length >= 3) {
         onLocationChange({ buscaRaw: buscaRaw.trim() });
       }
     } else if (e.key === "Escape") {
@@ -442,7 +457,7 @@ export default function CaixaBuscaLocalizacao({
       const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
       if (token) {
         try {
-          const res = await fetch(
+          const res = await fetchComTimeout(
             `https://api.locationiq.com/v1/reverse?key=${token}&lat=${lat}&lon=${lon}&format=json&accept-language=pt-br`
           );
           if (res.ok) {
