@@ -210,6 +210,30 @@ export default function BuscaContent({
     );
   }, [showMap]);
 
+  function handleLocationSelect(loc: { label: string; lat: number; lng: number }) {
+    setMapCenter({ lat: loc.lat, lon: loc.lng });
+    const novosParams = new URLSearchParams(window.location.search);
+    novosParams.set("lat", loc.lat.toString());
+    novosParams.set("lon", loc.lng.toString());
+    router.replace(`${pathname}?${novosParams.toString()}`);
+    setNavTick((n) => n + 1);
+    setCarregandoCoordenadas(true);
+    (async () => {
+      try {
+        const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
+          p_lat: loc.lat, p_lon: loc.lng, p_raio_km: 50,
+        });
+        const mapped = (data || []).map((item: any) => ({
+          ...item, distancia_km: item.distancia_km ?? undefined,
+          etapas_modalidades: item.etapas_modalidades ?? null,
+        })) as EscolaResult[];
+        setResultadosCoordenadas(mapped);
+        setUserLocation({ lat: loc.lat, lon: loc.lng });
+      } catch { setResultadosCoordenadas([]); }
+      setCarregandoCoordenadas(false);
+    })();
+  }
+
   async function handleLocationChange(filtro: FiltroLocalizacao) {
     setFiltroLoc(filtro);
 
@@ -442,6 +466,7 @@ export default function BuscaContent({
               <div className="bg-bg border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
                 <CaixaBuscaLocalizacao
                   onLocationChange={handleLocationChange}
+                  onLocationSelect={handleLocationSelect}
                   className="w-full"
                   iconOnlyGeo
                 />
@@ -501,12 +526,13 @@ export default function BuscaContent({
                   A maior rede colaborativa de pre{'\u00e7'}os escolares do Brasil.<br />Compare mensalidades reais compartilhadas por outros pais.
                 </p>
               </div>
-              <CaixaBuscaLocalizacao
-                onLocationChange={handleLocationChange}
-                className="w-full"
-              />
-              {nomeBuscaInput}
-              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <CaixaBuscaLocalizacao
+                  onLocationChange={handleLocationChange}
+                  onLocationSelect={handleLocationSelect}
+                  className="w-full"
+                  iconOnlyGeo
+                />
+                <div className="flex items-center justify-center gap-2 flex-wrap">
                 <button
                   onClick={() => {
                     const current = readParam("privada") !== "0";
@@ -597,6 +623,7 @@ export default function BuscaContent({
               <div className="bg-bg border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
                 <CaixaBuscaLocalizacao
                   onLocationChange={handleLocationChange}
+                  onLocationSelect={handleLocationSelect}
                   className="w-full"
                   iconOnlyGeo
                 />
@@ -658,6 +685,7 @@ export default function BuscaContent({
 
               <CaixaBuscaLocalizacao
                 onLocationChange={handleLocationChange}
+                onLocationSelect={handleLocationSelect}
                 className="w-full"
               />
               {nomeBuscaInput}
