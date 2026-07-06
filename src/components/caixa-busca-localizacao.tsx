@@ -145,7 +145,7 @@ export default function CaixaBuscaLocalizacao({
       let lng: number | null = null;
       try {
         const geoRes = await fetchComTimeout(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoStr)}&countrycodes=br&limit=1&accept-language=pt`,
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoStr)}&countrycodes=br&limit=1&accept-language=pt-BR`,
           { headers: { "User-Agent": NOMINATIM_UA } }
         );
         if (isActive() && geoRes.ok) {
@@ -188,7 +188,7 @@ export default function CaixaBuscaLocalizacao({
   async function buscarNominatim(query: string, isActive: () => boolean) {
     try {
       const res = await fetchComTimeout(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&addressdetails=1&limit=5&accept-language=pt`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&addressdetails=1&limit=5&accept-language=pt-BR`,
         { headers: { "User-Agent": NOMINATIM_UA } }
       );
       if (!isActive()) return;

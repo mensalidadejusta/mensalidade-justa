@@ -212,7 +212,7 @@ export default function BuscaContent({
 
   function handleLocationSelect(loc: { label: string; slug: string; lat: number; lng: number }) {
     setMapCenter({ lat: loc.lat, lon: loc.lng });
-    const novosParams = new URLSearchParams();
+    const novosParams = new URLSearchParams(window.location.search);
     novosParams.set("cidade", loc.slug);
     novosParams.set("lat", loc.lat.toString());
     novosParams.set("lon", loc.lng.toString());
