@@ -1,6 +1,6 @@
 # Mensalidade Justa
 
-Documentação completa e super detalhada em [`DOCUMENTACAO_PROJETO.md`](./DOCUMENTACAO_PROJETO.md).
+Documentação completa e super detalhada em [`.agents/DOCUMENTACAO_PROJETO.md`](./.agents/DOCUMENTACAO_PROJETO.md).
 
 Leia aquele arquivo primeiro — ele contém TUDO sobre o projeto: stack, banco, rotas, componentes, fluxos, bugs conhecidos, workarounds, etc.
 
