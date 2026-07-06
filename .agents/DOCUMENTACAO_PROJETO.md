@@ -2285,6 +2285,66 @@ A URL gerada: `/busca?cidade=santos-sp&lat=-23.96&lon=-46.33`
 
 **Preservação de params:** `handleLocationSelect` usa `new URLSearchParams(window.location.search)` para fazer merge com params existentes (`?map=1`, `?serie=...`), evitando resetar o modo mapa.
 
+### 33.10 API `/api/contribuir` e modal inline
+
+**Sintoma:** Contribuir com preços exigia login e redirecionava para `/contribuir`.
+
+**Solução:** Criado endpoint `POST /api/contribuir` + modal inline na página da escola:
+
+**API Route (`src/app/api/contribuir/route.ts`):**
+- Aceita `{ escola_id, serie_slug, serie_nome, valor_mensalidade, valor_matricula, valor_material, honeypot }`
+- Valida campos obrigatórios (400 se faltar)
+- Valida faixa R$ 100 – R$ 15.000 (422 se fora)
+- Honeypot anti-bot: campo invisível `sr-only`; se preenchido, retorna sucesso falsamente sem salvar
+- Insere em `mensalidades_series` com `user_id: null`
+- Usa `NEXT_PUBLIC_SUPABASE_ANON_KEY` (não precisa de service key)
+- RLS policy: `"Qualquer um pode inserir" FOR INSERT WITH CHECK (true)` + `GRANT INSERT TO anon`
+
+**Modal (`ModalContribuicao`):**
+- Bottom sheet animado com fundo semi-transparente
+- 3 campos: Mensalidade, Matrícula, Material (R$)
+- Pré-preenchido com valores atuais da série quando disponíveis
+- Validação client-side: faixa R$ 100–R$ 15.000
+- Discrepância (±50% da média): exibe aviso amarelo + checkbox obrigatório
+- Honeypot invisível
+- Botão "Cancelar" + "Salvar Valores"
+- `router.refresh()` após sucesso para atualizar os dados na tela
+
+### 33.11 Página da escola: refatoração visual (cards por etapa)
+
+**Layout anterior:** Cards individuais para cada série em grid 3 colunas.
+
+**Novo layout:** Um card por etapa de ensino (`bg-white/5 border border-white/10 rounded-2xl p-4`), com séries listadas verticalmente dentro:
+
+```
+┌─ EDUCAÇÃO INFANTIL ──────────────────────┐
+│                                           │
+│  Berçário           R$ 1.200,00       ✏️  │
+│  Ref: 2027 • 3 contribuições              │
+│                                           │
+│  Maternal I    ⚠️   + Adicionar preço     │
+│                                           │
+│  Maternal II   ⚠️   + Adicionar preço     │
+└───────────────────────────────────────────┘
+```
+
+**Componentes:**
+- `LinhaSerie` — linha individual com nome, tooltip de aviso, ref/contribuições na esquerda, preços + lápis na direita
+- Sem texto "Carece de confirmações" visível — apenas ícone `AlertTriangle` com tooltip hover
+- Sem bordas entre linhas (`border-b border-white/[0.03] last:border-0`)
+- Grid responsivo: 1 coluna mobile, 2 colunas desktop (`grid grid-cols-1 md:grid-cols-2 gap-5`)
+
+**Hierarquia de headings:**
+- `<h1>` → Nome da escola
+- `<h2>` → Mensalidades
+- `<h3>` → Etapas (Educação Infantil, etc.)
+- `<h4>` → Nome da série
+
+**Utilitários:**
+- `capitalizarNome()` — converte "ESCOLA ADVENTISTA" → "Escola Adventista"
+- `fmtBr()` — formata moeda no padrão brasileiro: `R$ 1.200,00`
+- Botões `<button>` em vez de `<a>` — preserva orçamento de crawl do Google
+
 ---
 
 ## 33. Guia de Reprodução Zero-to-Production
