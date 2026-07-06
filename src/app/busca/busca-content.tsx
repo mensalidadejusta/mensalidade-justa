@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, GraduationCap, Search, MapPin, Navigation, Loader2 } from "lucide-react";
+import { DollarSign, GraduationCap, Search, MapPin, Crosshair, Loader2 } from "lucide-react";
 import MapaEscolas from "@/components/mapa-escolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -471,7 +471,6 @@ export default function BuscaContent({
               onLocationChange={handleLocationChange}
               onLocationSelect={handleLocationSelect}
               className="w-full"
-              iconOnlyGeo
             />
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <button
@@ -504,7 +503,6 @@ export default function BuscaContent({
               onLocationChange={handleLocationChange}
               onLocationSelect={handleLocationSelect}
               className="w-full"
-              iconOnlyGeo
             />
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <button
@@ -529,6 +527,44 @@ export default function BuscaContent({
             </div>
           </div>
         </div>
+
+        {/* Botao flutuante "Minha Localizacao" (estilo Google Maps) */}
+        <button
+          type="button"
+          onClick={async () => {
+            if (!navigator.geolocation) return;
+            try {
+              const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                  enableHighAccuracy: true, timeout: 10000, maximumAge: 60000,
+                });
+              });
+              const lat = pos.coords.latitude;
+              const lon = pos.coords.longitude;
+              const novosParams = new URLSearchParams(window.location.search);
+              novosParams.set("lat", lat.toString());
+              novosParams.set("lon", lon.toString());
+              router.replace(`${pathname}?${novosParams.toString()}`, { scroll: false });
+              setMapCenter({ lat, lon });
+              setCarregandoCoordenadas(true);
+              const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
+                p_lat: lat, p_lon: lon, p_raio_km: 50,
+              });
+              const mapped = (data || []).map((item: any) => ({
+                ...item, distancia_km: item.distancia_km ?? undefined,
+                etapas_modalidades: item.etapas_modalidades ?? null,
+              })) as EscolaResult[];
+              setResultadosCoordenadas(mapped);
+              setUserLocation({ lat, lon });
+              setCarregandoCoordenadas(false);
+            } catch {}
+          }}
+          className="absolute bottom-40 right-4 pointer-events-auto w-10 h-10 flex items-center justify-center bg-surface border border-border/50 rounded-xl shadow-lg hover:bg-surface-hover transition-all duration-200 active:scale-95"
+          title="Minha localiza\u00e7\u00e3o"
+          aria-label="Minha localiza\u00e7\u00e3o"
+        >
+          <Crosshair className="w-5 h-5 text-text" />
+        </button>
       </div>
 
       {/* Loading indicator sobre o mapa */}

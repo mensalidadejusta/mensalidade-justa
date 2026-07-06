@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Loader2, MapPin, X, Navigation } from "lucide-react";
+import { Loader2, MapPin, X, Search } from "lucide-react";
 
 const CEP_REGEX = /^\d{5}-?\d{3}$/;
 const FETCH_TIMEOUT_MS = 5000;
@@ -77,7 +77,6 @@ interface CaixaBuscaLocalizacaoProps {
   onLocationSelect?: (loc: LocalizacaoResult) => void;
   initialValue?: string;
   className?: string;
-  iconOnlyGeo?: boolean;
 }
 
 function fetchComTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -92,7 +91,6 @@ export default function CaixaBuscaLocalizacao({
   onLocationSelect,
   initialValue = "",
   className = "",
-  iconOnlyGeo,
 }: CaixaBuscaLocalizacaoProps) {
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
   const [sugestoes, setSugestoes] = useState<any[]>([]);
@@ -100,8 +98,6 @@ export default function CaixaBuscaLocalizacao({
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [carregando, setCarregando] = useState(false);
   const [buscouSemResultados, setBuscouSemResultados] = useState(false);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -121,6 +117,15 @@ export default function CaixaBuscaLocalizacao({
 
     setCarregando(true);
     debounceRef.current = setTimeout(() => buscar(trimmed), 300);
+  }
+
+  function dispararBusca() {
+    const trimmed = buscaRaw.trim();
+    if (trimmed.length === 0) return;
+    setCarregando(true);
+    buscar(trimmed).finally(() => {
+      setCarregando(false);
+    });
   }
 
   function limparInput() {
@@ -294,7 +299,13 @@ export default function CaixaBuscaLocalizacao({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     const sugestoesArr = Array.isArray(sugestoes) ? sugestoes : [];
-    if (!dropdownAberto || sugestoesArr.length === 0) return;
+    if (!dropdownAberto || sugestoesArr.length === 0) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        dispararBusca();
+      }
+      return;
+    }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -308,8 +319,8 @@ export default function CaixaBuscaLocalizacao({
         selecionarSugestao(sugestoesArr[highlightIndex]);
       } else if (sugestoesArr.length > 0) {
         selecionarSugestao(sugestoesArr[0]);
-      } else if (buscaRaw.trim().length >= 3) {
-        onLocationChange({ buscaRaw: buscaRaw.trim() });
+      } else {
+        dispararBusca();
       }
     } else if (e.key === "Escape") {
       setDropdownAberto(false);
@@ -334,174 +345,109 @@ export default function CaixaBuscaLocalizacao({
     };
   }, []);
 
-  async function buscarPertoDeMim() {
-    if (!navigator.geolocation) {
-      setGeoError("Geolocalização não suportada.");
-      return;
-    }
-    setGeoLoading(true);
-    setGeoError("");
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true, timeout: 10000, maximumAge: 60000,
-        });
-      });
-
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      let cidade = "", uf = "", logradouro = "";
-
-      try {
-        const res = await fetchComTimeout(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pt`,
-          { headers: { "User-Agent": NOMINATIM_UA } }
-        );
-        if (res.ok) {
-          const geo = await res.json();
-          const addr = geo.address || {};
-          cidade = addr.city || addr.town || addr.village || addr.county || "";
-          uf = extrairUf(addr.state || "");
-          logradouro = addr.road || addr.name || "";
-        }
-      } catch {}
-
-      const texto = [logradouro, cidade, uf].filter(Boolean).join(", ") || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-      setBuscaRaw(texto);
-      setSugestoes([]);
-      setDropdownAberto(false);
-
-      onLocationChange({
-        buscaRaw: texto,
-        latitude: lat,
-        longitude: lon,
-        cidade: cidade || undefined,
-        uf: uf || undefined,
-      });
-    } catch (err: any) {
-      if (err.code === 1) setGeoError("Permissão de localização negada.");
-      else setGeoError("Erro ao obter localização.");
-    }
-    setGeoLoading(false);
-  }
-
   const sugestoesArr = Array.isArray(sugestoes) ? sugestoes : [];
   const temTexto = buscaRaw.trim().length > 0;
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={buscaRaw}
-            onChange={(e) => handleChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => {
-              if (sugestoesArr.length > 0 || buscouSemResultados) setDropdownAberto(true);
-            }}
-            placeholder="Buscar cidade, endereço ou CEP..."
-            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-10 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
-            autoComplete="off"
-            spellCheck={false}
-          />
+      <div className="relative flex-1">
+        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none z-10" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={buscaRaw}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (sugestoesArr.length > 0 || buscouSemResultados) setDropdownAberto(true);
+          }}
+          placeholder="Buscar cidade, endereço ou CEP..."
+          className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-12 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {carregando ? (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Loader2 className="w-4 h-4 text-text-tertiary animate-spin" />
-            </div>
+            <Loader2 className="w-4 h-4 text-text-tertiary animate-spin" />
           ) : temTexto ? (
             <button
               type="button"
               onClick={limparInput}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
+              className="p-1.5 rounded-full text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
               tabIndex={-1}
               aria-label="Limpar busca"
             >
               <X className="w-4 h-4" />
             </button>
           ) : null}
-
-          {(dropdownAberto || carregando) && (
-            <div className="absolute w-full top-full mt-2 z-50 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
-              {carregando && (
-                <div className="p-4 space-y-3">
-                  <div className="h-4 bg-surface-hover rounded animate-pulse" />
-                  <div className="h-4 bg-surface-hover rounded animate-pulse w-3/4" />
-                  <div className="h-4 bg-surface-hover rounded animate-pulse w-1/2" />
-                </div>
-              )}
-
-              {!carregando && buscouSemResultados && sugestoesArr.length === 0 && (
-                <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-text-tertiary">
-                    Nenhum local encontrado com este termo.
-                  </p>
-                </div>
-              )}
-
-              {!carregando && sugestoesArr.length > 0 && (
-                <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
-                  {sugestoesArr.map((sugestao: any, index: number) => {
-                    const isHighlighted = index === highlightIndex;
-                    const categoria = classificarTipo(sugestao);
-                    return (
-                      <li
-                        key={sugestao.id || index}
-                        role="option"
-                        aria-selected={isHighlighted}
-                        onClick={() => selecionarSugestao(sugestao)}
-                        onMouseEnter={() => setHighlightIndex(index)}
-                        className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-200 ${
-                          isHighlighted ? "bg-accent-purple/10" : "hover:bg-surface-hover"
-                        }`}
-                      >
-                        <span className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-                          isHighlighted ? "bg-accent-purple/15 text-accent-purple" : "bg-surface-hover text-text-tertiary"
-                        }`}>
-                          <MapPin className="w-3.5 h-3.5" />
-                        </span>
-                        <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
-                          <p className="text-sm text-text truncate font-medium">
-                            {sugestao.textoExibicao}
-                          </p>
-                          <span className={`shrink-0 inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                            CATEGORIA_CORES[categoria] || CATEGORIA_CORES["Local"]
-                          }`}>
-                            {categoria}
-                          </span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={dispararBusca}
+            className="p-1.5 rounded-full text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
+            tabIndex={-1}
+            aria-label="Buscar"
+          >
+            <Search className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={buscarPertoDeMim}
-          disabled={geoLoading}
-          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full text-sm font-medium bg-[#1f3b9b] text-white hover:bg-[#1f3b9b]/90 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
-          title="Usar minha localização atual"
-        >
-          {geoLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Navigation className="w-4 h-4" />
-          )}
-          <span className={`${iconOnlyGeo ? "hidden" : "hidden sm:inline"}`}>Perto de mim</span>
-        </button>
-      </div>
 
-      {geoError && (
-        <p className="mt-2 text-xs text-danger font-medium flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-danger shrink-0" />
-          {geoError}
-        </p>
-      )}
+        {(dropdownAberto || carregando) && (
+          <div className="absolute w-full top-full mt-2 z-50 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+            {carregando && (
+              <div className="p-4 space-y-3">
+                <div className="h-4 bg-surface-hover rounded animate-pulse" />
+                <div className="h-4 bg-surface-hover rounded animate-pulse w-3/4" />
+                <div className="h-4 bg-surface-hover rounded animate-pulse w-1/2" />
+              </div>
+            )}
+
+            {!carregando && buscouSemResultados && sugestoesArr.length === 0 && (
+              <div className="px-4 py-6 text-center">
+                <p className="text-sm text-text-tertiary">
+                  Nenhum local encontrado com este termo.
+                </p>
+              </div>
+            )}
+
+            {!carregando && sugestoesArr.length > 0 && (
+              <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
+                {sugestoesArr.map((sugestao: any, index: number) => {
+                  const isHighlighted = index === highlightIndex;
+                  const categoria = classificarTipo(sugestao);
+                  return (
+                    <li
+                      key={sugestao.id || index}
+                      role="option"
+                      aria-selected={isHighlighted}
+                      onClick={() => selecionarSugestao(sugestao)}
+                      onMouseEnter={() => setHighlightIndex(index)}
+                      className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-200 ${
+                        isHighlighted ? "bg-accent-purple/10" : "hover:bg-surface-hover"
+                      }`}
+                    >
+                      <span className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+                        isHighlighted ? "bg-accent-purple/15 text-accent-purple" : "bg-surface-hover text-text-tertiary"
+                      }`}>
+                        <MapPin className="w-3.5 h-3.5" />
+                      </span>
+                      <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
+                        <p className="text-sm text-text truncate font-medium">
+                          {sugestao.textoExibicao}
+                        </p>
+                        <span className={`shrink-0 inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          CATEGORIA_CORES[categoria] || CATEGORIA_CORES["Local"]
+                        }`}>
+                          {categoria}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
