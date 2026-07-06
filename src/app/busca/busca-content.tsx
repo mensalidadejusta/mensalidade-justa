@@ -449,9 +449,9 @@ export default function BuscaContent({
   );
 
   return (
-    <div className="flex-1 bg-bg text-text selection:bg-primary/30 flex flex-col min-h-0">
-      {/* ===== MAPA PRINCIPAL (sempre visível, ocupa espaço útil) ===== */}
-      <div className="flex-1 relative min-h-0">
+    <div className="min-h-dvh bg-bg text-text selection:bg-primary/30">
+      {/* ===== MAPA (fixed, respeita sidebar + bottom) ===== */}
+      <div className="fixed inset-0 md:left-16 bottom-0 z-0">
         <MapaEscolas
           escolas={sortedResultados || []}
           userLocation={userLocation}
@@ -460,86 +460,86 @@ export default function BuscaContent({
           mapCenter={mapCenter}
           onBoundsChange={handleMapBoundsChange}
         />
+      </div>
 
-        {/* Busca e filtros flutuando sobre o mapa */}
-        <div className="absolute inset-0 z-[500] pointer-events-none">
-          {/* Mobile */}
-          <div className="md:hidden pointer-events-auto px-3 pt-2">
-            <div className="bg-bg/90 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
-              <CaixaBuscaLocalizacao
-                onLocationChange={handleLocationChange}
-                onLocationSelect={handleLocationSelect}
-                className="w-full"
-                iconOnlyGeo
-              />
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <button
-                  onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                    showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover text-text-secondary"
-                  }`}
-                >
-                  <DollarSign className="w-3 h-3" />
-                  Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
-                </button>
-                <button
-                  onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                    showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover text-text-secondary"
-                  }`}
-                >
-                  <GraduationCap className="w-3 h-3" />
-                  P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
-                </button>
-                <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop */}
-          <div className="hidden md:block pointer-events-auto ml-3 mt-3 w-96">
-            <div className="bg-bg/90 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
-              <CaixaBuscaLocalizacao
-                onLocationChange={handleLocationChange}
-                onLocationSelect={handleLocationSelect}
-                className="w-full"
-                iconOnlyGeo
-              />
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <button
-                  onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                    showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover border-transparent text-text-secondary"
-                  }`}
-                >
-                  <DollarSign className="w-3 h-3" />
-                  Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
-                </button>
-                <button
-                  onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                    showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover border-transparent text-text-secondary"
-                  }`}
-                >
-                  <GraduationCap className="w-3 h-3" />
-                  P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
-                </button>
-                <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
-              </div>
+      {/* Busca e filtros flutuando sobre o mapa (fora do container fixed do mapa) */}
+      <div className="fixed inset-0 md:left-16 bottom-0 z-[500] pointer-events-none">
+        {/* Mobile */}
+        <div className="md:hidden pointer-events-auto px-3 pt-2">
+          <div className="bg-bg/90 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
+            <CaixaBuscaLocalizacao
+              onLocationChange={handleLocationChange}
+              onLocationSelect={handleLocationSelect}
+              className="w-full"
+              iconOnlyGeo
+            />
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <button
+                onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                  showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover text-text-secondary"
+                }`}
+              >
+                <DollarSign className="w-3 h-3" />
+                Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
+              </button>
+              <button
+                onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                  showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover text-text-secondary"
+                }`}
+              >
+                <GraduationCap className="w-3 h-3" />
+                P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
+              </button>
+              <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
             </div>
           </div>
         </div>
 
-        {/* Loading indicator sobre o mapa */}
-        {carregandoCoordenadas && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] pointer-events-none">
-            <div className="flex flex-col items-center gap-3 bg-bg/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
-              <p className="text-sm text-text-tertiary">Buscando escolas pr\u00f3ximas...</p>
+        {/* Desktop */}
+        <div className="hidden md:block pointer-events-auto ml-3 mt-3 w-96">
+          <div className="bg-bg/90 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
+            <CaixaBuscaLocalizacao
+              onLocationChange={handleLocationChange}
+              onLocationSelect={handleLocationSelect}
+              className="w-full"
+              iconOnlyGeo
+            />
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <button
+                onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                  showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover border-transparent text-text-secondary"
+                }`}
+              >
+                <DollarSign className="w-3 h-3" />
+                Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
+              </button>
+              <button
+                onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
+                  showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover border-transparent text-text-secondary"
+                }`}
+              >
+                <GraduationCap className="w-3 h-3" />
+                P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
+              </button>
+              <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
             </div>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Loading indicator sobre o mapa */}
+      {carregandoCoordenadas && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[600] pointer-events-none">
+          <div className="flex flex-col items-center gap-3 bg-bg/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+            <p className="text-sm text-text-tertiary">Buscando escolas pr\u00f3ximas...</p>
+          </div>
+        </div>
+      )}
 
       {/* Cards de resultados (desativado enquanto ranking não fica pronto) */}
       {false && exibirCards && (uf || cidade || resultadosCoordenadas) && (
