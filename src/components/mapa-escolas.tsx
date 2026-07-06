@@ -6,7 +6,7 @@ import { makeEscolaSlug } from "@/lib/utils";
 
 type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: number | null; valor_matricula: number | null; valor_material: number | null; qtd: number };
 type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
-type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
+type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
 
 const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
 const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
@@ -21,7 +21,7 @@ function mediaPreco(e: Escola, serieSlug?: string): string {
   return media >= 1000 ? `R$ ${(media / 1000).toFixed(1).replace(".0", "")}k` : `R$ ${Math.round(media)}`;
 }
 
-export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, onBoundsChange }: Props) {
+export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const state = useRef<any>(null);
   const lastDataKey = useRef("");
@@ -208,6 +208,33 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     isInitialLoadOrFilterChange.current = true;
     state.current.map.setView([mapCenter.lat, mapCenter.lon], 14, { animate: true });
   }, [mapCenter]);
+
+  useEffect(() => {
+    const s = state.current;
+    if (!s || !activeTile) return;
+    const { map, L } = s;
+    // Remove all existing tile layers
+    map.eachLayer((layer: any) => {
+      if (layer._url && layer._leaflet_id) {
+        map.removeLayer(layer);
+      }
+    });
+    // Add the selected tile
+    const tileMap: Record<string, string> = {
+      "Padr\u00e3o": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "Sat\u00e9lite": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      "Terreno": "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+      "Claro": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      "Escuro": "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    };
+    const url = tileMap[activeTile];
+    if (url) {
+      L.tileLayer(url, {
+        attribution: "&copy; OpenStreetMap",
+        maxZoom: 19,
+      }).addTo(map);
+    }
+  }, [activeTile]);
 
   return <div ref={el} className="w-full h-full rounded-xl z-0" />;
 }

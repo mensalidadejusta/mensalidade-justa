@@ -82,6 +82,9 @@ export default function BuscaContent({
   const searchRef = useRef<HTMLDivElement>(null);
   const mapReqId = useRef(0);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lon: number } | null>(null);
+  const [isLocationActive, setIsLocationActive] = useState(false);
+  const [activeTile, setActiveTile] = useState("Padr\u00e3o");
+  const [layersOpen, setLayersOpen] = useState(false);
 
   const uf = filtroLoc?.uf ?? searchParams.get("uf") ?? "";
   const cidade = filtroLoc?.cidade ?? searchParams.get("cidade") ?? "";
@@ -458,6 +461,7 @@ export default function BuscaContent({
           hoveredId={hoveredId}
           serieSlug={serieSlug}
           mapCenter={mapCenter}
+          activeTile={activeTile}
           onBoundsChange={handleMapBoundsChange}
         />
       </div>
@@ -528,43 +532,101 @@ export default function BuscaContent({
           </div>
         </div>
 
-        {/* Botao flutuante "Minha Localizacao" (estilo Google Maps) */}
-        <button
-          type="button"
-          onClick={async () => {
-            if (!navigator.geolocation) return;
-            try {
-              const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                  enableHighAccuracy: true, timeout: 10000, maximumAge: 60000,
+        {/* Botoes flutuantes inferior direito (estilo Google Maps) */}
+        <div className="absolute bottom-40 right-4 z-[500] pointer-events-auto flex flex-col gap-2">
+          {/* Botao localizacao (toggle on/off) */}
+          <button
+            type="button"
+            onClick={async () => {
+              if (isLocationActive) {
+                setIsLocationActive(false);
+                setUserLocation(null);
+                return;
+              }
+              if (!navigator.geolocation) return;
+              try {
+                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                  navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true, timeout: 10000, maximumAge: 60000,
+                  });
                 });
-              });
-              const lat = pos.coords.latitude;
-              const lon = pos.coords.longitude;
-              const novosParams = new URLSearchParams(window.location.search);
-              novosParams.set("lat", lat.toString());
-              novosParams.set("lon", lon.toString());
-              router.replace(`${pathname}?${novosParams.toString()}`, { scroll: false });
-              setMapCenter({ lat, lon });
-              setCarregandoCoordenadas(true);
-              const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
-                p_lat: lat, p_lon: lon, p_raio_km: 50,
-              });
-              const mapped = (data || []).map((item: any) => ({
-                ...item, distancia_km: item.distancia_km ?? undefined,
-                etapas_modalidades: item.etapas_modalidades ?? null,
-              })) as EscolaResult[];
-              setResultadosCoordenadas(mapped);
-              setUserLocation({ lat, lon });
-              setCarregandoCoordenadas(false);
-            } catch {}
-          }}
-          className="absolute bottom-40 right-4 pointer-events-auto w-10 h-10 flex items-center justify-center bg-surface border border-border/50 rounded-xl shadow-lg hover:bg-surface-hover transition-all duration-200 active:scale-95"
-          title="Minha localiza\u00e7\u00e3o"
-          aria-label="Minha localiza\u00e7\u00e3o"
-        >
-          <Crosshair className="w-5 h-5 text-text" />
-        </button>
+                setIsLocationActive(true);
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const novosParams = new URLSearchParams(window.location.search);
+                novosParams.set("lat", lat.toString());
+                novosParams.set("lon", lon.toString());
+                router.replace(`${pathname}?${novosParams.toString()}`, { scroll: false });
+                setMapCenter({ lat, lon });
+                setCarregandoCoordenadas(true);
+                const { data } = await supabase.current.rpc("escolas_perto_de_mim", {
+                  p_lat: lat, p_lon: lon, p_raio_km: 50,
+                });
+                const mapped = (data || []).map((item: any) => ({
+                  ...item, distancia_km: item.distancia_km ?? undefined,
+                  etapas_modalidades: item.etapas_modalidades ?? null,
+                })) as EscolaResult[];
+                setResultadosCoordenadas(mapped);
+                setUserLocation({ lat, lon });
+                setCarregandoCoordenadas(false);
+              } catch {}
+            }}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl shadow-lg transition-all duration-200 active:scale-95 border ${
+              isLocationActive
+                ? "bg-[#1a73e8] text-white border-[#1a73e8]"
+                : "bg-surface text-text border-border/50 hover:bg-surface-hover"
+            }`}
+            title={isLocationActive ? "Desativar localiza\u00e7\u00e3o" : "Minha localiza\u00e7\u00e3o"}
+            aria-label={isLocationActive ? "Desativar localiza\u00e7\u00e3o" : "Minha localiza\u00e7\u00e3o"}
+          >
+            <Crosshair className="w-5 h-5" />
+          </button>
+
+          {/* Botao camadas */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLayersOpen((p) => !p)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl shadow-lg transition-all duration-200 active:scale-95 border bg-surface text-text border-border/50 hover:bg-surface-hover"
+              title="Camadas do mapa"
+              aria-label="Camadas do mapa"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            </button>
+
+            {layersOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setLayersOpen(false)} />
+                <div className="absolute bottom-full right-0 mb-2 z-50 bg-surface border border-border/50 rounded-xl shadow-2xl overflow-hidden min-w-40">
+                  {[
+                    { key: "Padr\u00e3o", label: "Mapa Padr\u00e3o" },
+                    { key: "Sat\u00e9lite", label: "Sat\u00e9lite" },
+                    { key: "Terreno", label: "Terreno" },
+                    { key: "Claro", label: "Claro" },
+                    { key: "Escuro", label: "Escuro" },
+                  ].map((layer) => (
+                    <button
+                      key={layer.key}
+                      type="button"
+                      onClick={() => { setActiveTile(layer.key); setLayersOpen(false); }}
+                      className={`block w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                        activeTile === layer.key
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "text-text hover:bg-surface-hover"
+                      }`}
+                    >
+                      {layer.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Loading indicator sobre o mapa */}
