@@ -74,6 +74,7 @@ export default function BuscaResults({
     <div className="space-y-2 md:space-y-3">
       {lista.map((escola) => {
         const isHovered = hoveredId === escola.id;
+        const precosArr = Array.isArray(escola.series_precos) ? escola.series_precos : [];
         return (
           <article key={escola.id}>
             <Link
@@ -108,7 +109,7 @@ export default function BuscaResults({
               <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-border/60">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 space-y-1 md:space-y-1.5 min-w-0">
-                    {escola.series_precos.length > 0 ? (
+                    {precosArr.length > 0 ? (
                       serieSlug ? (
                         escola.series_precos
                           .filter((sp) => serieSlug.split(",").includes(sp.serie_slug))
@@ -128,7 +129,7 @@ export default function BuscaResults({
                         })
                       ) : (
                         GRUPOS.map((grupo) => {
-                          const items = escola.series_precos.filter(
+                          const items = precosArr.filter(
                             (sp) => slugToGrupo.get(sp.serie_slug) === grupo
                           );
                           if (items.length === 0) return null;
