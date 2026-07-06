@@ -449,9 +449,9 @@ export default function BuscaContent({
   );
 
   return (
-    <div className="min-h-dvh bg-bg text-text selection:bg-primary/30 flex flex-col">
+    <div className="flex-1 bg-bg text-text selection:bg-primary/30 flex flex-col min-h-0">
       {/* ===== MAPA PRINCIPAL (sempre visível, ocupa espaço útil) ===== */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative min-h-0">
         <MapaEscolas
           escolas={sortedResultados || []}
           userLocation={userLocation}
