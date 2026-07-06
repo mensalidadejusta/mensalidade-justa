@@ -1,145 +1,259 @@
-# Documentação Completa — Mensalidade Justa
+# Documentação de Reprodução Completa — Mensalidade Justa
 
-> **App colaborativo para buscar escolas brasileiras e consultar mensalidades.**
-> Usuários pesquisam escolas por nome/local, filtram por série/tipo/preço, veem preços no mapa, e contribuem com valores anonimamente.
->
-> Se você for uma IA lendo este documento: leia do início ao fim antes de responder qualquer pergunta.
-> Este documento é a **única fonte da verdade** sobre o projeto. Siga cada instrução à risca.
+> **Aviso para IAs:** Este documento contém cada detalhe necessário para reproduzir o projeto
+> do zero. Leia do início ao fim antes de qualquer ação. Cada arquivo, função, tipo, decisão,
+> configuração e migration está documentado em nível de implementação.
 
 ---
 
-## Sumário
+## Índice
 
-1. [Stack completa](#1-stack-completa)
-2. [Estrutura de diretórios](#2-estrutura-de-diretórios)
-3. [Arquitetura e fluxo de dados](#3-arquitetura-e-fluxo-de-dados)
-4. [Banco de dados (Supabase PostgreSQL)](#4-banco-de-dados-supabase-postgresql)
-5. [Rotas da aplicação](#5-rotas-da-aplicação)
-6. [Componentes e sua responsabilidade](#6-componentes-e-sua-responsabilidade)
-7. [Tema (claro/escuro)](#7-tema-claroescuro)
-8. [Autenticação](#8-autenticação)
-9. [SEO e metadados](#9-seo-e-metadados)
-10. [Comandos e scripts](#10-comandos-e-scripts)
-11. [Migrations](#11-migrations)
-12. [Deploy (Vercel)](#12-deploy-vercel)
-13. [Problemas conhecidos e workarounds](#13-problemas-conhecidos-e-workarounds)
-14. [Especificações detalhadas de componentes](#14-especificações-detalhadas-de-componentes)
-15. [Especificações detalhadas de páginas](#15-especificações-detalhadas-de-páginas)
-16. [Segurança](#16-segurança)
+1. [Propósito e Visão Geral](#1-propósito-e-visão-geral)
+2. [Stack Completa com Versões](#2-stack-completa-com-versões)
+3. [Configuração do Projeto (arquivo por arquivo)](#3-configuração-do-projeto-arquivo-por-arquivo)
+4. [Estrutura Completa de Diretórios](#4-estrutura-completa-de-diretórios)
+5. [Camada de Infraestrutura — Banco de Dados (Supabase)](#5-camada-de-infraestrutura--banco-de-dados-supabase)
+6. [Migrations SQL (ordem de aplicação)](#6-migrations-sql-ordem-de-aplicação)
+7. [Cliente Supabase — 3 Estratégias](#7-cliente-supabase--3-estratégias)
+8. [Utilitários — slugify, séries, auth](#8-utilitários--slugify-séries-auth)
+9. [Sistema de Tema (next-themes + Tailwind v4)](#9-sistema-de-tema-next-themes--tailwind-v4)
+10. [Middleware — refresh de sessão e redirect](#10-middleware--refresh-de-sessão-e-redirect)
+11. [Layout Raiz e Providers](#11-layout-raiz-e-providers)
+12. [Rota Raiz (/) — redirect](#12-rota-raiz--redirect)
+13. [Rota de Busca (/busca) — Server Component](#13-rota-de-busca-busca--server-component)
+14. [Rota de Busca — Client Component (BuscaContent)](#14-rota-de-busca--client-component-buscacontent)
+15. [BuscaResults — Cards de Escola](#15-buscarresults--cards-de-escola)
+16. [CaixaBuscaLocalizacao — Input de Endereço](#16-caixabuscadelocalizacao--input-de-endereço)
+17. [SearchableSelect — Select com Bottom Sheet](#17-searchableselect--select-com-bottom-sheet)
+18. [MapaEscolas — Leaflet Map](#18-mapaescolas--leaflet-map)
+19. [SchemaEscolas — JSON-LD Dinâmico](#19-schemaescolas--json-ld-dinâmico)
+20. [Página da Escola (/escola/[slug])](#20-página-da-escola-escolaslug)
+21. [Página de Listagem SEO (/escolas/[uf]/[cidade])](#21-página-de-listagem-seo-escolasufcidade)
+22. [Contribuir (/contribuir)](#22-contribuir-contribuir)
+23. [Autenticação — Login, Cadastro, Recuperar/Alterar Senha](#23-autenticação--login-cadastro-recuperaralterar-senha)
+24. [Perfil (/perfil)](#24-perfil-perfil)
+25. [Página Sobre (/sobre)](#25-página-sobre-sobre)
+26. [Sitemap Index — Estrutura Multi-Sitemap](#26-sitemap-index--estrutura-multi-sitemap)
+27. [Footer — Diretório de Cidades](#27-footer--diretório-de-cidades)
+28. [TabBar — Navegação](#28-tabbar--navegação)
+29. [BotaoTema — Toggle Tema](#29-botaotema--toggle-tema)
+30. [Scripts — Import CSV e Run Migration](#30-scripts--import-csv-e-run-migration)
+31. [Variáveis de Ambiente](#31-variáveis-de-ambiente)
+32. [Problemas Conhecidos e Workarounds](#32-problemas-conhecidos-e-workarounds)
+33. [Guia de Reprodução Zero-to-Production](#33-guia-de-reprodução-zero-to-production)
 
 ---
 
-## 1. Stack completa
+## 1. Propósito e Visão Geral
 
-| Camada | Tecnologia | Versão |
-|--------|-----------|--------|
-| Framework | Next.js 16 (App Router) | ^16.2.10 |
-| Linguagem | TypeScript | 6.0.3 |
-| Build tool | Turbopack | embutido no Next.js |
-| Estilos | Tailwind CSS | ^4.3.2 |
-| PostCSS | @tailwindcss/postcss | ^4.3.2 |
-| Ícones | lucide-react | ^1.23.0 |
-| Animação | framer-motion | ^12.42.2 |
-| Banco | Supabase PostgreSQL 15 + PostGIS | via REST |
-| ORM/Client | @supabase/supabase-js | ^2.49.0 |
-| SSR Auth | @supabase/ssr | ^0.12.0 |
-| Mapas | Leaflet + react-leaflet | ^1.9.4 / ^5.0.0 |
-| Cluster | leaflet.markercluster | ^1.5.3 |
-| Tema | next-themes | ^0.4.6 |
-| Database driver | pg (apenas para migrations) | ^8.22.0 |
-| CSV Parser | csv-parse | ^5.6.0 |
-| Autoprefixer | autoprefixer | ^10.5.2 |
-| React | react + react-dom | ^19.2.7 |
+Mensalidade Justa é uma plataforma colaborativa para buscar escolas brasileiras e consultar
+mensalidades. Usuários pesquisam escolas por estado/cidade/nome, filtram por série/tipo/preço,
+visualizam escolas em um mapa interativo (Leaflet) e contribuem anonimamente com valores reais
+de mensalidade, matrícula e material didático.
 
-### Configuração Next.js (`next.config.ts`)
+O público-alvo são pais e responsáveis que precisam comparar custos escolares no Brasil.
+
+O projeto é uma Single Page Application (SPA) com renderização híbrida (Next.js App Router)
+usando Server Components para dados iniciais e Client Components para interatividade.
+
+---
+
+## 2. Stack Completa com Versões
+
+```json
+{
+  "Framework": "Next.js 16.2.10 (App Router, Turbopack)",
+  "Linguagem": "TypeScript 6.0.3",
+  "Estilos": "Tailwind CSS 4.3.2 + PostCSS",
+  "Ícones": "lucide-react 1.23.0",
+  "Animação": "framer-motion 12.42.2",
+  "Banco": "Supabase (PostgreSQL 15 + PostGIS)",
+  "ORM/Client": "@supabase/supabase-js 2.49.0",
+  "SSR Auth": "@supabase/ssr 0.12.0",
+  "Mapas": "Leaflet 1.9.4 + react-leaflet 5.0.0",
+  "Cluster": "leaflet.markercluster 1.5.3",
+  "Tema": "next-themes 0.4.6",
+  "DB Driver (local)": "pg 8.22.0",
+  "CSV": "csv-parse 5.6.0",
+  "React": "React 19.2.7 + React-DOM 19.2.7"
+}
+```
+
+---
+
+## 3. Configuração do Projeto (arquivo por arquivo)
+
+### 3.1 `package.json`
+
+```json
+{
+  "name": "mensalidadejusta",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "migrate": "node scripts/run-migration.js",
+    "import": "node scripts/import-csv.js"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/leaflet": "^1.9.21",
+    "@types/leaflet.markercluster": "^1.5.6",
+    "autoprefixer": "^10.5.2",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^16.4.0",
+    "framer-motion": "^12.42.2",
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
+    "lucide-react": "^1.23.0",
+    "next": "^16.2.10",
+    "next-themes": "^0.4.6",
+    "pg": "^8.22.0",
+    "postcss": "^8.5.16",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-leaflet": "^5.0.0",
+    "tailwindcss": "^4.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.0",
+    "@types/react": "19.2.17",
+    "typescript": "6.0.3"
+  }
+}
+```
+
+### 3.2 `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": [
+    "next-env.d.ts", "**/*.ts", "**/*.tsx",
+    ".next/types/**/*.ts", ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
+```
+
+### 3.3 `next.config.ts`
 
 ```ts
+import type { NextConfig } from "next";
 const nextConfig: NextConfig = {};
 export default nextConfig;
 ```
 
-Sem configuração especial. Sem redirects, rewrites, headers ou images remote patterns.
+Totalmente vazio — sem redirects, rewrites, headers ou image config.
 
-### Configuração TypeScript (`tsconfig.json`)
-
-- `target: "ES2017"`, `module: "esnext"`, `moduleResolution: "bundler"`
-- `strict: true`, `jsx: "react-jsx"`
-- Path alias: `@/*` → `./src/*`
-
-### Configuração PostCSS (`postcss.config.cjs`)
+### 3.4 `postcss.config.cjs`
 
 ```js
-module.exports = { plugins: { "@tailwindcss/postcss": {} } };
+module.exports = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
 ```
+
+Usa `@tailwindcss/postcss` (Tailwind v4 como plugin PostCSS).
 
 ---
 
-## 2. Estrutura de diretórios
+## 4. Estrutura Completa de Diretórios
 
 ```
 mensalidadejusta.com.br/
-├── AGENTS.md                        # Instruções para IA (versão resumida)
-├── DOCUMENTACAO_PROJETO.md          # Este arquivo (versão completa)
+├── AGENTS.md                                # Resumo para IA + link para DOCUMENTACAO_PROJETO.md
+├── DOCUMENTACAO_PROJETO.md                  # Este arquivo
 ├── package.json
 ├── tsconfig.json
 ├── next.config.ts
 ├── postcss.config.cjs
-├── .env                             # Variáveis de ambiente locais
-├── .env.local                       # Variáveis de ambiente (não versionado)
+├── .env                                     # Variáveis de ambiente (não versionado)
+├── .env.local                               # Override local (não versionado)
+├── next-env.d.ts                            # Auto-gerado Next.js
 │
 ├── src/
-│   ├── middleware.ts                # Middleware de refresh de sessão + redirect
+│   ├── middleware.ts                         # Middleware de refresh de sessão
 │   │
 │   ├── app/
-│   │   ├── page.tsx                 # Redirect / → /busca
-│   │   ├── layout.tsx               # Root layout: ThemeProvider + AuthProvider + TabBar + Footer
-│   │   ├── globals.css              # Tailwind v4 + variáveis CSS + tema dark/light
-│   │   ├── sitemap.ts               # Sitemap dinâmico (~49k URLs)
+│   │   ├── page.tsx                          # redirect("/busca")
+│   │   ├── layout.tsx                        # Root layout com providers
+│   │   ├── globals.css                       # Tailwind v4 + variáveis CSS + tema
+│   │   ├── sitemap.ts                        # Sitemap Index (27 estados)
 │   │   │
-│   │   ├── busca/                   # Tela principal de busca
-│   │   │   ├── page.tsx             # Server Component: fetch dados, filtra, SEO
-│   │   │   ├── busca-content.tsx    # Client Component: toda interatividade
-│   │   │   └── busca-results.tsx    # Componente de cards de escola
+│   │   ├── sitemaps/
+│   │   │   └── [uf]/
+│   │   │       └── sitemap.ts                # Sitemap por estado
+│   │   │
+│   │   ├── busca/
+│   │   │   ├── page.tsx                      # Server Component
+│   │   │   ├── busca-content.tsx             # Client Component
+│   │   │   └── busca-results.tsx             # Cards de escola
 │   │   │
 │   │   ├── escola/[slug]/
-│   │   │   ├── page.tsx             # Server Component: fetch escola + JSON-LD
-│   │   │   └── escola-detalhe.tsx   # Client Component: detalhes + tabela de preços
+│   │   │   ├── page.tsx                      # Server Component
+│   │   │   └── escola-detalhe.tsx            # Client Component
 │   │   │
 │   │   ├── escolas/[uf]/[cidade]/
-│   │   │   └── page.tsx             # Server Component: listagem SEO paginada
+│   │   │   └── page.tsx                      # Server Component SEO
 │   │   │
 │   │   ├── contribuir/
-│   │   │   └── page.tsx             # Formulário de contribuição de preços
+│   │   │   └── page.tsx                      # Formulário de contribuição
 │   │   │
-│   │   ├── (auth)/                  # Grupo de rotas de autenticação (layout compartilhado implícito)
+│   │   ├── (auth)/                           # Grupo de rotas de autenticação
 │   │   │   ├── login/page.tsx
-│   │   │   ├── cadastro/page.tsx    # 2 etapas: credenciais + endereço opcional
+│   │   │   ├── cadastro/page.tsx
 │   │   │   ├── recuperar-senha/page.tsx
 │   │   │   └── alterar-senha/page.tsx
 │   │   │
-│   │   ├── perfil/page.tsx          # Perfil do usuário + logout + exclusão LGPD
-│   │   └── sobre/page.tsx          # Página institucional
+│   │   ├── perfil/page.tsx                   # Perfil + exclusão
+│   │   └── sobre/page.tsx                    # Página institucional
 │   │
 │   ├── components/
-│   │   ├── footer.tsx               # Footer com diretório de cidades
-│   │   ├── tab-bar.tsx              # Sidebar (desktop) + bottom nav (mobile)
-│   │   ├── toggle-tema.tsx          # Toggle dark/light mode
-│   │   ├── mapa-escolas.tsx         # Mapa Leaflet (lazy import)
-│   │   ├── searchable-select.tsx    # Select com autocomplete + bottom sheet / sidebar
-│   │   └── caixa-busca-localizacao.tsx  # Input de endereço com autocomplete
+│   │   ├── botao-tema.tsx                    # Toggle dark/light
+│   │   ├── caixa-busca-localizacao.tsx       # Input de endereço com autocomplete
+│   │   ├── footer.tsx                        # Footer com diretório
+│   │   ├── mapa-escolas.tsx                  # Leaflet lazy import
+│   │   ├── schema-escolas.tsx                # JSON-LD Schema
+│   │   ├── searchable-select.tsx             # Bottom sheet / sidebar select
+│   │   └── tab-bar.tsx                       # Navegação principal
 │   │
 │   ├── lib/
-│   │   ├── supabase.ts              # Cliente browser + SSR básico (sem cache)
-│   │   ├── supabase-server.ts       # Cliente SSR com cache 24h + timeout 10s
-│   │   ├── auth-context.tsx         # Contexto de autenticação (React Context)
-│   │   ├── utils.ts                 # slugify, makeEscolaSlug, parseEscolaSlug, slugToCidade
-│   │   └── series.ts                # Catálogo de séries/etapas de ensino
+│   │   ├── auth-context.tsx                  # Contexto de autenticação
+│   │   ├── series.ts                         # Catálogo de séries
+│   │   ├── supabase.ts                       # Cliente browser + SSR
+│   │   ├── supabase-server.ts                # Cliente SSR cache 24h + timeout
+│   │   └── utils.ts                          # slugify, slugs
 │   │
 │   └── providers/
-│       └── theme-provider.tsx       # Provider next-themes (dark fixo, sem system)
+│       └── theme-provider.tsx                # Provider next-themes
 │
 ├── supabase/
-│   └── migrations/                  # Migrations SQL (ordem importa!)
+│   └── migrations/
 │       ├── 001_create_tables.sql
 │       ├── 002_excluir_conta.sql
 │       ├── 003_profiles_e_geo.sql
@@ -148,233 +262,151 @@ mensalidadejusta.com.br/
 │       └── 007_filtrar_escolas_paralisadas.sql
 │
 ├── scripts/
-│   ├── import-csv.js               # Importa CSV de escolas via Supabase REST upsert
-│   ├── run-migration.js             # Executa migration SQL via pg direto
-│   ├── create-index.mjs             # Utilitário auxiliar
-│   ├── fix-accent-colors.mjs        # Script de migração de classes
-│   ├── fix-tailwind-classes.mjs     # Script de migração de classes
-│   └── fix-theme-colors.mjs         # Script de migração de classes
+│   ├── import-csv.js                         # Import CSV de escolas
+│   └── run-migration.js                      # Executor de migrations
 │
-└── public/                          # Assets estáticos
+└── public/                                   # Assets estáticos vazios
 ```
 
 ---
 
-## 3. Arquitetura e fluxo de dados
+## 5. Camada de Infraestrutura — Banco de Dados (Supabase)
 
-### 3.1 Modelo geral
+**Projeto:** `ijfwdtemkkoiombxtyip` (US East - N. Virginia)
+**Plano:** Free Tier (500MB, CPU compartilhado, conexões limitadas)
 
-O app usa **Next.js 16 App Router** com uma combinação de Server Components (fetch de dados, SEO) e Client Components (interatividade, mapa). Não há API routes — todas as consultas ao banco são feitas via **Supabase REST API** (RPC functions) diretamente dos componentes.
+### 5.1 Extensões
 
-### 3.2 Fluxo de busca (tela principal)
-
-```
-1. Usuário acessa /busca
-2. URL params carregam estado: ?uf=SP&cidade=São%20Paulo&q=&serie=&privada=1&publica=1&maxPrice=
-
-3. Server Component (busca/page.tsx):
-   a. Lê searchParams (uf, cidade, q, serie, privada, publica, maxPrice)
-   b. Cria supabase client com supabase-server.ts (cache 24h + timeout 10s)
-   c. get_ufs() → lista todas as UFs
-   d. Se uf definida: get_cidades(p_uf) → lista cidades do estado
-   e. Se uf + cidade definidos: buscar_escolas_com_precos_detalhado(p_uf, p_municipio, p_serie_slug, p_termo)
-   f. Aplica filtro server-side:
-      - Se privada=1 e publica=0: só privadas
-      - Se publica=1 e privada=0: só públicas
-      - Se ambos 0: lista vazia
-      - Se maxPrice definido: escolas com pelo menos uma série ≤ maxPrice
-   g. Renderiza <BuscaContent> passando ufs[], cidades[], resultados[]
-
-4. BuscaContent (Client Component, busca-content.tsx):
-   a. Gerencia estado via URL (useSearchParams + router.replace)
-   b. <CaixaBuscaLocalizacao> → input de endereço com autocomplete LocationIQ
-   c. <input> → busca de escola por nome (query na VIEW escolas, limite 6)
-   d. Filtros: privada/pública, etapa (serieSlug), mapa toggle
-   e. Se geolocalização ativa (URL params lat/lon):
-      - Chama escolas_perto_de_mim(p_lat, p_lon, 50)
-      - MapCenter setado, userLocation setado
-   f. Se mapa aberto e sem localização: tenta navigator.geolocation automático
-   g. handleLocationChange: se lat/lon → escolas_perto_de_mim; se cidade/uf → server fetch
-   h. handleMapBoundsChange: quando o usuário move o mapa, chama escolas_no_mapa
-   i. dadosExibir (useMemo): aplica filtro client-side de etapa (serieSlug)
-      - slug da série → busca grupo → match ILIKE na coluna etapas_modalidades
-      - Ex: "1-ano-fundamental" → grupo "Ensino Fundamental I" → busca "ensino fundamental"
-   j. sortedResultados (useMemo): ordena por distância (quem tem preço primeiro)
-   k. Layout: mobile (stacked ou fullscreen map) | desktop (painel 55% + mapa 45%)
-
-5. BuscaResults (busca-results.tsx):
-   a. Renderiza <article> com <h2> semântico para cada escola
-   b. Card com indicador colorido (verde=pública, roxo=privada)
-   c. Preços agrupados por etapa (Educação Infantil, Fundamental I/II, Médio)
-      - Se serieSlug específica: mostra preço da série selecionada
-      - Se todas: mostra min-max por grupo + quantidade de contribuições
-   d. Botão "Contribuir" (apenas privadas) → /contribuir?escola=<inep>
-   e. Botão "Convidar" (apenas privadas) → WhatsApp share
-   f. Hover → sincroniza com marcador no mapa (hoveredId)
-   g. Distância: se coordenadas disponíveis, mostra "X km" ou "Xm"
-
-6. Mapa (mapa-escolas.tsx):
-   a. Leaflet com lazy import (import("leaflet"))
-   b. 5 tiles: Padrão, Satélite, Terreno, Claro, Escuro (com layer control)
-   c. Marcadores: circleMarker com cor (privada=#a855f7 roxo, pública=#34d399 verde)
-   d. Tooltip permanente no marcador com o preço (se houver)
-   e. Popup ao clicar: nome, bairro, preços por grupo, link "Ver detalhes"
-   f. Pulse animation na localização do usuário
-   g. Limite de marcadores por zoom: z≥14 → 9999, z≥12 → 50, z≥10 → 30, else 15
-   h. Ordenação: escolas com preço primeiro
-   i. onBoundsChange: quando o mapa é movido, busca escolas na área visível
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;     -- Geometria, ST_DWithin, ST_Distance
+CREATE EXTENSION IF NOT EXISTS pg_trgm;      -- Trigram index para ILIKE
+-- unaccent também instalada via migration 006
 ```
 
-### 3.3 Clientes Supabase
+### 5.2 Tabela `escolas_raw` (~181k linhas ativas)
 
-**`src/lib/supabase.ts`** — Duas funções:
+Nome original: `escolas`. Renomeada para `escolas_raw` na migration 006.
 
-1. `createClient()` → browser client (`createBrowserClient` do `@supabase/ssr`)
-   - Usa cookies para sessão
-   - Usado em: componentes client-side (BuscaContent, contribuir, login, etc.)
+```sql
+CREATE TABLE IF NOT EXISTS escolas_raw (
+  id SERIAL PRIMARY KEY,
+  codigo_inep VARCHAR(20) UNIQUE NOT NULL,
+  nome VARCHAR(500) NOT NULL,
+  cidade_id UUID REFERENCES tb_cidades(id) ON DELETE RESTRICT,
+  bairro VARCHAR(300),
+  endereco TEXT,
+  telefone VARCHAR(100),
+  localizacao VARCHAR(50),
+  localidade_diferenciada VARCHAR(200),
+  dependencia_administrativa VARCHAR(50) NOT NULL,
+  categoria_administrativa VARCHAR(50),
+  categoria_escola_privada VARCHAR(100),
+  conveniada_poder_publico VARCHAR(10),
+  regulamentacao_conselho VARCHAR(50),
+  porte_escola VARCHAR(200),
+  etapas_modalidades TEXT,
+  outras_ofertas TEXT,
+  restricao_atendimento VARCHAR(300),
+  latitude NUMERIC(10, 7),
+  longitude NUMERIC(10, 7),
+  geom GEOMETRY(Point, 4326),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-2. `createServerClient()` → SSR client (`createSupabaseClient` direto)
-   - Sem cookies (`autoRefreshToken: false, persistSession: false`)
-   - Usado em: Server Components (escola/page, escolas/[uf]/[cidade]/page, footer, sitemap)
-
-**`src/lib/supabase-server.ts`** — Uma função:
-
-1. `createServerClient()` → SSR client com cache e timeout
-   - `next: { revalidate: 86400 }` — cache de 24h
-   - `AbortController` com timeout de 10s
-   - Usado APENAS em: `busca/page.tsx` (onde a performance é crítica)
-
-### 3.4 Conexão direta PostgreSQL (pg)
-
-- **NÃO funciona por IPv6** — o host só tem IPv6 e a rede não roteia.
-- O script `scripts/run-migration.js` contorna isso resolvendo o DNS via Google DNS (8.8.8.8).
-- Usado APENAS para aplicar migrations, nunca em produção.
-
----
-
-## 4. Banco de dados (Supabase PostgreSQL)
-
-**Projeto:** `ijfwdtemkkoiombxtyip`
-**Região:** US East (N. Virginia) — `us-east-1`
-**Plano:** Free (500MB, CPU compartilhado, conexões limitadas)
-
-### 4.1 Extensões instaladas
-
-- `postgis` — geometria e cálculos de distância
-- `pg_trgm` — trigram index para ILIKE em textos longos
-- `unaccent` — busca sem acentos
-
-### 4.2 Tabelas
-
-#### `escolas_raw` (~181.065 linhas ativas, após filtro de paralisadas)
-
-Tabela original com os dados do MEC/INEP. Foi renomeada de `escolas` para `escolas_raw` na migration 006.
-
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | `SERIAL PRIMARY KEY` | auto increment |
-| `codigo_inep` | `VARCHAR(20) UNIQUE NOT NULL` | Código INEP do MEC |
-| `nome` | `VARCHAR(500) NOT NULL` | Nome da escola |
-| `cidade_id` | `UUID FK → tb_cidades(id)` | Referência normalizada |
-| `bairro` | `VARCHAR(300)` | Bairro |
-| `endereco` | `TEXT` | Endereço completo |
-| `telefone` | `VARCHAR(100)` | Telefone |
-| `dependencia_administrativa` | `VARCHAR(50) NOT NULL` | "Privada" ou "Pública" (Estadual/Municipal/Federal) |
-| `categoria_administrativa` | `VARCHAR(50)` | Categoria administrativa |
-| `categoria_escola_privada` | `VARCHAR(100)` | Subtipo se privada |
-| `localizacao` | `VARCHAR(50)` | Urbana/Rural |
-| `localidade_diferenciada` | `VARCHAR(200)` | Indígena, quilombola, etc |
-| `porte_escola` | `VARCHAR(200)` | Porte da escola |
-| `etapas_modalidades` | `TEXT` | Etapas oferecidas (string separada por vírgulas) |
-| `outras_ofertas` | `TEXT` | EJA, profissionalizante, etc |
-| `conveniada_poder_publico` | `VARCHAR(10)` | Se conveniada com o poder público |
-| `regulamentacao_conselho` | `VARCHAR(50)` | Regulamentação |
-| `latitude` | `NUMERIC(10,7)` | Latitude |
-| `longitude` | `NUMERIC(10,7)` | Longitude |
-| `restricao_atendimento` | `VARCHAR(300)` | Restrições. Se = 'ESCOLA PARALISADA', a escola é **excluída** de todos os resultados de busca, mapa e contagens |
-| `geom` | `GEOMETRY(Point, 4326)` | PostGIS geometry |
-| `created_at` | `TIMESTAMPTZ DEFAULT NOW()` | Data de criação |
-| `updated_at` | `TIMESTAMPTZ DEFAULT NOW()` | Data de atualização |
-
-**Regra importante:** Escolas com `restricao_atendimento = 'ESCOLA PARALISADA'` (cerca de 31.321 registros) são completamente excluídas de:
-- `buscar_escolas_com_precos_detalhado` — não aparecem em buscas
-- `escolas_perto_de_mim` — não aparecem no mapa por geolocalização
-- `get_top_cidades` — não contam para o total de escolas por cidade
-
-**RLS:** SELECT público (policy `"Escolas visiveis para todos"` usando `true`).
-
-#### `tb_estados` (27 linhas)
-
-| Coluna | Tipo |
-|--------|------|
-| `id` | `UUID PK DEFAULT gen_random_uuid()` |
-| `nome` | `VARCHAR(100) NOT NULL` |
-| `uf` | `VARCHAR(2) NOT NULL UNIQUE` |
-| `created_at` | `TIMESTAMPTZ DEFAULT NOW()` |
-
-#### `tb_cidades` (5.570 linhas)
-
-| Coluna | Tipo |
-|--------|------|
-| `id` | `UUID PK DEFAULT gen_random_uuid()` |
-| `estado_id` | `UUID FK → tb_estados(id) ON DELETE RESTRICT` |
-| `nome` | `VARCHAR(200) NOT NULL` |
-| `created_at` | `TIMESTAMPTZ DEFAULT NOW()` |
-
-**UNIQUE:** `(estado_id, nome)`
-
-#### `mensalidades_series` (99+ linhas)
-
-Tabela de preços por série. Criada na migration 004 para substituir a tabela `mensalidades` (legacy).
-
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | `UUID PK DEFAULT gen_random_uuid()` | |
-| `escola_id` | `INTEGER FK → escolas_raw(id) ON DELETE CASCADE` | |
-| `serie_slug` | `VARCHAR(50) NOT NULL` | Slug da série (ex: "1-ano-fundamental") |
-| `serie_nome` | `VARCHAR(200) NOT NULL` | Nome legível (ex: "1º Ano") |
-| `valor_mensalidade` | `NUMERIC(10,2)` | Valor da mensalidade |
-| `valor_matricula` | `NUMERIC(10,2)` | Valor da matrícula |
-| `valor_material` | `NUMERIC(10,2)` | Valor do material didático |
-| `ano_vigencia` | `INTEGER NOT NULL DEFAULT YEAR(NOW())` | Ano de vigência |
-| `created_at` | `TIMESTAMPTZ DEFAULT NOW()` | |
-| `updated_at` | `TIMESTAMPTZ DEFAULT NOW()` | |
-
-**UNIQUE:** `(escola_id, serie_slug, ano_vigencia)` — apenas um preço por série/ano por escola.
+**Índices:**
+```sql
+CREATE INDEX idx_escolas_nome ON escolas_raw USING GIN (nome gin_trgm_ops);
+CREATE INDEX idx_escolas_dependencia ON escolas_raw (dependencia_administrativa);
+CREATE INDEX idx_escolas_geom ON escolas_raw USING GIST (geom);
+CREATE INDEX idx_escolas_lat_lng ON escolas_raw (latitude, longitude);
+CREATE INDEX idx_escolas_raw_cidade_id ON escolas_raw (cidade_id);
+```
 
 **RLS:**
-- SELECT: público (policy `"Leitura publica"` com `true`)
-- INSERT: authenticated apenas (policy `"Usuarios autenticados inserem"` com `auth.role() = 'authenticated'`)
+```sql
+ALTER TABLE escolas_raw ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Escolas visiveis para todos" ON escolas_raw FOR SELECT USING (true);
+```
 
-#### `profiles` (~2 linhas)
+**Regra de negócio:** Escolas com `restricao_atendimento = 'ESCOLA PARALISADA'` (31.321 registros)
+são excluídas de todas as RPCs de busca, mapa e contagem (migration 007).
 
-Vinculada a `auth.users` via trigger `on_auth_user_created`. Criada na migration 003.
+### 5.3 Tabela `tb_estados` (27 linhas)
 
-| Coluna | Tipo |
-|--------|------|
-| `id` | `UUID PK FK → auth.users(id) ON DELETE CASCADE` |
-| `logradouro` | `TEXT` |
-| `numero` | `TEXT` |
-| `bairro` | `TEXT` |
-| `cidade` | `TEXT` |
-| `uf` | `VARCHAR(2)` |
-| `cep` | `VARCHAR(9)` |
-| `latitude` | `DOUBLE PRECISION` |
-| `longitude` | `DOUBLE PRECISION` |
-| `geom` | `GEOMETRY(Point, 4326)` |
-| `created_at` | `TIMESTAMPTZ DEFAULT NOW()` |
-| `updated_at` | `TIMESTAMPTZ DEFAULT NOW()` |
+```sql
+CREATE TABLE IF NOT EXISTS tb_estados (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome VARCHAR(100) NOT NULL,
+  uf VARCHAR(2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tb_estados_uf ON tb_estados (uf);
+```
 
-**RLS:**
-- SELECT: próprio usuário (policy `"Usuarios veem seu proprio profile"`)
-- INSERT: próprio usuário OU trigger (policy `"Trigger insere profile"` com `true`)
-- UPDATE: próprio usuário
+### 5.4 Tabela `tb_cidades` (5.570 linhas)
 
-#### `mensalidades` (0 linhas — LEGACY)
+```sql
+CREATE TABLE IF NOT EXISTS tb_cidades (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  estado_id UUID NOT NULL REFERENCES tb_estados(id) ON DELETE RESTRICT,
+  nome VARCHAR(200) NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tb_cidades_estado_id_nome ON tb_cidades (estado_id, nome);
+```
 
-Tabela original, não usada pelo app. Ainda existe no banco mas não é consultada nem inserida.
+### 5.5 Tabela `mensalidades_series` (99+ linhas)
 
-### 4.3 VIEW `escolas`
+```sql
+CREATE TABLE IF NOT EXISTS mensalidades_series (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  escola_id INTEGER NOT NULL REFERENCES escolas_raw(id) ON DELETE CASCADE,
+  serie_slug VARCHAR(50) NOT NULL,
+  serie_nome VARCHAR(200) NOT NULL,
+  valor_mensalidade NUMERIC(10, 2),
+  valor_matricula NUMERIC(10, 2),
+  valor_material NUMERIC(10, 2),
+  ano_vigencia INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE mensalidades_series
+  ADD CONSTRAINT uq_mensalidades_serie UNIQUE (escola_id, serie_slug, ano_vigencia);
+CREATE INDEX IF NOT EXISTS idx_mensalidades_series_escola ON mensalidades_series (escola_id, serie_slug);
+ALTER TABLE mensalidades_series ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Leitura publica" ON mensalidades_series FOR SELECT USING (true);
+CREATE POLICY "Usuarios autenticados inserem" ON mensalidades_series
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+GRANT SELECT ON mensalidades_series TO anon;
+GRANT SELECT, INSERT ON mensalidades_series TO authenticated;
+```
+
+### 5.6 Tabela `profiles` (~2 linhas)
+
+```sql
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  logradouro TEXT,
+  numero TEXT,
+  bairro TEXT,
+  cidade TEXT,
+  uf VARCHAR(2),
+  cep VARCHAR(9),
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  geom GEOMETRY(Point, 4326),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Usuarios veem seu proprio profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Usuarios inserem seu proprio profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Usuarios atualizam seu proprio profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Trigger insere profile" ON profiles FOR INSERT WITH CHECK (true); -- para trigger
+```
+
+### 5.7 VIEW `escolas`
 
 ```sql
 CREATE VIEW escolas WITH (security_invoker = true) AS
@@ -395,259 +427,326 @@ JOIN tb_cidades c ON c.id = r.cidade_id
 JOIN tb_estados e ON e.id = c.estado_id;
 ```
 
-**`security_invoker = true`** — importante para RLS (herda as permissões de quem consulta).
+`security_invoker = true` é CRÍTICO — herda RLS da tabela base.
 
-### 4.4 Índices
+### 5.8 Tabela `mensalidades` (LEGACY — 0 linhas usadas)
 
-| Índice | Tipo | Colunas |
-|--------|------|---------|
-| `escolas_pkey` | btree | id |
-| `escolas_codigo_inep_key` | btree UNIQUE | codigo_inep |
-| `idx_escolas_nome` | GIN (trgm) | nome |
-| `idx_escolas_uf` | btree | uf (legado — removido da raw table) |
-| `idx_escolas_municipio` | btree | municipio (legado) |
-| `idx_escolas_dependencia` | btree | dependencia_administrativa |
-| `idx_escolas_geom` | GIST | geom |
-| `idx_escolas_lat_lng` | btree | latitude, longitude |
-| `idx_escolas_raw_cidade_id` | btree | cidade_id |
-| `idx_tb_estados_uf` | btree UNIQUE | uf |
-| `idx_tb_cidades_estado_id_nome` | btree UNIQUE | (estado_id, nome) |
-| `idx_mensalidades_series_escola` | btree | (escola_id, serie_slug) |
+Tabela original, ainda existe mas não é mais consultada/inserida pelo app.
 
-### 4.5 RPC Functions
+---
 
-Todas as funções são `LANGUAGE SQL STABLE` (a menos que indicado).
+## 6. Migrations SQL (ordem de aplicação)
 
-| Nome | Parâmetros | Retorno | Descrição |
-|------|-----------|---------|-----------|
-| `get_ufs()` | — | `TABLE(uf VARCHAR)` | Lista UFs de tb_estados ordenadas por uf |
-| `get_cidades(p_uf)` | `p_uf VARCHAR` | `TABLE(municipio VARCHAR)` | Cidades de um estado ordenadas por nome |
-| `get_top_cidades(p_uf, p_limit)` | `VARCHAR, INTEGER DEFAULT 25` | `TABLE(municipio VARCHAR, total BIGINT)` | Top N cidades por qtd de escolas (exclui paralisadas) |
-| `buscar_cidades(p_termo)` | `p_termo VARCHAR` | `TABLE(cidade VARCHAR, uf VARCHAR)` | Busca cidades com unaccent ILIKE (limite 8) |
-| `buscar_escolas_com_precos_detalhado(p_uf, p_municipio, p_serie_slug, p_termo)` | 4× VARCHAR | `TABLE(id INT, nome VARCHAR, uf VARCHAR, municipio VARCHAR, bairro VARCHAR, dependencia_administrativa VARCHAR, categoria_administrativa VARCHAR, latitude NUMERIC, longitude NUMERIC, codigo_inep VARCHAR, series_precos JSON)` | Escolas de uma cidade com preços agregados. Exclui paralisadas. Filtro de etapa via ILIKE em etapas_modalidades |
-| `escolas_perto_de_mim(p_lat, p_lon, p_raio_km)` | `DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION DEFAULT 5` | `TABLE(id INT, nome TEXT, uf TEXT, municipio TEXT, bairro TEXT, dependencia_administrativa TEXT, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, distancia_km DOUBLE PRECISION)` | Escolas num raio com distância. Exclui paralisadas. Limite 30. Usa ST_DWithin + ST_Distance |
-| `escolas_no_mapa(p_min_lat, p_min_lon, p_max_lat, p_max_lon, p_center_lat, p_center_lon, p_limit)` | (bounds) | `TABLE(id INT, nome TEXT, uf TEXT, municipio TEXT, bairro TEXT, dependencia_administrativa TEXT, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, codigo_inep TEXT, series_precos JSON)` | Escolas em bounding box, ordenadas por distância ao centro |
-| `get_estatisticas_escola(p_escola_id)` | `INT` | estatísticas por série (médias/min/max + qtd) | Usada na página individual da escola |
-| `excluir_minha_conta()` | — | `void` | Anonimiza mensalidades + deleta auth.users. SECURITY DEFINER |
+### 6.1 `001_create_tables.sql`
 
-### 4.6 Filtro de etapa na RPC `buscar_escolas_com_precos_detalhado`
+Cria:
+- Extensões: `postgis`, `pg_trgm`
+- Tabela `escolas` (nome original, depois renomeada)
+- Tabela `mensalidades` (legacy)
+- Índices em escolas: `nome` (GIN trgm), `uf`, `municipio`, `dependencia`, `geom` (GIST)
+- RLS: SELECT público em escolas, SELECT/INSERT condicional em mensalidades
+- Trigger `update_updated_at_column()` para atualizar `updated_at` automaticamente
 
-O filtro por série usa ILIKE na coluna `etapas_modalidades` com mapeamento de slugs para grupos:
+### 6.2 `002_excluir_conta.sql`
 
+- Adiciona `user_id UUID REFERENCES auth.users` em mensalidades
+- Cria função `excluir_minha_conta()` (SECURITY DEFINER):
+  1. Verifica `auth.uid()` não nulo
+  2. Anonimiza mensalidades: `UPDATE mensalidades SET user_id = NULL WHERE user_id = uid`
+  3. Deleta `auth.users` (cascade deleta identidades, sessions)
+- Ajusta RLS de mensalidades
+
+### 6.3 `003_profiles_e_geo.sql`
+
+- Cria tabela `profiles`
+- Cria trigger `on_auth_user_created`:
+  ```sql
+  CREATE OR REPLACE FUNCTION handle_new_user()
+  RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+  BEGIN
+    INSERT INTO public.profiles (id) VALUES (NEW.id);
+    RETURN NEW;
+  END;
+  $$;
+  CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+  ```
+- RLS em profiles
+- Cria RPC `escolas_perto_de_mim` (primeira versão)
+- `GRANT EXECUTE ON FUNCTION escolas_perto_de_mim TO public`
+- `GRANT ALL ON profiles TO service_role`
+- `GRANT SELECT, INSERT, UPDATE ON profiles TO authenticated`
+
+### 6.4 `004_mensalidades_series.sql`
+
+- Cria tabela `mensalidades_series` (substitui mensalidades legacy)
+- UNIQUE(escola_id, serie_slug, ano_vigencia)
+- RLS: SELECT público, INSERT authenticated
+- GRANT: SELECT anon, SELECT+INSERT authenticated
+
+### 6.5 `006_normalizacao_estado_cidade.sql`
+
+**Essa migration é complexa. Executar na ordem correta:**
+
+1. Cria `tb_estados` e `tb_cidades`
+2. Popula `tb_estados` com DISTINCT uf de `escolas`
+3. Popula `tb_cidades` com DISTINCT municipio por estado
+4. Adiciona `cidade_id UUID FK → tb_cidades` em escolas
+5. Popula `cidade_id` via JOIN
+6. Renomeia `escolas` → `escolas_raw`
+7. Remove colunas `uf` e `municipio` de `escolas_raw`
+8. Cria VIEW `escolas` com `security_invoker = true`
+9. Recria RPCs: `get_ufs`, `get_cidades`, `get_top_cidades`, `buscar_escolas_com_precos_detalhado`
+10. Cria RPC `buscar_cidades` (unaccent ILIKE, limite 8)
+11. Adiciona extensão `unaccent` ao schema
+
+**RPC `buscar_escolas_com_precos_detalhado` — lógica de filtro de etapa:**
 ```sql
--- Educação Infantil
-p_serie_slug IN ('baba','maternal-1','maternal-2','maternal-3','pre-1','pre-2','pre-3')
-  → r.etapas_modalidades ILIKE '%Educa'||chr(231)||'ao Infantil%'
-
--- Ensino Fundamental I (1º ao 5º ano)
-p_serie_slug IN ('1-ano-fundamental',...,'5-ano-fundamental')
-  → r.etapas_modalidades ILIKE '%Ensino Fundamental%'
-
--- Ensino Fundamental II (6º ao 9º ano)
-p_serie_slug IN ('6-ano-fundamental',...,'9-ano-fundamental')
-  → r.etapas_modalidades ILIKE '%Ensino Fundamental%'
-
--- Ensino Médio
-p_serie_slug IN ('1-ano-ensino-medio','2-ano-ensino-medio','3-ano-ensino-medio')
-  → r.etapas_modalidades ILIKE '%Ensino M'||chr(233)||'dio%'
+AND ((p_serie_slug IS NULL OR p_serie_slug = '')
+  OR (p_serie_slug IN ('baba',...,'pre-3') AND r.etapas_modalidades ILIKE '%Educa'||chr(231)||'ao Infantil%')
+  OR (p_serie_slug IN ('1-ano-fundamental',...,'5-ano-fundamental') AND r.etapas_modalidades ILIKE '%Ensino Fundamental%')
+  OR (p_serie_slug IN ('6-ano-fundamental',...,'9-ano-fundamental') AND r.etapas_modalidades ILIKE '%Ensino Fundamental%')
+  OR (p_serie_slug IN ('1-ano-ensino-medio',...,'3-ano-ensino-medio') AND r.etapas_modalidades ILIKE '%Ensino M'||chr(233)||'dio%'))
 ```
 
-Nota: `chr(231)` = `ç`, `chr(233)` = `é`. Isso é necessário porque o PowerShell 5.1 corrompe UTF-8 em arquivos SQL.
+Nota: `chr(231)` = `ç`, `chr(233)` = `é` (workaround PowerShell 5.1).
+
+### 6.6 `007_filtrar_escolas_paralisadas.sql`
+
+Drop e recria 3 RPCs adicionando filtro de escola paralisada:
+
+**em `buscar_escolas_com_precos_detalhado`:**
+```sql
+AND (r.restricao_atendimento IS NULL OR r.restricao_atendimento != 'ESCOLA PARALISADA')
+```
+**em `escolas_perto_de_mim`:**
+```sql
+AND (e.restricao_atendimento IS NULL OR e.restricao_atendimento != 'ESCOLA PARALISADA')
+```
+**em `get_top_cidades`:**
+```sql
+AND (r.restricao_atendimento IS NULL OR r.restricao_atendimento != 'ESCOLA PARALISADA')
+```
 
 ---
 
-## 5. Rotas da aplicação
+## 7. Cliente Supabase — 3 Estratégias
 
-| Rota | Tipo | Server/Client | Descrição |
-|------|------|--------------|-----------|
-| `/` | Redirect | Server | `redirect("/busca")` |
-| `/busca` | Dinâmica | Server + Client | Tela principal de busca com filtros + mapa |
-| `/escola/[slug]` | Dinâmica | Server + Client | Página individual da escola com preços |
-| `/escolas/[uf]/[cidade]` | Dinâmica | Server | Página SEO com lista de escolas |
-| `/contribuir` | Dinâmica | Client | Formulário de contribuição de preços |
-| `/login` | Dinâmica | Client | Login |
-| `/cadastro` | Dinâmica | Client | Cadastro em 2 etapas |
-| `/recuperar-senha` | Dinâmica | Client | Recuperar senha |
-| `/alterar-senha` | Dinâmica | Client | Alterar senha |
-| `/perfil` | Dinâmica | Client | Perfil do usuário |
-| `/sobre` | Static | Server | Página institucional (sem fetch) |
-| `/sitemap.xml` | Dinâmico | Server | Sitemap XML com cidades + escolas |
+### 7.1 `src/lib/supabase.ts` — Cliente Browser e SSR simples
 
-### 5.1 Parâmetros de URL (`/busca`)
-
-| Parâmetro | Descrição | Default | Exemplo |
-|-----------|-----------|---------|---------|
-| `uf` | Sigla do estado | — | `SP` |
-| `cidade` | Nome da cidade | — | `São Paulo` |
-| `q` | Termo de busca (nome da escola) | — | `colegio` |
-| `serie` | Slug(s) da série (múltiplos separados por vírgula) | — | `1-ano-fundamental` |
-| `privada` | Mostrar privadas (`1` ou `0`) | `1` | `0` |
-| `publica` | Mostrar públicas (`1` ou `0`) | `1` | `0` |
-| `maxPrice` | Preço máximo | — | `2000` |
-| `lat` | Latitude (geolocalização) | — | `-23.5505` |
-| `lon` | Longitude (geolocalização) | — | `-46.6333` |
-| `map` | Modo mapa fullscreen (`1`) | — | `1` |
-
-### 5.2 Slug de escola
-
-Formato: `{codigo_inep}-{nome-slugified}`
-
-Exemplo: `35017352-colegio-turma-do-bola`
-
-**`makeEscolaSlug(codigoInep, nome)`** em `src/lib/utils.ts`:
-- Normaliza NFD, remove acentos, lowercases, substitui não-alfanuméricos por `-`, remove hífens das bordas
-
-**`parseEscolaSlug(slug)`** em `src/lib/utils.ts`:
-- Extrai apenas o `codigo_inep` via regex `^(\d+)`
-
----
-
-## 6. Componentes e sua responsabilidade
-
-### 6.1 `src/components/caixa-busca-localizacao.tsx` (601 linhas)
-
-**Responsabilidade:** Input de endereço com autocomplete multi-fonte.
-
-**Funcionamento detalhado:**
-
-1. Usuário digita no input
-2. Debounce de 300ms
-3. Se digitar ≥3 caracteres:
-   a. Se parece CEP (formato `NNNNN-NNN`): busca na **BrasilAPI** (`https://brasilapi.com.br/api/cep/v2/{cep}`)
-      - Retorna: logradouro, bairro, cidade, uf, lat/lon
-   b. Se parece endereço (contém "rua", "av", "avenida", número): busca na **LocationIQ** (`autocomplete` endpoint)
-      - Token: `NEXT_PUBLIC_LOCATIONIQ_TOKEN`
-      - Limite: 5 resultados
-      - País: Brasil
-      - Idioma: pt-br
-      - Retorna: logradouro, bairro, cidade, uf, lat/lon
-   c. Senão: busca cidades no **Supabase** via RPC `buscar_cidades` (unaccent ILIKE)
-      - Limite 8 resultados
-      - Retorna: cidade, uf
-   d. Também busca **estados localmente** (match no nome do estado ou sigla)
-
-4. Dropdown de sugestões com:
-   - Ícone por tipo (MapPin=cidade, Building=bairro, Home=logradouro, Hash=CEP)
-   - Navegação por teclado (setas + enter + escape)
-   - Clique fora fecha
-
-5. Botão **"Perto de mim"**:
-   - `navigator.geolocation.getCurrentPosition()`
-   - Reverse geocode via LocationIQ (`reverse` endpoint)
-   - Chama `onLocationChange` com lat/lon + cidade/uf
-
-6. **Props:**
-   - `onLocationChange(filtro: FiltroLocalizacao)` — callback quando local selecionado
-   - `onSelectSugestao?(sugestao)` — callback adicional
-   - `initialValue` — valor inicial
-   - `className` — classes CSS extras
-   - `iconOnlyGeo` — se true, esconde texto "Perto de mim" (mobile map mode)
-
-7. **FiltroLocalizacao (type):**
-   ```ts
-   { buscaRaw: string; cep?: string; logradouro?: string; bairro?: string; cidade?: string; uf?: string; latitude?: number; longitude?: number }
-   ```
-
-### 6.2 `src/components/searchable-select.tsx` (354 linhas)
-
-**Responsabilidade:** Select com autocomplete, bottom sheet (mobile) ou sidebar (desktop).
-
-**Modos:**
-- **Sheet (padrão):** bottom sheet em mobile (framer-motion, drag to dismiss), modal centralizado em desktop
-- **Sidebar:** sidebar animada que entra pela esquerda (mobile não usa este modo)
-
-**Funcionalidades:**
-- Input de busca com filtro (normaliza acentos)
-- Agrupamento por grupos (para séries de ensino)
-- `isMultiple`: checkbox (múltiplos) ou radio (único)
-- Opção "Todos" / "Todas as etapas"
-- No mode sidebar: botões "Aplicar Filtros" e "Limpar" (draft state)
-- No mode sheet: confirmação imediata
-
-**Props:**
 ```ts
-{ label: string; value: string; options?: string[]; series?: SerieItem[]; grupos?: string[]; onChange: (val: string) => void; placeholder?: string; disabled?: boolean; isMultiple?: boolean; position?: "sheet" | "sidebar" }
+import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+export function createServerClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 ```
 
-### 6.3 `src/components/mapa-escolas.tsx` (198 linhas)
+**`createClient()`** — para uso em componentes client-side:
+- Usa `@supabase/ssr` `createBrowserClient`
+- Gerencia cookies de sessão automaticamente
+- Usado em: BuscaContent, contribuir, login, cadastro, perfil, CaixaBuscaLocalizacao
 
-**Responsabilidade:** Mapa Leaflet com lazy import.
+**`createServerClient()`** — para Server Components que NÃO precisam de cookies:
+- Usa `@supabase/supabase-js` diretamente
+- Sem refresh de token, sem persistência de sessão
+- Usado em: escola/[slug]/page, escolas/[uf]/[cidade]/page, sitemap, footer
 
-**Funcionamento:**
-1. Lazy import dinâmico: `import("leaflet")` + `import("leaflet/dist/leaflet.css")`
-2. 5 layers de tile:
-   - "Padrão": OpenStreetMap
-   - "Satélite": Esri World Imagery
-   - "Terreno": OpenTopoMap
-   - "Claro": CARTO light
-   - "Escuro": CARTO dark
-3. Layer control no canto superior direito (colapsado)
-4. Marcadores: `L.circleMarker` com:
-   - Raio: 7 (normal) ou 10 (hovered)
-   - Cor: `#a855f7` (privada) ou `#34d399` (pública)
-   - Borda: `#222`, weight 1.5 (normal) ou 2.5 (hovered)
-   - Opacidade: 0.85 (normal) ou 1 (hovered)
-5. Tooltip permanente nos marcadores com preço (ex: "R$ 1.2k")
-6. Popup ao clicar: nome, bairro, preços agrupados, link "Ver detalhes"
-7. `syncMarkers()`:
-   - Limpa todos os marcadores
-   - Filtra por zoom (z≥14=9999, z≥12=50, z≥10=30, else 15)
-   - Ordena: com preço primeiro
-   - Atualiza bounds do mapa (`fitBounds` ou `setView` se 1 resultado)
-8. Pulse animation na localização do usuário (círculo pulsante radial)
-9. `onBoundsChange`: callback quando o mapa é movido (debounce via key hash)
+### 7.2 `src/lib/supabase-server.ts` — Cliente SSR com cache + timeout
 
-**Props:**
 ```ts
-{ escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; onBoundsChange?: (bounds: { minLat; minLon; maxLat; maxLon }) => void }
+import { createClient } from "@supabase/supabase-js";
+
+export function createServerClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: {
+        fetch: (url: RequestInfo | URL, init?: RequestInit) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10_000);
+          const combined = init?.signal
+            ? AbortSignal.any([init.signal, controller.signal])
+            : controller.signal;
+          return fetch(url, {
+            ...init,
+            signal: combined,
+            next: { revalidate: 86400 } as any,
+          }).finally(() => clearTimeout(timeoutId));
+        },
+      },
+    }
+  );
+}
 ```
 
-### 6.4 `src/components/tab-bar.tsx` (109 linhas)
-
-**Responsabilidade:** Navegação principal.
-
-**Desktop:** Sidebar fixa à esquerda (`w-16`, `fixed left-0 top-0 bottom-0`). Botões: Busca, Contribuir, Perfil. No final: Toggle tema, Mapa, Sobre, SHA do commit.
-
-**Mobile:** Bottom tab bar (`sticky bottom-0`). Botões: Busca, Contribuir, Perfil, Sobre, Mapa + Tema.
-
-**Escondida em:** rotas de auth (`/login`, `/cadastro`, `/recuperar-senha`, `/alterar-senha`).
-
-**Botão Mapa:** alterna `?map=1` na URL de busca.
-
-### 6.5 `src/components/toggle-tema.tsx` (26 linhas)
-
-**Responsabilidade:** Toggle dark/light mode via `next-themes`.
-- Botão: sol (dark→light) ou lua (light→dark)
-- Espaço reservado de 36×36px enquanto não montado (evita layout shift)
-
-### 6.6 `src/components/footer.tsx` (68 linhas)
-
-**Responsabilidade:** Footer com diretório de cidades.
-
-- Server Component assíncrono
-- Busca `get_top_cidades` para 6 UFs prioritárias: SP, RJ, MG, RS, PR, BA
-- Cache: 24h (usa `supabase-server.ts`)
-- Falha silenciosa se Supabase estiver lento (build não pode quebrar)
-- Layout grid: 2 colunas mobile, 6 desktop
+**Características:**
+- `next: { revalidate: 86400 }` — cache de 24h (essencial para plano Free)
+- `AbortController` timeout de 10s (evita build falhar se Supabase estiver lento)
+- Usado APENAS em: `busca/page.tsx`
 
 ---
 
-## 7. Tema (claro/escuro)
+## 8. Utilitários — slugify, séries, auth
 
-### 7.1 Configuração
+### 8.1 `src/lib/utils.ts`
 
-**Provider (`src/providers/theme-provider.tsx`):**
+```ts
+const lowercaseWords = new Set(["do", "dos", "da", "das", "de", "e", "em", "no", "na", "nos", "nas"]);
+
+export function slugify(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function makeEscolaSlug(codigoInep: string, nome: string): string {
+  return `${codigoInep}-${slugify(nome)}`;
+}
+
+export function parseEscolaSlug(slug: string): { codigoInep: string } | null {
+  const match = slug.match(/^(\d+)/);
+  if (!match) return null;
+  return { codigoInep: match[1] };
+}
+
+export function slugToCidade(slug: string): string {
+  const words = slug.split("-");
+  return words
+    .map((w, i) => {
+      if (i === 0) return w.charAt(0).toUpperCase() + w.slice(1);
+      if (lowercaseWords.has(w)) return w;
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
+    .join(" ");
+}
+```
+
+**`makeEscolaSlug`**: "35017352" + "Colégio Turma do Bola" → `"35017352-colegio-turma-do-bola"`
+**`parseEscolaSlug`**: extrai apenas o `codigo_inep` via regex `^(\d+)`
+**`slugToCidade`**: "sao-paulo" → "São Paulo" (respeita palavras minúsculas: "do", "dos", "da", "das", "de", "e", "em", "no", "na", "nos", "nas")
+**`slugify`**: NFD normalize → remove acentos → lowercase → substitui não-alfanuméricos por `-` → remove hífens das bordas
+
+### 8.2 `src/lib/series.ts`
+
+```ts
+export type Serie = { slug: string; nome: string; grupo: string };
+
+export const SERIES: Serie[] = [
+  // Educação Infantil
+  { slug: "baba", nome: "Berçário", grupo: "Educação Infantil" },
+  { slug: "maternal-1", nome: "Maternal I", grupo: "Educação Infantil" },
+  { slug: "maternal-2", nome: "Maternal II", grupo: "Educação Infantil" },
+  { slug: "maternal-3", nome: "Maternal III", grupo: "Educação Infantil" },
+  { slug: "pre-1", nome: "Pré I", grupo: "Educação Infantil" },
+  { slug: "pre-2", nome: "Pré II", grupo: "Educação Infantil" },
+  { slug: "pre-3", nome: "Pré III", grupo: "Educação Infantil" },
+  // Ensino Fundamental I
+  { slug: "1-ano-fundamental", nome: "1º Ano", grupo: "Ensino Fundamental I" },
+  { slug: "2-ano-fundamental", nome: "2º Ano", grupo: "Ensino Fundamental I" },
+  { slug: "3-ano-fundamental", nome: "3º Ano", grupo: "Ensino Fundamental I" },
+  { slug: "4-ano-fundamental", nome: "4º Ano", grupo: "Ensino Fundamental I" },
+  { slug: "5-ano-fundamental", nome: "5º Ano", grupo: "Ensino Fundamental I" },
+  // Ensino Fundamental II
+  { slug: "6-ano-fundamental", nome: "6º Ano", grupo: "Ensino Fundamental II" },
+  { slug: "7-ano-fundamental", nome: "7º Ano", grupo: "Ensino Fundamental II" },
+  { slug: "8-ano-fundamental", nome: "8º Ano", grupo: "Ensino Fundamental II" },
+  { slug: "9-ano-fundamental", nome: "9º Ano", grupo: "Ensino Fundamental II" },
+  // Ensino Médio
+  { slug: "1-ano-ensino-medio", nome: "1º Ano", grupo: "Ensino Médio" },
+  { slug: "2-ano-ensino-medio", nome: "2º Ano", grupo: "Ensino Médio" },
+  { slug: "3-ano-ensino-medio", nome: "3º Ano", grupo: "Ensino Médio" },
+];
+
+export const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
+
+export function getSerieBySlug(slug: string): Serie | undefined {
+  return SERIES.find((s) => s.slug === slug);
+}
+```
+
+4 grupos, 18 séries no total.
+
+### 8.3 `src/lib/auth-context.tsx`
+
 ```tsx
-<NextThemesProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+"use client";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "./supabase";
+
+type AuthContextType = { user: User | null; loading: boolean };
+
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user ?? null);
+      setLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  return (
+    <AuthContext.Provider value={{ user, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = () => useContext(AuthContext);
 ```
 
-**Regras:**
-- Tema escuro é o **padrão**
-- **Sem fallback para system preference** (`enableSystem={false}`)
-- Usa `attribute="class"` — tema alterado pela classe `dark` no `<html>`
-- Transição suave de 2s (definida no CSS)
+---
 
-### 7.2 Variáveis CSS (`src/app/globals.css`)
+## 9. Sistema de Tema (next-themes + Tailwind v4)
+
+### 9.1 Provider (`src/providers/theme-provider.tsx`)
+
+```tsx
+"use client";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+
+export default function ThemeProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
+      {children}
+    </NextThemesProvider>
+  );
+}
+```
+
+Configuração: classe `dark` no `<html>`, tema escuro padrão, sem fallback system.
+
+### 9.2 CSS (`src/app/globals.css`)
 
 ```css
 @import "tailwindcss";
@@ -668,281 +767,395 @@ Exemplo: `35017352-colegio-turma-do-bola`
   --color-text-tertiary: var(--color-text-tertiary);
   --color-bg: var(--color-bg);
 }
-```
 
-**Tema claro (`:root`):**
-- bg: `#f0f4f9`
-- surface: `#ffffff`
-- surface-hover: `#e9eef6`
-- border: `#e3e3e3`
-- text: `#1f1f1f`
-- text-secondary: `#474747`
-- text-tertiary: `#757575`
-- primary: `#1a73e8`
-- purple: `#9333ea`
-- coral: `#db2777`
-
-**Tema escuro (`.dark`):**
-- bg: `#131314`
-- surface: `#1e1f20`
-- surface-hover: `#282a2c`
-- border: `#3c4043`
-- text: `#e3e3e3`
-- text-secondary: `#c4c7c5`
-- text-tertiary: `#8e918f`
-- primary: `#a8c7fa`
-- purple: `#c084fc`
-- coral: `#f472b6`
-
-### 7.3 ⚠️ Regra CRÍTICA: Tailwind v4 + Turbopack bug
-
-**`text-[var(--color-*)]`** em className causa injeção de RSC payload no CSS e quebra o build.
-
-**NUNCA USE:**
-```tsx
-className="text-[var(--color-text)]"  // PROIBIDO
-className="bg-[var(--color-surface)]" // PROIBIDO
-className="shadow-[...]"              // EVITAR
-```
-
-**SEMPRE USE:**
-```tsx
-className="text-text"                 // CORRETO
-className="bg-surface"               // CORRETO
-className="border-border"            // CORRETO
-className="shadow-sm"                // CORRETO
-```
-
-**Sintomas do bug:**
-```
-Parsing CSS source code failed + self.__next_f.push
-```
-
-**Solução:** Remover todos os `text-[var(--color-*)]` do código e garantir que `@theme` use variáveis CSS corretamente.
-
-**Impacto:** `npm run dev` (Turbopack) frequentemente falha. **Para testar localmente:** use `npm run build && npm run start`.
-
----
-
-## 8. Autenticação
-
-### 8.1 Stack
-
-Supabase Auth (email/senha). Sem OAuth, sem magic link.
-
-### 8.2 Fluxo
-
-1. **Cadastro** (`/cadastro`): 2 etapas
-   - Etapa 1: email + senha → `supabase.auth.signUp()`
-   - Etapa 2 (opcional): endereço → `supabase.from("profiles").upsert()`
-   - Geocode do endereço via Nominatim (`https://nominatim.openstreetmap.org/search`)
-
-2. **Login** (`/login`): `supabase.auth.signInWithPassword()`
-
-3. **Recuperar senha** (`/recuperar-senha`): `supabase.auth.resetPasswordForEmail()` com redirect para `/alterar-senha`
-
-4. **Alterar senha** (`/alterar-senha`): `supabase.auth.updateUser()`
-
-5. **Logout**: `supabase.auth.signOut()`
-
-### 8.3 Middleware (`src/middleware.ts`)
-
-- `createServerClient` do `@supabase/ssr` com manipulação de cookies
-- Se usuário logado acessa `/login`, `/cadastro` ou `/recuperar-senha`: redirect para `/busca`
-- Matcher: todas as rotas exceto `_next/static`, `_next/image`, `favicon.ico`
-
-### 8.4 Auth Context (`src/lib/auth-context.tsx`)
-
-- `createContext<{ user: User | null; loading: boolean }>`
-- `AuthProvider`: useEffect com `supabase.auth.getUser()` + `onAuthStateChange`
-- Hook: `useAuth()`
-
-### 8.5 RLS e segurança
-
-- `mensalidades_series`: INSERT apenas authenticated, SELECT público
-- `profiles`: cada usuário vê apenas seu próprio perfil
-- Trigger `on_auth_user_created`: cria profile automaticamente no signup
-- `excluir_minha_conta()`: função SECURITY DEFINER que anonimiza mensalidades e deleta auth.users
-
----
-
-## 9. SEO e metadados
-
-### 9.1 `generateMetadata`
-
-Implementado em:
-- `/busca` (page.tsx): título dinâmico baseado em uf, cidade, query e série
-- `/escola/[slug]` (page.tsx): título com nome da escola + JSON-LD
-- `/escolas/[uf]/[cidade]` (page.tsx): título com nome da cidade + contagem de escolas
-
-### 9.2 JSON-LD
-
-Na página da escola (`/escola/[slug]/page.tsx`):
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "EducationalOrganization",
-  "name": "...",
-  "address": { "@type": "PostalAddress", ... },
-  "containsPlace": {
-    "@type": "Product",
-    "offers": { "@type": "AggregateOffer", "priceCurrency": "BRL" }
+@layer base {
+  :root {
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --color-bg: #f0f4f9;
+    --color-surface: #ffffff;
+    --color-surface-hover: #e9eef6;
+    --color-border: #e3e3e3;
+    --color-border-hover: #c7c7c7;
+    --color-text: #1f1f1f;
+    --color-text-secondary: #474747;
+    --color-text-tertiary: #757575;
+    --color-accent-primary: #1a73e8;
+    --color-accent-primary-hover: #1557b0;
+    --color-accent-purple: #9333ea;
+    --color-accent-coral: #db2777;
+    --color-accent-success: #137333;
+    --color-accent-danger: #c5221f;
+  }
+  .dark {
+    --color-bg: #131314;
+    --color-surface: #1e1f20;
+    --color-surface-hover: #282a2c;
+    --color-border: #3c4043;
+    --color-border-hover: #5f6368;
+    --color-text: #e3e3e3;
+    --color-text-secondary: #c4c7c5;
+    --color-text-tertiary: #8e918f;
+    --color-accent-primary: #a8c7fa;
+    --color-accent-primary-hover: #c2e7ff;
+    --color-accent-purple: #c084fc;
+    --color-accent-coral: #f472b6;
+    --color-accent-success: #6ee7b7;
+    --color-accent-danger: #f28b82;
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 2s cubic-bezier(0.4, 0, 0.2, 1),
+                color 2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 ```
 
-### 9.3 Sitemap (`/sitemap.ts`)
+**Animações customizadas no CSS:**
+- `slide-up`, `fade-in`, `bottom-sheet-in`, `bottom-sheet-out`
+- Classes utilitárias: `.animate-slide-up`, `.animate-slide-down`, `.animate-fade-in`, `.animate-bottom-sheet-in`
 
-Gera até ~49k URLs:
-1. URLs fixas: `/`, `/busca`
-2. URLs de cidade: `/escolas/{uf}/{cidade-slug}` — até 49.000
-3. URLs de escola: `/escola/{inep}-{slug}` — até 1.000 (limitado por performance)
+**Leaflet overrides:**
+- `.school-popup`: popup transparente com fundo vindo da variável CSS
+- `.price-tip`: tooltip com cor e borda do tema
 
-Usa `createServerClient()` (sem cache) para evitar stale data no sitemap.
+### 9.3 ⚠️ Regra CRÍTICA: Tailwind v4 + TurboPack Bug
+
+**NUNCA use** className com `text-[var(--color-*)]`, `bg-[var(--color-*)]`, `shadow-[...]`.
+Isso causa injeção de RSC payload no CSS e quebra o build.
+
+**SEMPRE use** as classes do `@theme`: `text-text`, `bg-surface`, `border-border`, `shadow-sm`.
+
+**Sintomas:** `Parsing CSS source code failed` + `self.__next_f.push`
+
+`npm run dev` (Turbopack) frequentemente falha.
+**Para testar localmente:** `npm run build && npm run start`.
 
 ---
 
-## 10. Comandos e scripts
+## 10. Middleware — refresh de sessão e redirect
 
-### 10.1 Comandos npm
+```tsx
+// src/middleware.ts
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-| Comando | Descrição | Notas |
-|---------|-----------|-------|
-| `npm run dev` | Servidor de desenvolvimento (Turbopack) | **Pode falhar** — ver bug do Tailwind v4 |
-| `npm run build` | Build de produção | Usar para testar localmente |
-| `npm run start` | Servidor de produção | Após build |
-| `npm run lint` | `next lint` | Verifica código |
-| `npm run import` | Importa CSV de escolas | Usa `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_KEY` |
-| `npm run migrate [file]` | Executa migration SQL | Usa `pg` direto (IPv6 workaround) |
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return req.cookies.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value);
+            res.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
 
-### 10.2 Script de importação (`scripts/import-csv.js`)
+  const { data: { user } } = await supabase.auth.getUser();
+  const authRoutes = ["/login", "/cadastro", "/recuperar-senha"];
+  const isAuthRoute = authRoutes.some((r) => req.nextUrl.pathname.startsWith(r));
 
-```bash
-npm run import
+  if (user && isAuthRoute) {
+    return NextResponse.redirect(new URL("/busca", req.url));
+  }
+  return res;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
 ```
 
-- Lê `Análise - Tabela da lista das escolas - Detalhado.csv`
-- Parseia com `csv-parse`
-- Batch de 200 registros
-- Upsert na tabela `escolas` (na época era escolas, hoje seria `escolas_raw`)
-- Conflito resolvido por `codigo_inep`
-- Gera `geom` (Point) a partir de lat/lng
-- Extrai bairro do endereço via regex
+**Funcionamento:**
+- Executa em TODAS as requisições (exceto static files)
+- Cria cliente SSR com manipulação de cookies
+- Se usuário logado acessa `/login`, `/cadastro`, `/recuperar-senha`: redirect para `/busca`
+- Matcher amplo: captura inclusive `/alterar-senha` (mas não faz redirect pois não está em `authRoutes`)
 
-### 10.3 Script de migration (`scripts/run-migration.js`)
+---
 
-```bash
-npm run migrate 006_normalizacao_estado_cidade.sql
+## 11. Layout Raiz e Providers
+
+```tsx
+// src/app/layout.tsx
+import type { Metadata } from "next";
+import "./globals.css";
+import { AuthProvider } from "@/lib/auth-context";
+import ThemeProvider from "@/providers/theme-provider";
+import TabBar from "@/components/tab-bar";
+import Footer from "@/components/footer";
+
+export const metadata: Metadata = {
+  title: "Mensalidade Justa",
+  description: "Busque escolas e compare mensalidades com transparência",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className="min-h-dvh md:pl-16">
+        <ThemeProvider>
+          <AuthProvider>
+            <div className="flex-1 flex flex-col">
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+            <TabBar />
+          </AuthProvider>
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
 ```
 
-- Resolve DNS via Google DNS (`8.8.8.8`) — **necessário porque IPv6 não funciona**
-- Conecta via `pg` Pool com SSL
-- Lê arquivo SQL de `supabase/migrations/` e executa statement por statement
-- Variáveis de ambiente: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+**Ordem dos providers:** ThemeProvider → AuthProvider
+**`md:pl-16`** no body: espaço para a sidebar (64px = 16 × 4) no desktop.
+**`suppressHydrationWarning`**: necessário para next-themes (classe `dark` no html).
 
 ---
 
-## 11. Migrations
+## 12. Rota Raiz (/) — redirect
 
-Arquivos em `supabase/migrations/`. **Ordem importa.**
+```tsx
+import { redirect } from "next/navigation";
 
-| Arquivo | Conteúdo |
-|---------|----------|
-| `001_create_tables.sql` | Extensões (postgis, pg_trgm), tabela `escolas`, tabela `mensalidades`, índices, RLS básico, trigger updated_at |
-| `002_excluir_conta.sql` | Coluna user_id em mensalidades, função `excluir_minha_conta()` (LGPD), ajuste de RLS |
-| `003_profiles_e_geo.sql` | Tabela `profiles`, trigger `on_auth_user_created`, RLS de profiles, função `escolas_perto_de_mim()` |
-| `004_mensalidades_series.sql` | Tabela `mensalidades_series` (substitui mensalidades legacy), RLS, unique constraint |
-| `006_normalizacao_estado_cidade.sql` | Tabelas `tb_estados` e `tb_cidades`, refactor: renomeia `escolas` → `escolas_raw`, adiciona `cidade_id`, cria VIEW `escolas`, recria RPCs |
-| `007_filtrar_escolas_paralisadas.sql` | Filtra escolas com `restricao_atendimento = 'ESCOLA PARALISADA'` em todas as RPCs |
-
-**Observação:** Não há migration 005 (pulado).
-
----
-
-## 12. Deploy (Vercel)
-
-- **Deploy automático** via GitHub (branch main)
-- **Variáveis de ambiente necessárias:**
-  - `NEXT_PUBLIC_SUPABASE_URL` — URL do projeto Supabase
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Chave anônima (pública)
-  - `NEXT_PUBLIC_LOCATIONIQ_TOKEN` — Token da API LocationIQ (autocomplete de endereço)
-- **Build pode falhar** se Server Component timeoutar — timeout 10s no `supabase-server.ts` evita isso
-- **Commit SHA** aparece no canto inferior da sidebar (via `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`)
-
----
-
-## 13. Problemas conhecidos e workarounds
-
-### 13.1 Turbopack + Tailwind v4 (CRÍTICO)
-
-Conforme seção 7.3. `npm run dev` frequentemente falha. **Sempre testar com `npm run build && npm run start`.**
-
-### 13.2 Windows PowerShell 5.1 + UTF-8
-
-PowerShell 5.1 corrompe UTF-8 ao escrever arquivos. Workarounds:
-- **Em JSX:** usar `{'\u00e7'}` (escape unicode) em vez de caracteres literais como `ç`
-- **Em SQL:** usar `chr(231)` para `ç`, `chr(233)` para `é`
-- **Em strings JS:** usar `String.fromCodePoint(n)` para emojis e caracteres especiais
-- **Exemplos:**
-  - `"P{'\u00fa'}blicas"` → "Públicas"
-  - `"Pre{'\u00e7'}os"` → "Preços"
-  - `"Informa{'\u00e7'}{'\u00e3'}o"` → "Informação"
-
-### 13.3 IPv6
-
-Conexão PostgreSQL direta (`pg`) não funciona desta rede porque o host `db.ijfwdtemkkoiombxtyip.supabase.co` só tem registro IPv6 e a rede local não roteia IPv6. O script `run-migration.js` contorna isso resolvendo o DNS explicitamente via Google DNS (`8.8.8.8`).
-
-### 13.4 Plano Free Supabase
-
-- 500MB de banco (escolas_raw já ocupa ~200MB com ~212k registros)
-- Conexões limitadas
-- CPU compartilhado
-- Queries lentas (>5s) podem timeoutar
-- **Cache via `next: { revalidate: 86400 }` é essencial** para rotas públicas
-
-### 13.5 `Remove-Item -Recurse -Force .next`
-
-Pode falhar com `EPERM`/`EBUSY` no Windows. Executar de novo que resolve.
-
----
-
-## 14. Especificações detalhadas de componentes
-
-### 14.1 `Series` (`src/lib/series.ts`)
-
-Catálogo de séries de ensino:
-
-```ts
-export type Serie = { slug: string; nome: string; grupo: string };
+export default function RootPage() {
+  redirect("/busca");
+}
 ```
 
-**Grupos e séries:**
+Redirect 307 (temporary) para `/busca`.
 
-| Grupo | Slugs |
-|-------|-------|
-| Educação Infantil | `baba`, `maternal-1`, `maternal-2`, `maternal-3`, `pre-1`, `pre-2`, `pre-3` |
-| Ensino Fundamental I | `1-ano-fundamental` a `5-ano-fundamental` |
-| Ensino Fundamental II | `6-ano-fundamental` a `9-ano-fundamental` |
-| Ensino Médio | `1-ano-ensino-medio` a `3-ano-ensino-medio` |
+---
 
-**Funções:**
-- `getSerieBySlug(slug)` → `Serie | undefined`
+## 13. Rota de Busca (/busca) — Server Component
 
-### 14.2 `utils` (`src/lib/utils.ts`)
+### `src/app/busca/page.tsx`
 
-```ts
-slugify(text)           // "Colégio Turma do Bola" → "colegio-turma-do-bola"
-makeEscolaSlug(codInep, nome) // "35017352-colegio-turma-do-bola"
-parseEscolaSlug(slug)   // → { codigoInep: "35017352" }
-slugToCidade(slug)      // "sao-paulo" → "São Paulo" (capitaliza com exceções)
+```tsx
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { createServerClient } from "@/lib/supabase-server";
+import { getSerieBySlug } from "@/lib/series";
+import BuscaContent from "./busca-content";
+import type { EscolaResult } from "./busca-results";
 ```
 
-**`slugToCidade`** respeita palavras minúsculas: "do", "dos", "da", "das", "de", "e", "em", "no", "na", "nos", "nas".
+**Função `filtrar(data, showPrivada, showPublica, maxPrice)` — filtragem server-side:**
+```tsx
+function filtrar(data: any[], showPrivada: boolean, showPublica: boolean, maxPrice: number | null): EscolaResult[] {
+  let filtrado = [...data];
+  if (showPrivada && !showPublica) {
+    filtrado = filtrado.filter((e) => e.dependencia_administrativa === "Privada");
+  } else if (showPublica && !showPrivada) {
+    filtrado = filtrado.filter((e) => e.dependencia_administrativa !== "Privada");
+  } else if (!showPrivada && !showPublica) {
+    filtrado = [];
+  }
+  if (maxPrice != null && !isNaN(maxPrice)) {
+    filtrado = filtrado.filter((e) => {
+      const series = e.series_precos as Array<{ valor_mensalidade: number | null }>;
+      if (!series || series.length === 0) return true;
+      return series.some((s) => s.valor_mensalidade == null || s.valor_mensalidade <= maxPrice);
+    });
+  }
+  return filtrado as EscolaResult[];
+}
+```
 
-### 14.3 `EscolaResult` type (`src/app/busca/busca-results.tsx`)
+**`generateMetadata` — SEO dinâmico:**
+- Monta title a partir de uf, cidade, query (q), serie
+- Se cidade+uf: "Mensalidades Escolares em {cidade}/UF"
+- Se UF: "Escolas em UF"
+- Senão: "Buscar Escolas e Comparar Mensalidades"
+- Description: genérica ou específica para cidade
 
-```ts
-type EscolaResult = {
+**`BuscaPage` — Server Component:**
+```tsx
+export default async function BuscaPage({ searchParams }) {
+  const params = await searchParams;
+  const uf = (params.uf as string) ?? "";
+  const cidade = (params.cidade as string) ?? "";
+  const query = (params.q as string) ?? "";
+  const serie = (params.serie as string) ?? "";
+  const showPrivada = params.privada !== "0";
+  const showPublica = params.publica !== "0";
+  const maxPriceStr = (params.maxPrice as string) ?? "";
+  const maxPrice = maxPriceStr ? Number(maxPriceStr) : null;
+
+  const supabase = createServerClient(); // com cache 24h + timeout 10s
+
+  // Parallel fetch de UFs e cidades
+  const [{ data: ufsData }, { data: cidadesData }] = await Promise.all([
+    supabase.rpc("get_ufs"),
+    uf ? supabase.rpc("get_cidades", { p_uf: uf }) : Promise.resolve({ data: null }),
+  ]);
+
+  // Fetch de resultados se UF+cidade definidos
+  let resultados: EscolaResult[] | null = null;
+  if (uf && cidade) {
+    const { data } = await supabase.rpc("buscar_escolas_com_precos_detalhado", {
+      p_uf: uf, p_municipio: cidade, p_serie_slug: serie || null, p_termo: query || null,
+    });
+    if (data) resultados = filtrar(data, showPrivada, showPublica, maxPrice);
+  }
+
+  return (
+    <Suspense fallback={<div>Iniciando...</div>}>
+      <BuscaContent ufs={ufs} cidades={cidades} resultados={resultados} />
+    </Suspense>
+  );
+}
+```
+
+---
+
+## 14. Rota de Busca — Client Component (BuscaContent)
+
+**Local:** `src/app/busca/busca-content.tsx` (729+ linhas completas no código fonte)
+
+### Props
+
+```tsx
+type Props = { ufs: string[]; cidades: string[]; resultados: EscolaResult[] | null };
+```
+
+### Estado gerenciado
+
+| Variável | Tipo | Inicialização | Descrição |
+|----------|------|---------------|-----------|
+| `localQuery` | string | URL param `q` | Input de busca por nome |
+| `suggestions` | array | [] | Sugestões de autocomplete |
+| `ufs` | string[] | initialUfs | Lista de UFs |
+| `cidades` | string[] | initialCidades | Lista de cidades |
+| `userLocation` | `{lat,lon}\|null` | null | Localização do usuário |
+| `geoLoading` | boolean | false | Loading da geolocalização |
+| `geoError` | string | "" | Erro de geolocalização |
+| `hoveredId` | number\|null | null | ID da escola em hover |
+| `navTick` | number | 0 | Trigger para re-render após navegação |
+| `filtroLoc` | `FiltroLocalizacao\|null` | null | Filtro de localização do CaixaBusca |
+| `resultadosCoordenadas` | `EscolaResult[]\|null` | null | Resultados por coordenadas (geoloc/mapa) |
+| `carregandoCoordenadas` | boolean | false | Loading de busca por coordenadas |
+| `mapCenter` | `{lat,lon}\|null` | null | Centro do mapa |
+
+### Valores derivados de URL params
+
+```tsx
+const uf = filtroLoc?.uf ?? searchParams.get("uf") ?? "";
+const cidade = filtroLoc?.cidade ?? searchParams.get("cidade") ?? "";
+const serieSlug = searchParams.get("serie") ?? "";
+const showPrivada = searchParams.get("privada") !== "0";
+const showPublica = searchParams.get("publica") !== "0";
+const showMap = searchParams.get("map") === "1";
+const temBusca = !!(uf && cidade) || !!resultadosCoordenadas;
+```
+
+### Funções principais
+
+**`readParam(key)`** — lê URL param, com fallback para `window.location.search` no client
+
+**`updateFilters(updates)`** — atualiza URL params via `router.replace`
+
+**`handleLocationChange(filtro)`** — 3 fluxos:
+1. Se `filtro.latitude` + `filtro.longitude`: chama `escolas_perto_de_mim` (map center)
+2. Se `filtro.cidade` + `filtro.uf`: navega para `/busca?uf=X&cidade=Y` (server fetch)
+3. Se `filtro.buscaRaw`: tenta RPC `buscar_cidades`, se falhar, busca por nome (`q`)
+
+**`dadosExibir` (useMemo)** — pipeline de filtragem:
+1. Base = `resultadosCoordenadas ?? resultados`
+2. Filtro privada/pública
+3. Filtro de etapa (serieSlug):
+   - Split por vírgula para múltiplas séries
+   - Mapeia slug → grupo → busca ILIKE em `etapas_modalidades`
+   - Ex: "1-ano-fundamental" → grupo "Ensino Fundamental I" → busca "ensino fundamental"
+   - Ex: "baba" → grupo "Educação Infantil" → busca "educação infantil"
+
+**`sortResults`** — ordena por distância (haversine se userLocation disponível)
+
+### Efeitos
+
+1. **Popstate listener**: sincroniza `localQuery` com URL ao navegar (back/forward)
+2. **InitialUfs/InitialCidades**: atualiza se props mudarem
+3. **Busca por URL (lat/lon)**: se URL tem `lat`/`lon`, chama `escolas_perto_de_mim`
+4. **Geolocalização automática**: se mapa aberto sem busca, tenta `navigator.geolocation`
+5. **Debounce de busca por nome**: 500ms, atualiza URL param `q`
+6. **Autocomplete de escola**: 500ms, `supabase.from("escolas").select(...).ilike("nome", "%q%").limit(6)`
+7. **Click outside**: fecha sugestões de autocomplete
+
+### Layout
+
+**Mobile (`md:hidden`):**
+- Modo normal: header + inputs + resultados (stacked)
+- Modo mapa (`?map=1`): mapa fullscreen com controles sobrepostos
+
+**Desktop (`hidden md:flex`):**
+- Modo normal: centralizado (max-w-2xl para inputs, max-w-6xl para resultados)
+- Modo mapa: mapa fullscreen com painel à esquerda (w-96)
+
+**Shadow Content SEO (sr-only):**
+
+```tsx
+<SchemaEscolas escolas={dadosExibir || []} />
+
+<section aria-label="Diretório de Escolas para Motores de Busca" className="sr-only">
+  <ul>
+    {(dadosExibir || []).map((escola) => (
+      <li key={escola.id}>
+        <article>
+          <h2>{escola.nome}</h2>
+          <p>{escola.bairro
+            ? `Localizada no bairro ${escola.bairro}, na cidade de ${escola.municipio} - ${escola.uf}.`
+            : `Localizada na cidade de ${escola.municipio} - ${escola.uf}.`}</p>
+          <p>Tipo de instituição: Escola {escola.dependencia_administrativa}.</p>
+          {escola.series_precos && escola.series_precos.length > 0 && (
+            <ul>
+              {escola.series_precos.map((sp) => (
+                <li key={sp.serie_slug}>
+                  Série: {sp.serie_nome}
+                  {sp.valor_mensalidade != null
+                    ? ` - Mensalidade: R$ ${sp.valor_mensalidade.toFixed(2).replace(".", ",")}`
+                    : " - Mensalidade: não informada"}
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      </li>
+    ))}
+  </ul>
+</section>
+```
+
+---
+
+## 15. BuscaResults — Cards de Escola
+
+**Local:** `src/app/busca/busca-results.tsx`
+
+### Types
+
+```tsx
+export type SeriePreco = {
+  serie_slug: string;
+  serie_nome: string;
+  valor_mensalidade: number | null;
+  valor_matricula: number | null;
+  valor_material: number | null;
+  qtd: number;
+};
+
+export type EscolaResult = {
   id: number;
   nome: string;
   uf: string;
@@ -952,123 +1165,311 @@ type EscolaResult = {
   latitude: number | null;
   longitude: number | null;
   codigo_inep: string;
-  series_precos: SeriePreco[];       // preços agregados
+  series_precos: SeriePreco[];
   distancia_km?: number;
   etapas_modalidades?: string | null;
 };
-
-type SeriePreco = {
-  serie_slug: string;
-  serie_nome: string;
-  valor_mensalidade: number | null;
-  valor_matricula: number | null;
-  valor_material: number | null;
-  qtd: number;  // número de contribuições
-};
 ```
 
-### 14.4 `SearchableSelect` — comportamento detalhado
+### Estutura do Card
 
-**Modo sheet (padrão):**
-- Mobile: bottom sheet que cobre 90dvh, drag para fechar (framer-motion)
-- Desktop: modal centralizado (max-w-lg)
-- Input de busca com filtro
-- Seleção é imediata (onChange chamado na hora)
-- Múltiplo: checkbox. Único: radio.
-
-**Modo sidebar:**
-- Sidebar fixa à esquerda (desktop only, `left-16`)
-- Botões "Aplicar Filtros" e "Limpar" (draft state)
-- Seleção é em draft até aplicar
-
-### 14.5 `CaixaBuscaLocalizacao` — comportamento detalhado
-
-**Fontes de dados (em ordem de prioridade):**
-1. **CEP** (se input corresponde a `NNNNN-NNN`): BrasilAPI
-2. **LocationIQ autocomplete** (se parece endereço): API externa
-3. **Supabase RPC `buscar_cidades`** (fallback): busca cidades
-4. **Match local de estados**: match por nome do estado ou sigla
-
-**LocationIQ:**
-- Autocomplete: `https://api.locationiq.com/v1/autocomplete?key={token}&q={query}&limit=5&countrycodes=br&accept-language=pt-br`
-- Reverse: `https://api.locationiq.com/v1/reverse?key={token}&lat={lat}&lon={lon}&format=json&accept-language=pt-br`
-
-**BrasilAPI:**
-- CEP: `https://brasilapi.com.br/api/cep/v2/{cep}`
-
-### 14.6 `BuscaContent` — estado e comportamento
-
-**Estado gerenciado via URL params (useSearchParams + router.replace):**
-- `uf`, `cidade`, `q`, `serie`, `privada`, `publica`, `maxPrice`, `lat`, `lon`, `map`
-
-**Busca de escola por nome (autocomplete):**
-```ts
-supabase.from("escolas")
-  .select("id, nome, municipio, uf, codigo_inep")
-  .ilike("nome", `%${query}%`)
-  .order("nome")
-  .limit(6)
-```
-
-**Filtro de etapa (client-side) — `dadosExibir` (useMemo):**
-```ts
-// slug "1-ano-fundamental" → grupo "Ensino Fundamental I"
-// → busca "ensino fundamental" na coluna etapas_modalidades
-const slugToGrupo = new Map(SERIES.map(s => [s.slug, s.grupo]));
-const gruposSelecionados = slugs.map(s => slugToGrupo.get(s));
-filtrado = filtrado.filter(e => {
-  if (!e.etapas_modalidades) return false;
-  const etapas = e.etapas_modalidades.toLowerCase();
-  return gruposSelecionados.some(g => {
-    if (g.startsWith("ensino fundamental")) return etapas.includes("ensino fundamental");
-    if (g.startsWith("educação infantil")) return etapas.includes("educação infantil");
-    if (g.startsWith("ensino médio")) return etapas.includes("ensino médio");
-    return etapas.includes(g);
-  });
-});
-```
-
-**Ordenação (`sortResults`):**
-1. Calcula distância via haversine (se userLocation disponível)
-2. Ordena por distância crescente
-
-### 14.7 `BuscaResults` — cards de escola
-
-**Estrutura do card:**
-- Indicador lateral: 5px roxo (privada) ou verde (pública)
-- Nome da escola (h2)
-- Distância (se disponível): "350m" ou "1.2 km"
+- Indicador lateral: 5px roxo (`bg-purple-500`) para privada, verde (`bg-success`) para pública
+- Nome da escola (`<h2>`)
+- Distância (se disponível): "< 1km → Xm", "≥ 1km → X.X km"
 - Preços:
-  - Se série específica: mostra preço da série
-  - Se todas: mostra min-max por grupo com qtd de contribuições
+  - Se `serieSlug` específica: mostra preço da série selecionada
+  - Se todas as séries: agrupa por grupo (Infantil, Fundamental I/II, Médio), mostra min-max + qtd contribuições
   - Pública sem preço: "Gratuito"
-  - Privada sem preço: "Sem mensalidades ainda"
+  - Privada sem preço: "Sem mensalidades ainda. Cadastre a sua..."
 - Botões (apenas privadas):
-  - "Contribuir" → `/contribuir?escola={inep}`
+  - "Contribuir" → `/contribuir?escola={codigo_inep}`
   - "Convidar" → WhatsApp share (texto personalizado)
-- Hover: destaca no mapa (via `hoveredId`)
 
-### 14.8 `MapaEscolas` — detalhes de renderização
+### Hover no mapa
 
-**Marcadores com preço (tooltip):**
-```ts
-if (preco) {
-  m.bindTooltip(`<span style="color:var(--color-price-text);font-weight:700;font-size:11px">${preco}</span>`, {
-    permanent: true, direction: "top", className: "price-tip"
-  });
-  m.on("popupopen", () => { m.closeTooltip(); });
-  m.on("popupclose", () => { m.bindTooltip(...); });
+```tsx
+onMouseEnter={() => onHover?.(escola.id)}
+onMouseLeave={() => onHover?.(null)}
+```
+
+Sincroniza com `hoveredId` no BuscaContent e no MapaEscolas.
+
+---
+
+## 16. CaixaBuscaLocalizacao — Input de Endereço
+
+**Local:** `src/components/caixa-busca-localizacao.tsx` (~620 linhas completas)
+
+### Tipos
+
+```tsx
+export interface SugestaoLocalizacao {
+  id: string;
+  textoExibicao: string;
+  tipo: "bairro" | "cidade" | "logradouro" | "cep";
+  bairro?: string;
+  cidade: string;
+  uf: string;
+  cep?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface FiltroLocalizacao {
+  buscaRaw: string;
+  cep?: string;
+  logradouro?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+  latitude?: number;
+  longitude?: number;
 }
 ```
 
-**Popup ao clicar:**
-- Nome da escola (negrito)
-- Bairro
-- Preços por grupo (Educação Infantil, Fundamental I/II, Médio) com min-max
-- Link "Ver detalhes" → `/escola/{slug}` (target _blank)
+### Constantes
 
-**Pulse animation:**
-```ts
+```tsx
+const CEP_REGEX = /^(\d{5})-?(\d{3})$/;
+const FETCH_TIMEOUT_MS = 3000;
+
+function fetchComTimeout(input, init?): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+
+const ESTADO_UF: Record<string, string> = {
+  "acre": "AC", "alagoas": "AL", "amapa": "AP", /* ... 27 estados */
+};
+
+function normalizarUf(valor: string): string {
+  if (!valor) return "";
+  const upper = valor.toUpperCase();
+  if (upper.length === 2 && /^[A-Z]{2}$/.test(upper)) return upper;
+  return ESTADO_UF[/* normalize NFD */] || valor.toUpperCase().slice(0, 2);
+}
+```
+
+### Fluxo de busca
+
+```tsx
+async function buscar(query: string) {
+  const requestId = ++reqIdRef.current;
+  const cepMatch = trimmed.match(CEP_REGEX);
+  if (cepMatch) {
+    await buscarCep(cepLimpo, requestId);
+  } else if (trimmed.length >= 3) {
+    await buscarLocationIQ(trimmed, requestId);
+  }
+}
+```
+
+**`buscarCep`** — `fetchComTimeout` para BrasilAPI:
+```tsx
+const res = await fetchComTimeout(`https://brasilapi.com.br/api/cep/v2/${cep}`);
+```
+- Se falhar/timeout: fallback para `buscarCidadesFallback(cep, results, vistos)`
+
+**`buscarLocationIQ`** — `fetchComTimeout` para LocationIQ:
+```tsx
+const url = `https://api.locationiq.com/v1/autocomplete?key=${token}&q=${encodeURIComponent(termo)}&limit=5&countrycodes=br&accept-language=pt-br`;
+const res = await fetchComTimeout(url);
+```
+- Se falhar: fallback silencioso para `buscarCidadesFallback`
+- **SEMPRE** executa `buscarCidadesFallback` ao final para complementar resultados
+
+**`buscarCidadesFallback`** — RPC Supabase:
+```tsx
+const { data: cidades } = await supabase.rpc("buscar_cidades", { p_termo: termo });
+```
+
+**`buscarEstadosLocal`** — match local por nome do estado:
+```tsx
+for (const [uf, nomeCompleto] of Object.entries(ESTADO_NOME)) { ... }
+```
+
+### Botão "Perto de mim"
+
+```tsx
+async function buscarPertoDeMim() {
+  const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true, timeout: 10000, maximumAge: 60000,
+    });
+  });
+  // Reverse geocode via LocationIQ (com fetchComTimeout)
+  const res = await fetchComTimeout(`https://api.locationiq.com/v1/reverse?key=${token}&lat=${lat}&lon=${lon}&format=json&accept-language=pt-br`);
+  // Chama onLocationChange com lat/lon + cidade/uf
+}
+```
+
+### Props do componente
+
+```tsx
+interface CaixaBuscaLocalizacaoProps {
+  onLocationChange: (filtro: FiltroLocalizacao) => void;
+  onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
+  initialValue?: string;
+  className?: string;
+  iconOnlyGeo?: boolean;  // se true, esconde texto "Perto de mim" no botão
+}
+```
+
+---
+
+## 17. SearchableSelect — Select com Bottom Sheet
+
+**Local:** `src/components/searchable-select.tsx` (354 linhas)
+
+### Props
+
+```tsx
+type Props = {
+  label: string;
+  value: string;
+  options?: string[];
+  series?: SerieItem[];
+  grupos?: string[];
+  onChange: (val: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  isMultiple?: boolean;
+  position?: "sheet" | "sidebar";
+};
+```
+
+### Modos
+
+**Sheet (padrão):**
+- Mobile: bottom sheet (framer-motion, 90dvh, drag to dismiss)
+- Desktop: modal centralizado (max-w-lg)
+- Overflow: hidden no body quando aberto
+- Input de busca com debounce
+
+**Sidebar (desktop apenas):**
+- Sidebar fixa (`left-16`, w-80)
+- Botões "Aplicar Filtros" e "Limpar" (draft state)
+- Overlay semi-transparente
+
+### Funcionamento
+
+```tsx
+function handleSelect(val: string) {
+  if (sidebar) {
+    // Modo draft: modifica draftValue (precisa aplicar)
+  } else {
+    // Modo imediato: chama onChange direto
+  }
+}
+```
+
+- Suporta `isMultiple`: checkbox (múltiplo) ou radio (único)
+- Opção "Todos" / "Todas as etapas"
+- Agrupa séries por grupo (Educação Infantil, Fundamental I/II, Médio)
+
+### Animações (framer-motion)
+
+```tsx
+const sheetVariants = {
+  hidden: { y: "100%" },
+  visible: { y: 0, transition: { type: "spring", damping: 25, stiffness: 200 } },
+  exit: { y: "100%", transition: { type: "spring", damping: 20, stiffness: 200 } },
+};
+```
+
+---
+
+## 18. MapaEscolas — Leaflet Map
+
+**Local:** `src/components/mapa-escolas.tsx` (198 linhas)
+
+### Lazy Import (CRÍTICO)
+
+```tsx
+useEffect(() => {
+  if (!el.current || state.current) return;
+  (async () => {
+    const mod = await import("leaflet");
+    await import("leaflet/dist/leaflet.css");
+    const L = mod.default || mod;
+    // ...
+  })();
+}, []);
+```
+
+Leaflet é importado dinamicamente APENAS no client-side, nunca no server.
+
+### Inicialização
+
+```tsx
+const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
+```
+
+View inicial: centro do Brasil, zoom 4.
+
+### Tiles
+
+5 opções com layer control (colapsado, canto superior direito):
+
+| Nome | URL |
+|------|-----|
+| Padrão | OpenStreetMap |
+| Satélite | Esri World Imagery |
+| Terreno | OpenTopoMap |
+| Claro | CARTO light_all |
+| Escuro | CARTO dark_all |
+
+### Marcadores
+
+```tsx
+for (const e of selecionadas) {
+  const color = priv ? "#a855f7" : "#34d399"; // roxo = privada, verde = pública
+  const m = L.circleMarker(p, {
+    radius: h ? 10 : 7,
+    fillColor: color,
+    color: "#222",
+    weight: h ? 2.5 : 1.5,
+    fillOpacity: h ? 1 : 0.85,
+  });
+  m.bindPopup(`...html com nome, preços, link...`);
+  if (preco) {
+    m.bindTooltip(`<span>${preco}</span>`, { permanent: true, direction: "top", className: "price-tip" });
+  }
+  markers.addLayer(m);
+}
+```
+
+### Tooltip de preço (permanente)
+
+- Exibido apenas para privadas com preço
+- Formato: "R$ 1.2k" (se ≥ 1000) ou "R$ 1200" (se < 1000)
+- Escondido ao abrir popup, restaurado ao fechar
+
+### Popup (ao clicar)
+
+- Conteúdo HTML inline com nome, bairro, preços por grupo, link "Ver detalhes"
+- Usa `school-popup` className para CSS theme-aware
+
+### Limite de marcadores por zoom
+
+```tsx
+const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
+```
+
+### Ordenação de marcadores
+
+Com preço primeiro, depois sem preço:
+```tsx
+const comPreco = todas.filter((e) => priv && mediaPreco(e, serieSlug));
+const semPreco = todas.filter((e) => !priv || !mediaPreco(e, serieSlug));
+const ordenadas = [...comPreco, ...semPreco];
+```
+
+### Pulse animation (localização do usuário)
+
+```tsx
 let r = 14;
 const int = setInterval(() => {
   r += 0.5;
@@ -1078,121 +1479,640 @@ const int = setInterval(() => {
 }, 40);
 ```
 
+### mapCenter effect
+
+```tsx
+useEffect(() => {
+  if (!mapCenter || !state.current) return;
+  state.current.map.setView([mapCenter.lat, mapCenter.lon], 14, { animate: true });
+}, [mapCenter]);
+```
+
+### onBoundsChange
+
+Dispara `onBoundsChange` quando o mapa é movido (debounce via hash de bounds).
+Não dispara se um popup estiver aberto.
+
 ---
 
-## 15. Especificações detalhadas de páginas
+## 19. SchemaEscolas — JSON-LD Dinâmico
 
-### 15.1 Página da escola (`/escola/[slug]`)
+**Local:** `src/components/schema-escolas.tsx`
 
-**Server Component (`page.tsx`):**
-1. Parseia slug → codigo_inep
+```tsx
+type SeriePreco = {
+  serie_slug: string;
+  serie_nome: string;
+  valor_mensalidade: number | null;
+  valor_matricula: number | null;
+  valor_material: number | null;
+  qtd: number;
+};
+
+type Escola = {
+  id: number;
+  nome: string;
+  uf: string;
+  municipio: string;
+  bairro: string | null;
+  dependencia_administrativa: string;
+  codigo_inep: string;
+  series_precos: SeriePreco[];
+};
+
+type Props = { escolas: Escola[] };
+```
+
+**Função `calcularPriceRange`:**
+```tsx
+function calcularPriceRange(escola: Escola): string {
+  const precos = escola.series_precos
+    .map((s) => s.valor_mensalidade)
+    .filter((v): v is number => v != null);
+  if (precos.length === 0) return "BR-BRL 0-0";
+  const min = Math.min(...precos);
+  const max = Math.max(...precos);
+  return `BR-BRL ${Math.round(min)}-${Math.round(max)}`;
+}
+```
+
+**Schema gerado:**
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "School",
+        "name": "Nome da Escola",
+        "address": { "@type": "PostalAddress", "addressLocality": "Cidade", "addressRegion": "UF", "streetAddress": "Bairro", "addressCountry": "BR" },
+        "priceRange": "BR-BRL 1100-1500"
+      }
+    }
+  ]
+}
+```
+
+Renderizado no BuscaContent imediatamente antes do shadow content sr-only.
+
+---
+
+## 20. Página da Escola (/escola/[slug])
+
+### Server Component (`escola/[slug]/page.tsx`)
+
+**Função `getEscola(slug)`:**
+1. `parseEscolaSlug(slug)` → extrai `codigo_inep`
 2. Busca escola: `supabase.from("escolas").select("...").eq("codigo_inep", codigoInep).single()`
-   - Seleciona: id, nome, uf, municipio, bairro, endereco, telefone, dependencia_administrativa, categoria_administrativa, categoria_escola_privada, localizacao, localidade_diferenciada, porte_escola, etapas_modalidades, outras_ofertas, conveniada_poder_publico, regulamentacao_conselho, latitude, longitude, restricao_atendimento, codigo_inep
-3. Busca estatísticas: `get_estatisticas_escola(p_escola_id)`
-4. Retorna 404 se não encontrada
-5. Gera JSON-LD (Schema.org EducationalOrganization + AggregateOffer)
-6. Renderiza `<EscolaDetalhe>`
+3. Busca estatísticas: `supabase.rpc("get_estatisticas_escola", { p_escola_id })`
+4. Retorna null se não encontrada (→ `notFound()`)
 
-**Client Component (`escola-detalhe.tsx`):**
-- Botão "Voltar" (router.back())
-- Nome + localização
-- Se privada:
-  - Tabela de preços por série (grupos agrupados)
-  - Colunas: Série, Qtd, Mín, Média, Máx
-  - Se sem preços: "Seja o primeiro a contribuir" + "Convidar" (WhatsApp)
-- Se pública: "Escola pública gratuita"
-- Informações da escola em grid 2 colunas
-- Mapa embutido (iframe OpenStreetMap)
-- Componente WhatsAppShare para campanha de compartilhamento
+**Colunas selecionadas da VIEW `escolas`:**
+```ts
+"id, nome, uf, municipio, bairro, endereco, telefone, dependencia_administrativa, categoria_administrativa, categoria_escola_privada, localizacao, localidade_diferenciada, porte_escola, etapas_modalidades, outras_ofertas, conveniada_poder_publico, regulamentacao_conselho, latitude, longitude, restricao_atendimento, codigo_inep"
+```
 
-### 15.2 Listagem SEO (`/escolas/[uf]/[cidade]`)
+**JSON-LD (Schema.org):**
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  "name": "...",
+  "address": { "@type": "PostalAddress", ... },
+  "containsPlace": {
+    "@type": "Product",
+    "offers": { "@type": "AggregateOffer", "priceCurrency": "BRL", "lowPrice": "—", "highPrice": "—" }
+  }
+}
+```
 
-**Server Component apenas (sem Client Component):**
-1. Fetch `get_cidades(uf)` para descobrir nome real da cidade a partir do slug
-2. Match por slugify (tenta match exato, depois match por primeira palavra)
-3. Fetch escolas: `supabase.from("escolas").select("...").eq("uf", uf).eq("municipio", cidade).order("nome")`
-4. 3 páginas paralelas de 1000 escolas cada (range 0-999, 1000-1999, 2000-2999)
-5. Renderiza lista de links para cada escola
+### Client Component (`escola-detalhe.tsx`)
 
-### 15.3 Contribuir (`/contribuir`)
+**Seções:**
+1. Botão "← Voltar para busca" (`router.back()`)
+2. Nome + localização (`<h1>`)
+3. **Se privada:** tabela de preços por série (grupos agrupados)
+   - Colunas: Série, Qtd, Mín, Média, Máx
+   - Se sem preços: "Seja o primeiro a contribuir" + botão WhatsApp
+4. **Se pública:** "Escola pública gratuita"
+5. Informações da escola em grid 2 colunas (bairro, dependência, localização, endereço, telefone, porte, etapas, outras ofertas, convênio, regulamentação, código INEP, restrição)
+6. Mapa embutido (iframe OpenStreetMap)
 
-**Client Component, requer autenticação:**
-1. Se não logado: mostra mensagem de anonimato + botões "Entrar" / "Criar conta"
-2. Input de busca de escola (autocomplete): `supabase.from("escolas").select("id, nome, bairro, municipio, uf").ilike("nome", "%query%").limit(8)`
-3. Select de série (agrupado por GRUPOS)
-4. Inputs: mensalidade, matrícula, material (R$)
-5. Submit: `supabase.from("mensalidades_series").insert({...})`
-   - `ano_vigencia`: ano atual se mês < julho, senão ano atual + 1
-6. Confirmação: "Obrigado! Sua contribuição foi salva de forma anônima."
+**Tabela de preços:**
+```tsx
+{grupos.map((grupo) => {
+  const series = SERIES.filter((s) => s.grupo === grupo);
+  const hasData = series.some((s) => precos.find((p) => p.serie_slug === s.slug));
+  if (!hasData) return null;
+  return (
+    <Fragment key={grupo}>
+      <tr><td colSpan={5} className="...">{grupo}</td></tr>
+      {series.map((s) => {
+        const p = precos.find((pr) => pr.serie_slug === s.slug);
+        if (!p || !p.qtd_mensalidade) return null;
+        return (
+          <tr key={s.slug}>
+            <td>{s.nome}</td>
+            <td>{p.qtd_mensalidade}</td>
+            <td>{fmt(p.min_mensalidade)}</td>
+            <td className="font-semibold">{fmt(p.media_mensalidade)}</td>
+            <td>{fmt(p.max_mensalidade)}</td>
+          </tr>
+        );
+      })}
+    </Fragment>
+  );
+})}
+```
 
-### 15.4 Cadastro (`/cadastro`)
+**WhatsAppShare:** link para `https://wa.me/?text={texto}` com texto personalizado de convite.
+
+---
+
+## 21. Página de Listagem SEO (/escolas/[uf]/[cidade])
+
+**Local:** `src/app/escolas/[uf]/[cidade]/page.tsx`
+
+**Server Component apenas** (sem Client Component).
+
+**Função `getEscolas(ufSlug, cidadeSlug)`:**
+1. `get_cidades(ufUpper)` → descobre nome real da cidade
+2. `slugMatch(rows, cidadeSlug)` → match exato (slugify) ou fallback por primeira palavra
+3. Fetch paralelo de 3 páginas de 1000 escolas:
+   ```tsx
+   const ranges = Array.from({ length: 3 }, (_, i) => i * 1000);
+   const pages = await Promise.all(
+     ranges.map((offset) =>
+       supabase.from("escolas").select("id, nome, uf, municipio, bairro, dependencia_administrativa, codigo_inep")
+         .eq("uf", ufUpper).eq("municipio", cidadeMatch).order("nome").range(offset, offset + 999)
+     )
+   );
+   ```
+4. Concatena todas as páginas
+
+**Renderização:** Lista de links para cada escola (`/escola/{slug}`) dentro de `<main>`.
+
+**SEO:** Título: "Escolas em {cidade}/{UF} — {N} instituições | Mensalidade Justa"
+
+---
+
+## 22. Contribuir (/contribuir)
+
+**Local:** `src/app/contribuir/page.tsx`
+
+### Fluxo
+
+1. **Não logado:** mensagem de anonimato + botões "Entrar" / "Criar conta"
+2. **Logado:**
+   - Input de busca de escola: `supabase.from("escolas").select("id, nome, bairro, municipio, uf").ilike("nome", "%query%").limit(8)`
+   - Select de série (agrupado por GRUPOS, `<optgroup>`)
+   - Inputs: mensalidade, matrícula, material (R$)
+   - Submit: `supabase.from("mensalidades_series").insert({...})`
+     ```tsx
+     {
+       escola_id: escolaSelected.id,
+       serie_slug: serieSlug,
+       serie_nome: serie?.nome || serieSlug,
+       user_id: user?.id || null,
+       valor_mensalidade: mensalidade ? parseFloat(mensalidade) : null,
+       valor_matricula: matricula ? parseFloat(matricula) : null,
+       valor_material: material ? parseFloat(material) : null,
+       ano_vigencia: new Date().getFullYear() + (new Date().getMonth() >= 6 ? 1 : 0),
+     }
+     ```
+   - **Regra de ano:** se mês ≥ julho, ano_vigencia = ano atual + 1 (ano letivo seguinte)
+3. **Sucesso:** "Obrigado! Sua contribuição foi salva de forma anônima."
+
+---
+
+## 23. Autenticação — Login, Cadastro, Recuperar/Alterar Senha
+
+### Login (`(auth)/login/page.tsx`)
+
+```tsx
+const { error } = await supabase.auth.signInWithPassword({ email, password });
+if (!error) router.push("/busca");
+```
+
+### Cadastro (`(auth)/cadastro/page.tsx`)
 
 **2 etapas:**
-1. Credenciais: email + senha + confirmar senha → `supabase.auth.signUp()`
-2. Endereço (opcional): CEP (com busca ViaCEP), logradouro, número, bairro, cidade, UF
-   - Geocode via Nominatim para lat/lon
-   - `supabase.from("profiles").upsert()`
-   - Pode pular
 
-### 15.5 Perfil (`/perfil`)
+Etapa 1 — Credenciais:
+```tsx
+const { error } = await supabase.auth.signUp({ email, password });
+```
+Se ok → step = "endereco"
 
-**Client Component:**
+Etapa 2 — Endereço:
+- CEP com autocomplete ViaCEP: `https://viacep.com.br/ws/{cep}/json/`
+- Geocode Nominatim: `https://nominatim.openstreetmap.org/search?q={endereco}&format=json`
+- `supabase.from("profiles").upsert({ id: user.id, logradouro, numero, bairro, cidade, uf, cep, latitude, longitude, geom })`
+- Pode pular ("Pular esta etapa")
+
+### Recuperar senha (`(auth)/recuperar-senha/page.tsx`)
+
+```tsx
+const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  redirectTo: `${origin}/alterar-senha`,
+});
+```
+
+### Alterar senha (`(auth)/alterar-senha/page.tsx`)
+
+```tsx
+const { error } = await supabase.auth.updateUser({ password });
+```
+
+Verifica sessão existente (`getSession()`), senão redireciona para `/login`.
+
+---
+
+## 24. Perfil (/perfil)
+
+**Local:** `src/app/perfil/page.tsx`
+
 - Mostra email do usuário
-- Link para alterar senha
-- Botão "Sair"
-- Seção "Excluir conta" com confirmação em 2 etapas
-- Exclusão: `supabase.rpc("excluir_minha_conta")` + signOut
-
-### 15.6 Página Sobre (`/sobre`)
-
-**Server Component estático (sem fetch):**
-- Texto institucional sobre o projeto
-- Usa `String.fromCodePoint(n)` para caracteres especiais (ex: `String.fromCodePoint(0x00E9)` = "é")
-- Links para contribuir
+- Link para alterar senha (`/alterar-senha`)
+- Botão "Sair": `supabase.auth.signOut()`
+- Seção "Excluir conta" com confirmação em 2 etapas:
+  1. Clique em "Excluir minha conta" → mostra confirmação
+  2. "Sim, excluir" → `supabase.rpc("excluir_minha_conta")` + `signOut()`
 
 ---
 
-## 16. Segurança
+## 25. Página Sobre (/sobre)
 
-### 16.1 RLS Policies
+**Local:** `src/app/sobre/page.tsx`
 
-| Tabela | Operação | Policy | Público? |
-|--------|----------|--------|----------|
-| `escolas_raw` | SELECT | `true` (público) | ✅ |
-| `mensalidades_series` | SELECT | `true` (público) | ✅ |
-| `mensalidades_series` | INSERT | `auth.role() = 'authenticated'` | ❌ |
-| `profiles` | SELECT | `auth.uid() = id` | ❌ (próprio) |
-| `profiles` | INSERT | `auth.uid() = id` OU trigger | Parcial |
-| `profiles` | UPDATE | `auth.uid() = id` | ❌ (próprio) |
+**Server Component estático** (sem nenhum fetch).
 
-### 16.2 VIEW `escolas`
+Usa `String.fromCodePoint(n)` para caracteres especiais (workaround PowerShell):
+```tsx
+const A = (n: number) => String.fromCodePoint(n);
+// {A(0x00E9)} = "é"
+// {A(0x00E7)} = "ç"
+// {A(0x00E3)} = "ã"
+// {A(0x2190)} = "←"
+```
 
-Usa `security_invoker = true` — herda RLS da tabela base.
-
-### 16.3 Exclusão de conta (LGPD)
-
-`excluir_minha_conta()`:
-1. Verifica se usuário está autenticado (`auth.uid() IS NULL` → exception)
-2. Anonimiza mensalidades: `UPDATE mensalidades SET user_id = NULL WHERE user_id = uid`
-3. Deleta `auth.users` (cascade deleta identidades, sessions, profiles)
-
-### 16.4 Anonimato
-
-- `user_id` em `mensalidades_series` é NULL se contribuidor não logado
-- `user_id` em `mensalidades_series` nunca é exposto em consultas públicas (SELECT só retorna escola_id + preços agregados)
-- Profiles nunca são expostos publicamente (RLS restrito ao próprio usuário)
+Seções: problema, nossa ideia, para quem é, privacidade total, aviso importante.
 
 ---
 
-## Nota final para IAs
+## 26. Sitemap Index — Estrutura Multi-Sitemap
 
-Se você está lendo este documento como uma IA que vai trabalhar neste projeto:
+### Arquivo mestre (`src/app/sitemap.ts`)
 
-1. **Leia todo o documento** antes de qualquer ação
-2. Siga as regras de **Tailwind v4** (nunca use `text-[var(--color-*)]`)
-3. Use `chr(231)` para `ç` e `chr(233)` para `é` em SQL
-4. Use `{'\u00e7'}` para acentos em JSX/TypeScript
-5. **Sempre execute `npm run build && npm run start` para testar** (nunca `npm run dev`)
-6. Para alterações no banco: use MCP (`execute_sql`) para iterar, depois crie migration
-7. Cache de 24h é essencial para queries públicas devido ao plano Free
-8. Nunca quebre o build — timeout de 10s no supabase-server.ts e fail silencioso no footer
+```tsx
+import type { MetadataRoute } from "next";
+import { createServerClient } from "@/lib/supabase";
+
+const BASE = "https://mensalidadejusta.com.br";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const supabase = createServerClient();
+  const { data: ufs } = await supabase.rpc("get_ufs");
+  const ufList: string[] = (ufs || []).map((r: any) => r.uf).filter(Boolean);
+
+  const entries: MetadataRoute.Sitemap = [
+    { url: `${BASE}`, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
+    { url: `${BASE}/busca`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
+    { url: `${BASE}/sobre`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
+  ];
+
+  for (const uf of ufList) {
+    entries.push({
+      url: `${BASE}/sitemaps/${uf.toLowerCase()}/sitemap.xml`,
+      lastModified: new Date(), changeFrequency: "weekly", priority: 0.6,
+    });
+  }
+
+  return entries;
+}
+```
+
+Gera `/sitemap.xml` com 30 entradas no total (3 fixas + 27 estados).
+
+### Sitemap por estado (`src/app/sitemaps/[uf]/sitemap.ts`)
+
+```tsx
+export default async function sitemap({ params }: Props): Promise<MetadataRoute.Sitemap> {
+  const { uf: ufSlug } = await params;
+  const uf = ufSlug.toUpperCase();
+  if (!UFS.has(uf)) notFound();
+
+  const supabase = createServerClient();
+  const entries: MetadataRoute.Sitemap = [];
+
+  // Cidades
+  const { data: cidades } = await supabase
+    .from("escolas").select("municipio").eq("uf", uf).not("municipio", "is", null).order("municipio");
+  // ... slugify cada cidade, entries.push(url)
+
+  // Escolas (até 1000 por estado)
+  const { data: escolas } = await supabase
+    .from("escolas").select("codigo_inep, nome").eq("uf", uf).order("id").limit(1000);
+  // ... entries.push para cada escola
+
+  return entries;
+}
+```
+
+**Importante:** `createServerClient()` sem cache (usado no sitemap para dados fresh).
+
+---
+
+## 27. Footer — Diretório de Cidades
+
+**Local:** `src/components/footer.tsx` (Server Component)
+
+```tsx
+const UFS_PRIORITY = ["SP", "RJ", "MG", "RS", "PR", "BA"];
+
+export default async function Footer() {
+  const supabase = createServerClient();
+  for (const uf of UFS_PRIORITY) {
+    try {
+      const { data } = await supabase.rpc("get_top_cidades", { p_uf: uf, p_limit: 10 });
+      if (data?.length) cidadesPorUf[uf] = data;
+    } catch { /* falha silenciosa */ }
+  }
+  // Renderiza grid de links
+}
+```
+
+**Características:**
+- Busca `get_top_cidades` para 6 UFs
+- Cache 24h via `supabase-server.ts`
+- Falha silenciosa (build não quebra)
+- Grid: 2 col (mobile), 3 (sm), 4 (md), 6 (lg)
+- Links para `/escolas/{uf}/{slugify(municipio)}`
+
+---
+
+## 28. TabBar — Navegação
+
+**Local:** `src/components/tab-bar.tsx` (Client Component)
+
+### Abas
+
+```tsx
+const tabs = [
+  { href: "/busca", label: "Busca", icon: Search },
+  { href: "/contribuir", label: "Contribuir", icon: Edit3 },
+  { href: "/perfil", label: "Perfil", icon: User },
+  { href: "/sobre", label: "Sobre", icon: Info },
+];
+```
+
+### Desktop
+
+Sidebar fixa à esquerda (`w-16`, `fixed left-0 top-0 bottom-0`):
+- Abas no topo
+- Botão de tema, botão "Mapa", SHA do commit no final
+
+### Mobile
+
+Bottom tab bar (`sticky bottom-0`):
+- 4 abas + Mapa + Tema
+- Ativo: cor primary
+
+### Mapa toggle
+
+```tsx
+function handleMapToggle() {
+  if (pathname === "/busca") {
+    // alterna ?map=1
+  } else {
+    router.push("/busca?map=1");
+  }
+}
+```
+
+### Escondida em
+
+Rotas de auth: `/login`, `/cadastro`, `/recuperar-senha`, `/alterar-senha`.
+
+---
+
+## 29. BotaoTema — Toggle Tema
+
+**Local:** `src/components/botao-tema.tsx`
+
+```tsx
+export default function BotaoTema() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return <div className="w-9 h-9" />; // placeholder evita layout shift
+
+  return (
+    <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+      {theme === "dark" ? <Sun /> : <Moon />}
+    </button>
+  );
+}
+```
+
+Placeholder de 36×36px (w-9 h-9) enquanto não montado.
+
+---
+
+## 30. Scripts — Import CSV e Run Migration
+
+### 30.1 `scripts/import-csv.js`
+
+```bash
+npm run import
+```
+
+- Lê `Análise - Tabela da lista das escolas - Detalhado.csv`
+- Parseia com `csv-parse`
+- Batch de 200 registros (upsert via Supabase REST)
+- Conflito resolvido por `codigo_inep`
+- Gera `geom` (Point GeoJSON) a partir de lat/lng
+- Extrai bairro do endereço via regex: `/\.\s*([^.\d]+?)\.\s*\d{5}/`
+- Usa `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` das env vars
+
+**Mapeamento de colunas do CSV:**
+```
+row[0] = restricao_atendimento
+row[1] = nome
+row[2] = codigo_inep
+row[3] = uf
+row[4] = municipio
+row[5] = localizacao
+row[6] = localidade_diferenciada
+row[7] = categoria_administrativa
+row[8] = endereco
+row[9] = telefone
+row[10] = dependencia_administrativa
+row[11] = categoria_escola_privada
+row[12] = conveniada_poder_publico
+row[13] = regulamentacao_conselho
+row[14] = porte_escola
+row[15] = etapas_modalidades
+row[16] = outras_ofertas
+row[17] = latitude
+row[18] = longitude
+```
+
+### 30.2 `scripts/run-migration.js`
+
+```bash
+npm run migrate 006_normalizacao_estado_cidade.sql
+```
+
+- Resolve DNS via Google DNS (`8.8.8.8`, `1.1.1.1`) — **necessário porque IPv6 não funciona**
+- Conecta via `pg` Pool com SSL (`rejectUnauthorized: false`)
+- Lê arquivo SQL, divide por `;` e executa statement por statement
+- Variáveis de ambiente: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+
+---
+
+## 31. Variáveis de Ambiente
+
+```
+# .env.local (não versionado)
+
+NEXT_PUBLIC_SUPABASE_URL=https://ijfwdtemkkoiombxtyip.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Para import CSV e migrations locais
+SUPABASE_URL=https://ijfwdtemkkoiombxtyip.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_MGMT_TOKEN=sbp_...
+
+# Para migrations via pg direto
+DB_HOST=db.ijfwdtemkkoiombxtyip.supabase.co
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=...
+DB_NAME=postgres
+
+# LocationIQ (autocomplete de endereço)
+NEXT_PUBLIC_LOCATIONIQ_TOKEN=pk.xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**Vars expostas ao browser** (prefixo `NEXT_PUBLIC_`):
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_LOCATIONIQ_TOKEN`
+
+**Vars server-side:**
+- `SUPABASE_SERVICE_KEY`
+- `SUPABASE_MGMT_TOKEN`
+- `SUPABASE_URL`
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+
+---
+
+## 32. Problemas Conhecidos e Workarounds
+
+### 32.1 TurboPack + Tailwind v4 (CRÍTICO)
+
+`npm run dev` frequentemente falha com:
+```
+Parsing CSS source code failed + self.__next_f.push
+```
+
+**Causa:** `text-[var(--color-*)]` no className causa injeção de RSC payload no CSS.
+
+**Solução:** Use classes do `@theme` (`text-text`, `bg-surface`, `border-border`).
+Nunca use `text-[var(--color-text)]`, `bg-[var(--color-surface)]`.
+
+**Teste local:** `npm run build && npm run start`
+
+### 32.2 Windows PowerShell 5.1 + UTF-8
+
+PowerShell 5.1 corrompe UTF-8.
+
+**Workarounds:**
+- JSX: `{'\u00e7'}` = ç, `{'\u00fa'}` = ú, `{'\u00e9'}` = é
+- SQL: `chr(231)` = ç, `chr(233)` = é
+- JS strings: `String.fromCodePoint(0x00E9)` = "é"
+- Emojis: `String.fromCodePoint(0x2764)` = ❤
+
+### 32.3 IPv6
+
+Conexão PostgreSQL direta não funciona porque o host só tem IPv6.
+
+**Solução:** `run-migration.js` resolve DNS via Google DNS (`8.8.8.8`).
+
+### 32.4 Plano Free Supabase
+
+- 500MB de banco
+- Conexões limitadas
+- CPU compartilhado
+- Queries lentas (>5s) podem timeoutar
+
+**Mitigações:**
+- Cache 24h via `next: { revalidate: 86400 }` no `supabase-server.ts`
+- Timeout de 10s via AbortController
+- Falha silenciosa no footer
+- Limit de 1000 escolas no sitemap por estado
+
+### 32.5 Windows EPERM
+
+`Remove-Item -Recurse -Force .next` pode falhar com EPERM/EBUSY.
+Executar de novo que resolve.
+
+---
+
+## 33. Guia de Reprodução Zero-to-Production
+
+### Passo 1: Criar projeto Next.js
+
+```bash
+npx create-next-app@latest mensalidadejusta --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"
+cd mensalidadejusta
+```
+
+### Passo 2: Instalar dependências
+
+```bash
+npm install @supabase/supabase-js @supabase/ssr @tailwindcss/postcss autoprefixer csv-parse dotenv framer-motion leaflet leaflet.markercluster lucide-react next-themes pg postcss react-leaflet tailwindcss
+npm install -D @types/node @types/react typescript
+```
+
+### Passo 3: Configurar arquivos base
+
+Copiar: `next.config.ts`, `postcss.config.cjs`, `tsconfig.json`, `globals.css`
+
+### Passo 4: Configurar Supabase
+
+1. Criar projeto em `supabase.com`
+2. Executar migrations em ordem: 001 → 002 → 003 → 004 → 006 → 007
+3. Copiar URL e anon key para `.env.local`
+
+### Passo 5: Importar dados
+
+```bash
+npm run import
+```
+
+### Passo 6: Copiar todos os arquivos `src/`
+
+Manter estrutura de diretórios idêntica.
+
+### Passo 7: Build e teste
+
+```bash
+npm run build
+npm run start
+```
+
+### Passo 8: Deploy (Vercel)
+
+1. Conectar repositório GitHub à Vercel
+2. Configurar env vars no dashboard da Vercel
+3. Deploy automático em cada push para `main`
+
+---
+
+> **Fim do documento. Uma IA lendo isto deve ser capaz de reproduzir o projeto completo.**
