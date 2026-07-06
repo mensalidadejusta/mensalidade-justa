@@ -66,35 +66,39 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   const selectedArray = multi ? (value ? value.split(",") : []) : [];
 
+  const seriesArr = Array.isArray(series) ? series : [];
+  const gruposArr = Array.isArray(grupos) ? grupos : [];
+
   function getDisplay(): string {
     if (!value) return label;
     if (multi) {
       const arr = value.split(",");
       if (arr.length === 0) return label;
       if (arr.length === 1 && isSeries) {
-        const found = series!.find((s) => s.slug === arr[0]);
+        const found = seriesArr.find((s) => s.slug === arr[0]);
         return found ? found.nome : arr[0];
       }
       return `${arr.length} selecionados`;
     }
     if (isSeries) {
-      const found = series!.find((s) => s.slug === value);
+      const found = seriesArr.find((s) => s.slug === value);
       return found ? found.nome : value;
     }
     return value;
   }
 
-  const filteredSeries = !isSeries
-    ? null
-    : search
-      ? series!.filter((s) => normalize(s.nome).includes(normalize(search)))
-      : series!;
+  const filteredSeries = !isSeries ? null : search
+    ? seriesArr.filter((s) => normalize(s.nome).includes(normalize(search)))
+    : seriesArr;
 
-  const filteredOptions = isSeries
-    ? null
-    : search
-      ? options!.filter((o) => normalize(o).includes(normalize(search)))
-      : options!;
+  const optionsArr = Array.isArray(options) ? options : [];
+  const filteredOptions = isSeries ? null : search
+    ? optionsArr.filter((o) => normalize(o).includes(normalize(search)))
+    : optionsArr;
+
+  const showOptions = isSeries
+    ? (Array.isArray(filteredSeries) ? filteredSeries : [])
+    : (Array.isArray(filteredOptions) ? filteredOptions : []);
 
   useEffect(() => {
     if (open && !sidebar) {
@@ -169,65 +173,71 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   const isAllSelected = sidebar ? !draftValue : !value;
 
-  const showOptions = isSeries ? filteredSeries : (Array.isArray(filteredOptions) ? filteredOptions : []);
-
   const Indicator = ({ slug }: { slug: string }) => {
     if (multi) return isSelected(slug) ? <CheckboxChecked /> : <CheckboxUnchecked />;
     return isSelected(slug) ? <RadioChecked /> : <RadioUnchecked />;
+  };
+
+  const podeMostrarOptions = Array.isArray(showOptions) && showOptions.length > 0;
+
+  const renderGrupos = () => {
+    if (!isSeries || !Array.isArray(gruposArr)) return null;
+    const filtered = Array.isArray(filteredSeries) ? filteredSeries as SerieItem[] : [];
+    return gruposArr.map((grupo) => {
+      const items = filtered.filter((s) => s.grupo === grupo);
+      if (items.length === 0) return null;
+      return (
+        <div key={grupo}>
+          <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider px-4 pt-3 pb-1">{grupo}</p>
+          {items.map((s) => {
+            const sel = isSelected(s.slug);
+            return (
+              <button key={s.slug} onClick={() => handleSelect(s.slug)}
+                className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-text font-medium" : "text-text-secondary hover:bg-surface"}`}
+              >
+                <span className="flex items-center min-w-0">
+                  <Indicator slug={s.slug} />
+                  <span className="truncate">{s.nome}</span>
+                </span>
+                {sel && !multi && <Check className="w-4 h-4 text-primary shrink-0 ml-2" />}
+              </button>
+            );
+          })}
+        </div>
+      );
+    });
+  };
+
+  const renderOpcoesSimples = () => {
+    const opts = Array.isArray(filteredOptions) ? filteredOptions : [];
+    return opts.map((opt) => {
+      const sel = isSelected(opt);
+      return (
+        <button key={opt} onClick={() => handleSelect(opt)}
+          className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-text font-medium" : "text-text-secondary hover:bg-surface"}`}
+        >
+          <span className="flex items-center min-w-0">
+            <Indicator slug={opt} />
+            <span className="truncate">{opt}</span>
+          </span>
+          {sel && !multi && <Check className="w-4 h-4 text-primary shrink-0 ml-2" />}
+        </button>
+      );
+    });
   };
 
   const optionsList = (
     <div className="w-full divide-y divide-border/80 border-t border-b border-border/80">
       <button
         onClick={() => handleSelect("")}
-        className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors italic hover:bg-surface text-text-tertiary`}
+        className="flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors italic hover:bg-surface text-text-tertiary"
       >
         <span className="flex items-center">
           {multi ? (isAllSelected ? <CheckboxChecked /> : <CheckboxUnchecked />) : (isAllSelected ? <RadioChecked /> : <RadioUnchecked />)}
           {isSeries ? "Todas as etapas" : "Todos"}
         </span>
       </button>
-
-      {isSeries ? (
-        grupos!.map((grupo) => {
-          const items = (filteredSeries as SerieItem[]).filter((s) => s.grupo === grupo);
-          if (!items.length) return null;
-          return (
-            <div key={grupo}>
-              <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider px-4 pt-3 pb-1">{grupo}</p>
-              {items.map((s) => {
-                const sel = isSelected(s.slug);
-                return (
-                  <button key={s.slug} onClick={() => handleSelect(s.slug)}
-                    className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-text font-medium" : "text-text-secondary hover:bg-surface"}`}
-                  >
-                    <span className="flex items-center min-w-0">
-                      <Indicator slug={s.slug} />
-                      <span className="truncate">{s.nome}</span>
-                    </span>
-                    {sel && !multi && <Check className="w-4 h-4 text-primary shrink-0 ml-2" />}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })
-      ) : (
-        (filteredOptions as string[]).map((opt) => {
-          const sel = isSelected(opt);
-          return (
-            <button key={opt} onClick={() => handleSelect(opt)}
-              className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${sel ? "bg-primary/5 text-text font-medium" : "text-text-secondary hover:bg-surface"}`}
-            >
-              <span className="flex items-center min-w-0">
-                <Indicator slug={opt} />
-                <span className="truncate">{opt}</span>
-              </span>
-              {sel && !multi && <Check className="w-4 h-4 text-primary shrink-0 ml-2" />}
-            </button>
-          );
-        })
-      )}
+      {isSeries ? renderGrupos() : renderOpcoesSimples()}
     </div>
   );
 
@@ -262,7 +272,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {!showOptions || showOptions.length === 0 ? (
+              {!podeMostrarOptions ? (
                 <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
               ) : optionsList}
             </div>
@@ -310,7 +320,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
             </div>
 
             <div className="flex-1 overflow-y-auto pb-4">
-              {!showOptions || showOptions.length === 0 ? (
+              {!podeMostrarOptions ? (
                 <p className="text-center text-xs text-text-tertiary py-8">Nenhum resultado encontrado</p>
               ) : optionsList}
             </div>

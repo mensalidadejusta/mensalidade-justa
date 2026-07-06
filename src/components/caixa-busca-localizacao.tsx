@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Navigation, Loader2, MapPin, Building, Home, Hash } from "lucide-react";
-import { slugify } from "@/lib/utils";
 import { createClient } from "@/lib/supabase";
 
 export interface SugestaoLocalizacao {
@@ -31,6 +29,7 @@ export interface FiltroLocalizacao {
 
 interface CaixaBuscaLocalizacaoProps {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
+  onCidadeSelect?: (cidade: string, uf: string) => void;
   onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
   initialValue?: string;
   className?: string;
@@ -105,14 +104,42 @@ type LocationIqSuggestion = {
   type?: string;
 };
 
+const ESTADO_NOME: Record<string, string> = {
+  AC: "Acre", AL: "Alagoas", AP: "Amap\u00e1", AM: "Amazonas",
+  BA: "Bahia", CE: "Cear\u00e1", DF: "Distrito Federal", ES: "Esp\u00edrito Santo",
+  GO: "Goi\u00e1s", MA: "Maranh\u00e3o", MT: "Mato Grosso", MS: "Mato Grosso do Sul",
+  MG: "Minas Gerais", PA: "Par\u00e1", PB: "Para\u00edba", PR: "Paran\u00e1",
+  PE: "Pernambuco", PI: "Piau\u00ed", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte",
+  RS: "Rio Grande do Sul", RO: "Rond\u00f4nia", RR: "Roraima", SC: "Santa Catarina",
+  SP: "S\u00e3o Paulo", SE: "Sergipe", TO: "Tocantins",
+};
+
+function buscarEstadosLocal(termo: string): SugestaoLocalizacao[] {
+  const normalizado = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const resultados: SugestaoLocalizacao[] = [];
+  for (const [uf, nomeCompleto] of Object.entries(ESTADO_NOME)) {
+    const nomeNorm = nomeCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (nomeNorm.includes(normalizado) || uf.toLowerCase() === normalizado || uf.toLowerCase().startsWith(normalizado)) {
+      resultados.push({
+        id: `est-${uf}`,
+        textoExibicao: `${nomeCompleto} - ${uf}`,
+        tipo: "cidade",
+        cidade: nomeCompleto,
+        uf,
+      });
+    }
+  }
+  return resultados;
+}
+
 export default function CaixaBuscaLocalizacao({
   onLocationChange,
+  onCidadeSelect,
   onSelectSugestao,
   initialValue = "",
   className = "",
   iconOnlyGeo,
 }: CaixaBuscaLocalizacaoProps) {
-  const router = useRouter();
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
   const [sugestoes, setSugestoes] = useState<SugestaoLocalizacao[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
@@ -128,7 +155,6 @@ export default function CaixaBuscaLocalizacao({
 
   function handleChange(value: string) {
     setBuscaRaw(value);
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     const trimmed = value.trim();
@@ -141,10 +167,7 @@ export default function CaixaBuscaLocalizacao({
     }
 
     setCarregando(true);
-
-    debounceRef.current = setTimeout(() => {
-      buscar(trimmed);
-    }, 300);
+    debounceRef.current = setTimeout(() => buscar(trimmed), 300);
   }
 
   async function buscar(query: string) {
@@ -157,13 +180,25 @@ export default function CaixaBuscaLocalizacao({
       await buscarCep(cepLimpo, requestId);
     } else if (trimmed.length >= 3) {
       await buscarLocationIQ(trimmed, requestId);
-    } else {
-      if (requestId === reqIdRef.current) {
-        setSugestoes([]);
-        setDropdownAberto(false);
-        setCarregando(false);
+      // Always add Supabase cidade fallback
+      const supabase = createClient();
+      const { data: cidades } = await supabase.rpc("buscar_cidades", { p_termo: trimmed });
+      if (requestId !== reqIdRef.current) return;
+      if (Array.isArray(cidades) && cidades.length > 0) {
+        setSugestoes((prev) => {
+          const existing = new Set(prev.map((s) => `${s.cidade}-${s.uf}`));
+          const novas = cidades
+            .filter((c: any) => !existing.has(`${c.cidade}-${c.uf}`))
+            .map((c: any) => ({
+              id: `sc-${Math.random()}`,
+              textoExibicao: `${c.cidade} - ${c.uf}`,
+              tipo: "cidade" as const,
+              cidade: c.cidade,
+              uf: c.uf,
+            }));
+          return [...prev, ...novas].slice(0, 10);
+        });
       }
-      return;
     }
 
     if (requestId === reqIdRef.current) {
@@ -175,23 +210,17 @@ export default function CaixaBuscaLocalizacao({
     try {
       const res = await fetchComTimeout(`https://brasilapi.com.br/api/cep/v2/${cep}`);
       if (requestId !== reqIdRef.current) return;
-
-      if (!res.ok) {
-        throw new Error("CEP nao encontrado");
-      }
+      if (!res.ok) throw new Error("CEP nao encontrado");
 
       const data = await res.json();
       if (requestId !== reqIdRef.current) return;
 
       const latitude = data.location?.coordinates?.latitude
-        ? Number(data.location.coordinates.latitude)
-        : undefined;
+        ? Number(data.location.coordinates.latitude) : undefined;
       const longitude = data.location?.coordinates?.longitude
-        ? Number(data.location.coordinates.longitude)
-        : undefined;
+        ? Number(data.location.coordinates.longitude) : undefined;
 
-      const partes = [data.street, data.neighborhood, `${data.city} - ${data.state}`]
-        .filter(Boolean);
+      const partes = [data.street, data.neighborhood, `${data.city} - ${data.state}`].filter(Boolean);
 
       const sugestao: SugestaoLocalizacao = {
         id: `cep-${cep}`,
@@ -211,66 +240,22 @@ export default function CaixaBuscaLocalizacao({
       setHighlightIndex(-1);
     } catch {
       if (requestId !== reqIdRef.current) return;
-
-      // Fallback: tenta como busca textual de cidade
-      const results: SugestaoLocalizacao[] = [];
-      const vistos = new Set<string>();
-      await buscarCidadesFallback(cep, results, vistos);
+      // Fallback: tenta como busca textual de cidade via Supabase
+      const supabase = createClient();
+      const { data: cidades } = await supabase.rpc("buscar_cidades", { p_termo: cep });
       if (requestId !== reqIdRef.current) return;
-
-      setSugestoes(results.slice(0, 10));
-      setDropdownAberto(results.length > 0);
-      setBuscouSemResultados(results.length === 0);
+      const lista = Array.isArray(cidades) ? cidades.map((c: any) => ({
+        id: `sc-${Math.random()}`,
+        textoExibicao: `${c.cidade} - ${c.uf}`,
+        tipo: "cidade" as const,
+        cidade: c.cidade,
+        uf: c.uf,
+      })) : [];
+      setSugestoes(lista.slice(0, 10));
+      setDropdownAberto(lista.length > 0);
+      setBuscouSemResultados(lista.length === 0);
       setHighlightIndex(-1);
     }
-  }
-
-  async function buscarCidadesFallback(termo: string, results: SugestaoLocalizacao[], vistos: Set<string>) {
-    const supabase = createClient();
-    const { data: cidades } = await supabase.rpc("buscar_cidades", { p_termo: termo });
-
-    if (cidades) {
-      for (const c of cidades) {
-        const chave = `cidade|${c.cidade} - ${c.uf}`;
-        if (vistos.has(chave)) continue;
-        vistos.add(chave);
-        results.push({
-          id: `sc-${results.length}`,
-          textoExibicao: `${c.cidade} - ${c.uf}`,
-          tipo: "cidade",
-          cidade: c.cidade,
-          uf: c.uf,
-        });
-      }
-    }
-  }
-
-  const ESTADO_NOME: Record<string, string> = {
-    AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas",
-    BA: "Bahia", CE: "Ceará", DF: "Distrito Federal", ES: "Espírito Santo",
-    GO: "Goiás", MA: "Maranhão", MT: "Mato Grosso", MS: "Mato Grosso do Sul",
-    MG: "Minas Gerais", PA: "Pará", PB: "Paraíba", PR: "Paraná",
-    PE: "Pernambuco", PI: "Piauí", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte",
-    RS: "Rio Grande do Sul", RO: "Rondônia", RR: "Roraima", SC: "Santa Catarina",
-    SP: "São Paulo", SE: "Sergipe", TO: "Tocantins",
-  };
-
-  function buscarEstadosLocal(termo: string): SugestaoLocalizacao[] {
-    const normalizado = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const resultados: SugestaoLocalizacao[] = [];
-    for (const [uf, nomeCompleto] of Object.entries(ESTADO_NOME)) {
-      const nomeNorm = nomeCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      if (nomeNorm.includes(normalizado) || uf.toLowerCase() === normalizado || uf.toLowerCase().startsWith(normalizado)) {
-        resultados.push({
-          id: `est-${uf}`,
-          textoExibicao: `${nomeCompleto} - ${uf}`,
-          tipo: "cidade",
-          cidade: nomeCompleto,
-          uf,
-        });
-      }
-    }
-    return resultados;
   }
 
   async function buscarLocationIQ(termo: string, requestId: number) {
@@ -285,7 +270,7 @@ export default function CaixaBuscaLocalizacao({
     }
 
     const normalizado = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const pareceEndereco = /\b(rua|av|avenida|travessa|praça|alameda|rodovia|estrada|beco|viela)\b/.test(normalizado) || /\d{3,}/.test(termo);
+    const pareceEndereco = /\b(rua|av|avenida|travessa|pra\u00e7a|alameda|rodovia|estrada|beco|viela)\b/.test(normalizado) || /\d{3,}/.test(termo);
 
     if (pareceEndereco) {
       const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
@@ -308,14 +293,11 @@ export default function CaixaBuscaLocalizacao({
                 const bairro = addr.neighbourhood || addr.suburb || "";
                 const cidade = addr.city || addr.town || addr.village || addr.county || "";
                 const uf = normalizarUf(addr.state || "");
-
                 if (!logradouro) continue;
-
                 const texto = [logradouro, bairro, cidade, uf].filter(Boolean).join(", ");
                 const chave = `logradouro|${texto}`;
                 if (vistos.has(chave)) continue;
                 vistos.add(chave);
-
                 results.push({
                   id: `liq-${results.length}`,
                   textoExibicao: texto,
@@ -329,14 +311,9 @@ export default function CaixaBuscaLocalizacao({
               }
             }
           }
-        } catch {
-          // Silently fall through to cidades fallback
-        }
+        } catch {}
       }
     }
-
-    // Always seek city/school fallback to complement results
-    await buscarCidadesFallback(termo, results, vistos);
 
     results.sort((a, b) => {
       const prioridade: Record<string, number> = { cidade: 0, bairro: 1, logradouro: 2, cep: 3 };
@@ -358,6 +335,7 @@ export default function CaixaBuscaLocalizacao({
     inputRef.current?.blur();
 
     if (sugestao.tipo === "cidade" && sugestao.cidade && sugestao.uf) {
+      onCidadeSelect?.(sugestao.cidade, sugestao.uf);
       onLocationChange({
         buscaRaw: sugestao.textoExibicao,
         cidade: sugestao.cidade,
@@ -391,20 +369,21 @@ export default function CaixaBuscaLocalizacao({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!dropdownAberto || sugestoes.length === 0) return;
+    const sugestoesArr = Array.isArray(sugestoes) ? sugestoes : [];
+    if (!dropdownAberto || sugestoesArr.length === 0) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlightIndex((prev) => (prev < sugestoes.length - 1 ? prev + 1 : 0));
+      setHighlightIndex((prev) => (prev < sugestoesArr.length - 1 ? prev + 1 : 0));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlightIndex((prev) => (prev > 0 ? prev - 1 : sugestoes.length - 1));
+      setHighlightIndex((prev) => (prev > 0 ? prev - 1 : sugestoesArr.length - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (highlightIndex >= 0 && sugestoes[highlightIndex]) {
-        selecionarSugestao(sugestoes[highlightIndex]);
-      } else if (sugestoes.length > 0) {
-        selecionarSugestao(sugestoes[0]);
+      if (highlightIndex >= 0 && sugestoesArr[highlightIndex]) {
+        selecionarSugestao(sugestoesArr[highlightIndex]);
+      } else if (sugestoesArr.length > 0) {
+        selecionarSugestao(sugestoesArr[0]);
       } else if (buscaRaw.trim().length >= 3) {
         onLocationChange({ buscaRaw: buscaRaw.trim() });
       }
@@ -433,7 +412,7 @@ export default function CaixaBuscaLocalizacao({
 
   async function buscarPertoDeMim() {
     if (!navigator.geolocation) {
-      setGeoError("Geolocalização não suportada.");
+      setGeoError("Geolocaliza\u00e7\u00e3o n\u00e3o suportada.");
       return;
     }
     setGeoLoading(true);
@@ -441,18 +420,13 @@ export default function CaixaBuscaLocalizacao({
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000,
+          enableHighAccuracy: true, timeout: 10000, maximumAge: 60000,
         });
       });
 
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
-      let cidade = "";
-      let uf = "";
-      let bairro = "";
-      let logradouro = "";
+      let cidade = "", uf = "", bairro = "", logradouro = "";
 
       const token = process.env.NEXT_PUBLIC_LOCATIONIQ_TOKEN;
       if (token) {
@@ -486,23 +460,26 @@ export default function CaixaBuscaLocalizacao({
         logradouro: logradouro || undefined,
       });
     } catch (err: any) {
-      if (err.code === 1) setGeoError("Permissão de localização negada.");
-      else setGeoError("Erro ao obter localização.");
+      if (err.code === 1) setGeoError("Permiss\u00e3o de localiza\u00e7\u00e3o negada.");
+      else setGeoError("Erro ao obter localiza\u00e7\u00e3o.");
     }
     setGeoLoading(false);
   }
 
   function handleFocus() {
-    if (sugestoes.length > 0 || buscouSemResultados) setDropdownAberto(true);
+    const sugestoesArr = Array.isArray(sugestoes) ? sugestoes : [];
+    if (sugestoesArr.length > 0 || buscouSemResultados) setDropdownAberto(true);
   }
 
   function exibirDropdown(): boolean {
     if (!dropdownAberto) return false;
     if (carregando) return true;
-    if (sugestoes.length > 0) return true;
+    if (Array.isArray(sugestoes) && sugestoes.length > 0) return true;
     if (buscouSemResultados) return true;
     return false;
   }
+
+  const sugestoesArr = Array.isArray(sugestoes) ? sugestoes : [];
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -516,8 +493,8 @@ export default function CaixaBuscaLocalizacao({
             onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
-            placeholder={"Endereço, bairro ou cidade..."}
-            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_20px_-5px_rgba(66,133,244,0.2),0_-4px_20px_-8px_rgba(139,92,246,0.15),0_4px_20px_-8px_rgba(236,72,153,0.1)]"
+            placeholder="Endere\u00e7o, bairro ou cidade..."
+            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
           />
@@ -537,7 +514,7 @@ export default function CaixaBuscaLocalizacao({
                 </div>
               )}
 
-              {!carregando && buscouSemResultados && sugestoes.length === 0 && (
+              {!carregando && buscouSemResultados && sugestoesArr.length === 0 && (
                 <div className="px-4 py-6 text-center">
                   <p className="text-sm text-text-tertiary">
                     Nenhum local encontrado com este termo.
@@ -545,9 +522,9 @@ export default function CaixaBuscaLocalizacao({
                 </div>
               )}
 
-              {!carregando && sugestoes.length > 0 && (
+              {!carregando && sugestoesArr.length > 0 && (
                 <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
-                  {sugestoes.map((sugestao, index) => {
+                  {sugestoesArr.map((sugestao, index) => {
                     const IconComponent = TIPO_ICON[sugestao.tipo];
                     const isHighlighted = index === highlightIndex;
                     return (
@@ -558,16 +535,12 @@ export default function CaixaBuscaLocalizacao({
                         onClick={() => selecionarSugestao(sugestao)}
                         onMouseEnter={() => setHighlightIndex(index)}
                         className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-200 ${
-                          isHighlighted
-                            ? "bg-accent-purple/10"
-                            : "hover:bg-surface-hover"
+                          isHighlighted ? "bg-accent-purple/10" : "hover:bg-surface-hover"
                         }`}
                       >
                         <span
                           className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-                            isHighlighted
-                              ? "bg-accent-purple/15 text-accent-purple"
-                              : "bg-surface-hover text-text-tertiary"
+                            isHighlighted ? "bg-accent-purple/15 text-accent-purple" : "bg-surface-hover text-text-tertiary"
                           }`}
                         >
                           <IconComponent className="w-3.5 h-3.5" />
@@ -593,7 +566,7 @@ export default function CaixaBuscaLocalizacao({
           onClick={buscarPertoDeMim}
           disabled={geoLoading}
           className="shrink-0 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full text-sm font-medium bg-[#1f3b9b] text-white hover:bg-[#1f3b9b]/90 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
-          title="Usar minha localização atual"
+          title="Usar minha localiza\u00e7\u00e3o atual"
         >
           {geoLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
