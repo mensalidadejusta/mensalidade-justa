@@ -216,7 +216,7 @@ export default function BuscaContent({
     novosParams.set("cidade", loc.slug);
     novosParams.set("lat", loc.lat.toString());
     novosParams.set("lon", loc.lng.toString());
-    router.replace(`${pathname}?${novosParams.toString()}`);
+    router.replace(`${pathname}?${novosParams.toString()}`, { scroll: false });
     setNavTick((n) => n + 1);
     setCarregandoCoordenadas(true);
     (async () => {

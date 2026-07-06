@@ -7,6 +7,25 @@ const CEP_REGEX = /^\d{5}-?\d{3}$/;
 const FETCH_TIMEOUT_MS = 5000;
 const NOMINATIM_UA = "MensalidadeJustaApp/1.0 (contato@mensalidadejusta.com.br)";
 
+const ESTADO_UF: Record<string, string> = {
+  "acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM",
+  "bahia": "BA", "ceara": "CE", "distrito federal": "DF",
+  "espirito santo": "ES", "goias": "GO", "maranhao": "MA",
+  "mato grosso": "MT", "mato grosso do sul": "MS", "minas gerais": "MG",
+  "para": "PA", "paraiba": "PB", "parana": "PR", "pernambuco": "PE",
+  "piaui": "PI", "rio de janeiro": "RJ", "rio grande do norte": "RN",
+  "rio grande do sul": "RS", "rondonia": "RO", "roraima": "RR",
+  "santa catarina": "SC", "sao paulo": "SP", "sergipe": "SE", "tocantins": "TO",
+};
+
+function extrairUf(state: string): string {
+  if (!state) return "";
+  const upper = state.toUpperCase();
+  if (/^[A-Z]{2}$/.test(upper)) return upper;
+  const normalizado = state.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return ESTADO_UF[normalizado] || upper.slice(0, 2);
+}
+
 function slugify(texto: string): string {
   return texto
     .normalize("NFD")
@@ -202,7 +221,7 @@ export default function CaixaBuscaLocalizacao({
           const rawName = item.display_name || "";
           const nomeLimpo = rawName.split(",")[0].trim();
           const cidade = addr.city || addr.town || addr.village || addr.county || "";
-          const uf = (addr.state || "").toUpperCase().slice(0, 2);
+          const uf = extrairUf(addr.state || "");
           const bairro = addr.neighbourhood || addr.suburb || "";
           const logradouro = addr.road || addr.name || "";
           const partes = [logradouro, bairro, cidade, uf].filter(Boolean);
@@ -336,7 +355,7 @@ export default function CaixaBuscaLocalizacao({
           const geo = await res.json();
           const addr = geo.address || {};
           cidade = addr.city || addr.town || addr.village || addr.county || "";
-          uf = (addr.state || "").toUpperCase().slice(0, 2);
+          uf = extrairUf(addr.state || "");
           logradouro = addr.road || addr.name || "";
         }
       } catch {}
