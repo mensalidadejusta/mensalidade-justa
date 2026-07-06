@@ -7,6 +7,26 @@ const CEP_REGEX = /^\d{5}-?\d{3}$/;
 const FETCH_TIMEOUT_MS = 5000;
 const NOMINATIM_UA = "MensalidadeJustaApp/1.0 (contato@mensalidadejusta.com.br)";
 
+const CATEGORIA_CORES: Record<string, string> = {
+  Cidade: "bg-sky-200 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300",
+  Bairro: "bg-teal-200 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  "Rua/Logradouro": "bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  CEP: "bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  Estabelecimento: "bg-pink-200 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+  Local: "bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200",
+};
+
+function classificarTipo(item: any): string {
+  if (item._tipo === "cep") return "CEP";
+  const cls = item._cls || "";
+  const typ = item._type || "";
+  if (cls === "boundary" || typ === "administrative" || typ === "city" || typ === "town" || typ === "village" || typ === "municipality") return "Cidade";
+  if (cls === "highway" || typ === "road" || typ === "street" || typ === "pedestrian") return "Rua/Logradouro";
+  if (typ === "suburb" || typ === "neighbourhood" || typ === "borough") return "Bairro";
+  if (cls === "amenity" || cls === "shop" || cls === "tourism" || cls === "leisure") return "Estabelecimento";
+  return "Local";
+}
+
 export interface LocalizacaoResult {
   label: string;
   lat: number;
@@ -85,7 +105,6 @@ export default function CaixaBuscaLocalizacao({
 
   async function buscar(query: string) {
     let active = true;
-
     const trimmed = query.trim();
     const isCep = CEP_REGEX.test(trimmed);
 
@@ -112,7 +131,6 @@ export default function CaixaBuscaLocalizacao({
 
       const enderecoStr = [data.logradouro, data.bairro, data.localidade, data.uf].filter(Boolean).join(", ");
 
-      // Dispara geocode secundario no Nominatim para obter lat/lng
       let lat: number | null = null;
       let lng: number | null = null;
       try {
@@ -134,7 +152,7 @@ export default function CaixaBuscaLocalizacao({
       const sugestao = {
         id: `cep-${cepClean}`,
         textoExibicao: enderecoStr,
-        tipo: "cep" as const,
+        _tipo: "cep",
         label: enderecoStr,
         lat,
         lng,
@@ -171,7 +189,8 @@ export default function CaixaBuscaLocalizacao({
       if (Array.isArray(data) && data.length > 0) {
         const lista = data.map((item: any, idx: number) => {
           const addr = item.address || {};
-          const displayName = item.display_name || "";
+          const rawName = item.display_name || "";
+          const nomeLimpo = rawName.split(",")[0].trim();
           const cidade = addr.city || addr.town || addr.village || addr.county || "";
           const uf = (addr.state || "").toUpperCase().slice(0, 2);
           const bairro = addr.neighbourhood || addr.suburb || "";
@@ -179,9 +198,11 @@ export default function CaixaBuscaLocalizacao({
           const partes = [logradouro, bairro, cidade, uf].filter(Boolean);
           return {
             id: `nom-${idx}-${item.place_id}`,
-            textoExibicao: partes.length > 0 ? partes.join(", ") : displayName.split(",")[0].trim(),
-            label: displayName,
-            tipo: "local" as const,
+            textoExibicao: partes.length > 0 ? partes.join(", ") : nomeLimpo,
+            label: rawName,
+            _tipo: "local",
+            _cls: item.class || "",
+            _type: item.type || "",
             lat: Number(item.lat),
             lng: Number(item.lon),
             cidade,
@@ -278,7 +299,7 @@ export default function CaixaBuscaLocalizacao({
 
   async function buscarPertoDeMim() {
     if (!navigator.geolocation) {
-      setGeoError("Geolocaliza\u00e7\u00e3o n\u00e3o suportada.");
+      setGeoError("Geolocalização não suportada.");
       return;
     }
     setGeoLoading(true);
@@ -321,8 +342,8 @@ export default function CaixaBuscaLocalizacao({
         uf: uf || undefined,
       });
     } catch (err: any) {
-      if (err.code === 1) setGeoError("Permiss\u00e3o de localiza\u00e7\u00e3o negada.");
-      else setGeoError("Erro ao obter localiza\u00e7\u00e3o.");
+      if (err.code === 1) setGeoError("Permissão de localização negada.");
+      else setGeoError("Erro ao obter localização.");
     }
     setGeoLoading(false);
   }
@@ -344,7 +365,7 @@ export default function CaixaBuscaLocalizacao({
             onFocus={() => {
               if (sugestoesArr.length > 0 || buscouSemResultados) setDropdownAberto(true);
             }}
-            placeholder="Buscar cidade, endere\u00e7o ou CEP..."
+            placeholder="Buscar cidade, endereço ou CEP..."
             className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-10 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
@@ -387,6 +408,7 @@ export default function CaixaBuscaLocalizacao({
                 <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
                   {sugestoesArr.map((sugestao: any, index: number) => {
                     const isHighlighted = index === highlightIndex;
+                    const categoria = classificarTipo(sugestao);
                     return (
                       <li
                         key={sugestao.id || index}
@@ -403,15 +425,15 @@ export default function CaixaBuscaLocalizacao({
                         }`}>
                           <MapPin className="w-3.5 h-3.5" />
                         </span>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
                           <p className="text-sm text-text truncate font-medium">
                             {sugestao.textoExibicao}
                           </p>
-                          {sugestao.lat != null && (
-                            <p className="text-[11px] text-text-tertiary mt-0.5 font-medium">
-                              {sugestao.lat.toFixed(4)}, {sugestao.lng.toFixed(4)}
-                            </p>
-                          )}
+                          <span className={`shrink-0 inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                            CATEGORIA_CORES[categoria] || CATEGORIA_CORES["Local"]
+                          }`}>
+                            {categoria}
+                          </span>
                         </div>
                       </li>
                     );
@@ -426,7 +448,7 @@ export default function CaixaBuscaLocalizacao({
           onClick={buscarPertoDeMim}
           disabled={geoLoading}
           className="shrink-0 inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-full text-sm font-medium bg-[#1f3b9b] text-white hover:bg-[#1f3b9b]/90 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
-          title="Usar minha localiza\u00e7\u00e3o atual"
+          title="Usar minha localização atual"
         >
           {geoLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
