@@ -302,47 +302,66 @@ function ModalContribuicao({
   );
 }
 
-function CardSerie({ serie, p, onAbrirModal }: { serie: typeof SERIES[number]; p: Estatistica | undefined; onAbrirModal: (slug: string, nome: string, stats: Estatistica | null) => void }) {
-  if (!p || !p.qtd_mensalidade) return null;
+function LinhaSerie({ serie, stats, onAbrirModal }: { serie: typeof SERIES[number]; stats: Estatistica | null | undefined; onAbrirModal: (slug: string, nome: string, stats: Estatistica | null) => void }) {
+  const temDados = stats != null && stats.qtd_mensalidade > 0;
+  const precisaAviso = temDados && stats!.qtd_mensalidade <= 1;
+  const temMatricula = temDados && (stats!.media_matricula != null || stats!.qtd_matricula > 0);
+  const temMaterial = temDados && (stats!.media_material != null || stats!.qtd_material > 0);
 
-  const stats = p;
-  const precisaAviso = stats.qtd_mensalidade <= 1;
-  const temMatricula = stats.media_matricula != null || stats.qtd_matricula > 0;
-  const temMaterial = stats.media_material != null || stats.qtd_material > 0;
+  const anoVigencia = new Date().getFullYear() + (new Date().getMonth() >= 6 ? 1 : 0);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-1 sm:gap-0 group">
-      <div className="flex items-center gap-2 min-w-0">
-        <h4 className="font-medium text-sm text-text truncate">{serie.nome}</h4>
-        {precisaAviso && (
-          <div className="relative group/tooltip shrink-0">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] rounded-md py-1 px-2 whitespace-nowrap z-20 shadow-lg pointer-events-none">
-              Este valor foi sugerido por usuários e carece de mais confirmações
-            </span>
-          </div>
+    <div className="flex items-center justify-between py-3 hover:bg-white/[0.02] px-2 -mx-2 rounded-lg transition-colors border-b border-white/[0.03] last:border-0">
+      <div className="flex flex-col justify-center min-w-0">
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-medium text-text">{serie.nome}</h4>
+          {precisaAviso && (
+            <div className="relative group/tooltip shrink-0">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 cursor-help" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] rounded-md py-1 px-2 whitespace-nowrap z-20 shadow-lg pointer-events-none">
+                Este valor foi sugerido por usuários e carece de mais confirmações
+              </span>
+            </div>
+          )}
+        </div>
+        {temDados && (
+          <span className="text-[10px] text-text-tertiary/70 mt-0.5 leading-none">
+            Ref: {anoVigencia} &bull; {stats!.qtd_mensalidade} {stats!.qtd_mensalidade === 1 ? "contribuição" : "contribuições"}
+          </span>
         )}
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-4 text-xs text-text-secondary ml-5 sm:ml-0">
-        {stats.media_mensalidade != null && (
-          <span className="font-semibold text-text text-sm">{fmtBr(stats.media_mensalidade)}</span>
+      <div className="flex items-center gap-3 text-right shrink-0 ml-4">
+        {temDados ? (
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col justify-center">
+              {stats!.media_mensalidade != null && (
+                <span className="text-sm font-semibold text-text leading-tight">{fmtBr(stats!.media_mensalidade)}</span>
+              )}
+              <span className="text-[10px] text-text-tertiary mt-1 leading-none">
+                {temMatricula ? `Mat: ${fmtBr(stats!.media_matricula)}` : ""}
+                {temMatricula && temMaterial ? " | " : ""}
+                {temMaterial ? `Mat.: ${fmtBr(stats!.media_material)}` : ""}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onAbrirModal(serie.slug, serie.nome, stats!)}
+              className="p-1.5 text-text-tertiary hover:text-text transition-colors cursor-pointer self-center"
+              aria-label="Atualizar"
+            >
+              <PenLine className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onAbrirModal(serie.slug, serie.nome, null)}
+            className="text-xs font-medium text-primary hover:text-primary-hover transition-colors flex items-center gap-1 py-1 px-2 rounded-md hover:bg-primary/10 cursor-pointer"
+          >
+            <span>+ Adicionar preço</span>
+          </button>
         )}
-        {temMatricula && (
-          <span className="text-text-tertiary hidden sm:inline">Mat: {fmtBr(stats.media_matricula)}</span>
-        )}
-        {temMaterial && (
-          <span className="text-text-tertiary hidden sm:inline">Mat.: {fmtBr(stats.media_material)}</span>
-        )}
-
-        <button
-          type="button"
-          onClick={() => onAbrirModal(serie.slug, serie.nome, stats)}
-          className="p-1.5 rounded-lg text-text-tertiary hover:text-primary hover:bg-primary/10 transition-all cursor-pointer active:scale-90"
-          aria-label="Atualizar preço"
-        >
-          <PenLine className="w-3.5 h-3.5" />
-        </button>
       </div>
     </div>
   );
@@ -444,29 +463,33 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   </div>
                 </div>
               ) : (
-                grupos.map((grupo) => {
-                  const series = SERIES.filter((s) => s.grupo === grupo);
-                  const hasData = series.some((s) => precos.find((p) => p.serie_slug === s.slug));
-                  if (!hasData) return null;
-                  return (
-                    <section key={grupo} aria-label={grupo} className="mb-4">
-                      <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">{grupo}</h3>
-                      <div className="divide-y divide-border/30">
-                        {series.map((serie) => {
-                          const p = precos.find((pr) => pr.serie_slug === serie.slug);
-                          return (
-                            <CardSerie
-                              key={serie.slug}
-                              serie={serie}
-                              p={p}
-                              onAbrirModal={abrirModal}
-                            />
-                          );
-                        })}
-                      </div>
-                    </section>
-                  );
-                })
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {grupos.map((grupo) => {
+                    const series = SERIES.filter((s) => s.grupo === grupo);
+                    const hasAnyData = series.some((s) => {
+                      const p = precos.find((pr) => pr.serie_slug === s.slug);
+                      return p && p.qtd_mensalidade > 0;
+                    });
+                    return (
+                      <section key={grupo} aria-label={grupo} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">{grupo}</h3>
+                        <div className="divide-y divide-white/5 mt-2">
+                          {series.map((serie) => {
+                            const p = precos.find((pr) => pr.serie_slug === serie.slug);
+                            return (
+                              <LinhaSerie
+                                key={serie.slug}
+                                serie={serie}
+                                stats={p}
+                                onAbrirModal={abrirModal}
+                              />
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
               )}
             </section>
           ) : (
