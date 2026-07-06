@@ -169,7 +169,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
 
   const isAllSelected = sidebar ? !draftValue : !value;
 
-  const showOptions = isSeries ? filteredSeries : filteredOptions;
+  const showOptions = isSeries ? filteredSeries : (Array.isArray(filteredOptions) ? filteredOptions : []);
 
   const Indicator = ({ slug }: { slug: string }) => {
     if (multi) return isSelected(slug) ? <CheckboxChecked /> : <CheckboxUnchecked />;

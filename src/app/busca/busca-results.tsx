@@ -61,7 +61,8 @@ export default function BuscaResults({
   onHover,
   serieSlug = "",
 }: Props) {
-  if (resultados.length === 0) {
+  const lista = Array.isArray(resultados) ? resultados : [];
+  if (lista.length === 0) {
     return (
       <div className="text-center text-sm text-text-tertiary py-12">
         <p className="font-medium">Nenhuma escola corresponde aos filtros.</p>
@@ -71,7 +72,7 @@ export default function BuscaResults({
 
   return (
     <div className="space-y-2 md:space-y-3">
-      {resultados.map((escola) => {
+      {lista.map((escola) => {
         const isHovered = hoveredId === escola.id;
         return (
           <article key={escola.id}>

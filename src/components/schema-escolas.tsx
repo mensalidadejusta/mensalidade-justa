@@ -23,7 +23,7 @@ type Props = {
 };
 
 function calcularPriceRange(escola: Escola): string {
-  const precos = escola.series_precos
+  const precos = (Array.isArray(escola.series_precos) ? escola.series_precos : [])
     .map((s) => s.valor_mensalidade)
     .filter((v): v is number => v != null);
 
@@ -37,12 +37,13 @@ function calcularPriceRange(escola: Escola): string {
 }
 
 export default function SchemaEscolas({ escolas }: Props) {
-  if (!escolas || escolas.length === 0) return null;
+  const lista = Array.isArray(escolas) ? escolas : [];
+  if (lista.length === 0) return null;
 
   const schema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    itemListElement: escolas.map((escola, index) => ({
+    itemListElement: lista.map((escola, index) => ({
       "@type": "ListItem",
       position: index + 1,
       item: {

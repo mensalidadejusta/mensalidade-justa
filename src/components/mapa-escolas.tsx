@@ -12,7 +12,7 @@ const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
 const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
 
 function mediaPreco(e: Escola, serieSlug?: string): string {
-  const precos = e.series_precos
+  const precos = (Array.isArray(e.series_precos) ? e.series_precos : [])
     .filter((s) => !serieSlug || s.serie_slug === serieSlug)
     .map((s) => s.valor_mensalidade)
     .filter((v): v is number => v != null);
@@ -41,9 +41,10 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     const { map, L, markers, userMarker } = s;
     markers.clearLayers();
 
+    const escolasArray = Array.isArray(escolas) ? escolas : [];
     const z = map.getZoom();
     const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
-    let todas = escolas.filter((e) => e.latitude && e.longitude);
+    let todas = escolasArray.filter((e) => e.latitude && e.longitude);
     const comPreco = todas.filter((e) => e.dependencia_administrativa === "Privada" && mediaPreco(e, serieSlug));
     const semPreco = todas.filter((e) => e.dependencia_administrativa !== "Privada" || !mediaPreco(e, serieSlug));
     const ordenadas = [...comPreco, ...semPreco];
@@ -63,9 +64,10 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       m._eid = e.id;
       const endereco = e.bairro || "";
       let precosHtml = "";
-      if (e.series_precos.length) {
+      const precosArray = Array.isArray(e.series_precos) ? e.series_precos : [];
+      if (precosArray.length) {
         for (const grupo of GRUPOS) {
-          const items = e.series_precos.filter((sp) => slugToGrupo.get(sp.serie_slug) === grupo);
+          const items = precosArray.filter((sp) => slugToGrupo.get(sp.serie_slug) === grupo);
           if (!items.length) continue;
           const precos = items.map((s) => Number(s.valor_mensalidade)).filter((v) => !isNaN(v));
           const min = precos.length > 0 ? Math.min(...precos) : 0;
