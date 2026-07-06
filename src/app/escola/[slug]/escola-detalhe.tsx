@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit3 } from "lucide-react";
+import { ArrowLeft, Edit3, X } from "lucide-react";
 import { SERIES } from "@/lib/series";
 
 type Estatistica = {
@@ -45,10 +46,160 @@ function fmtBr(valor: number | null): string {
     .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
 }
 
+function parseBr(valor: string): number | null {
+  const limpo = valor.replace(/[R$\s.]/g, "").replace(",", ".");
+  const num = parseFloat(limpo);
+  return isNaN(num) ? null : num;
+}
+
 const grupos = [...new Set(SERIES.map((s) => s.grupo))];
 
-function CardSerie({ serie, p, escolaCodigoInep, onContribuir }: { serie: typeof SERIES[number]; p: Estatistica | undefined; escolaCodigoInep: string; onContribuir: (inep: string) => void }) {
+function ModalContribuicao({
+  aberto,
+  fechar,
+  serieSlug,
+  serieNome,
+  valoresAtuais,
+  escolaId,
+  escolaNome,
+}: {
+  aberto: boolean;
+  fechar: () => void;
+  serieSlug: string;
+  serieNome: string;
+  valoresAtuais: Estatistica | null;
+  escolaId: number;
+  escolaNome: string;
+}) {
+  const [mensalidade, setMensalidade] = useState(
+    valoresAtuais?.media_mensalidade ? String(Math.round(valoresAtuais.media_mensalidade)) : ""
+  );
+  const [matricula, setMatricula] = useState(
+    valoresAtuais?.media_matricula ? String(Math.round(valoresAtuais.media_matricula)) : ""
+  );
+  const [material, setMaterial] = useState(
+    valoresAtuais?.media_material ? String(Math.round(valoresAtuais.media_material)) : ""
+  );
+  const [salvando, setSalvando] = useState(false);
+  const [salvo, setSalvo] = useState(false);
+
+  async function handleSalvar() {
+    setSalvando(true);
+    const payload = {
+      escola_id: escolaId,
+      serie_slug: serieSlug,
+      serie_nome: serieNome,
+      valor_mensalidade: mensalidade ? parseFloat(mensalidade.replace(",", ".")) : null,
+      valor_matricula: matricula ? parseFloat(matricula.replace(",", ".")) : null,
+      valor_material: material ? parseFloat(material.replace(",", ".")) : null,
+    };
+    console.log("Salvando contribuição:", payload);
+    // TODO: chamar a API real quando disponível
+    // await supabase.from("mensalidades_series").insert(payload);
+    await new Promise((r) => setTimeout(r, 600));
+    setSalvando(false);
+    setSalvo(true);
+    setTimeout(() => {
+      setSalvo(false);
+      fechar();
+    }, 1200);
+  }
+
+  if (!aberto) return null;
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-end sm:items-center sm:justify-center animate-fade-in">
+      <div className="absolute inset-0 bg-black/60" onClick={fechar} />
+      <div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full sm:max-w-md mx-4 overflow-hidden animate-bottom-sheet-in">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <h3 className="text-base font-semibold text-text">Contribuir com preços</h3>
+          <button
+            type="button"
+            onClick={fechar}
+            className="p-1 rounded-lg text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="px-5 pb-2">
+          <p className="text-sm text-text-secondary">
+            <span className="font-medium text-text">{serieNome}</span>
+          </p>
+          <p className="text-xs text-text-tertiary mt-0.5">{escolaNome}</p>
+        </div>
+
+        {salvo ? (
+          <div className="px-5 py-8 text-center space-y-2">
+            <div className="text-3xl">✅</div>
+            <p className="text-sm font-semibold text-text">Obrigado!</p>
+            <p className="text-xs text-text-tertiary">Sua contribuição foi registrada.</p>
+          </div>
+        ) : (
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleSalvar(); }}
+            className="px-5 pb-5 space-y-4"
+          >
+            <div>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Mensalidade (R$)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={mensalidade}
+                onChange={(e) => setMensalidade(e.target.value)}
+                placeholder="Ex: 1200"
+                className="w-full bg-bg border border-border/50 rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Taxa de Matrícula (R$)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={matricula}
+                onChange={(e) => setMatricula(e.target.value)}
+                placeholder="Ex: 500"
+                className="w-full bg-bg border border-border/50 rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Custo do Material Didático (R$)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                placeholder="Ex: 300"
+                className="w-full bg-bg border border-border/50 rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={fechar}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-surface-hover text-text-secondary hover:text-text transition-all duration-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={salvando}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
+              >
+                {salvando ? "Salvando..." : "Salvar Valores"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CardSerie({ serie, p, onAbrirModal }: { serie: typeof SERIES[number]; p: Estatistica | undefined; onAbrirModal: (slug: string, nome: string, stats: Estatistica | null) => void }) {
   if (!p || !p.qtd_mensalidade) return null;
+
+  const stats = p;
 
   return (
     <article className="bg-surface border border-border/60 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-primary/30 transition-all duration-200">
@@ -56,19 +207,19 @@ function CardSerie({ serie, p, escolaCodigoInep, onContribuir }: { serie: typeof
         <div className="flex items-start justify-between gap-2">
           <h4 className="font-semibold text-base text-text">{serie.nome}</h4>
           <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-            p.qtd_mensalidade <= 1
+            stats.qtd_mensalidade <= 1
               ? "bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
               : "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
           }`}>
-            {p.qtd_mensalidade <= 1
+            {stats.qtd_mensalidade <= 1
               ? "⚠ Carece de mais confirmações"
               : "✅ Preço consolidado"}
           </span>
         </div>
 
-        {p.media_mensalidade != null && (
+        {stats.media_mensalidade != null && (
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">{fmtBr(p.media_mensalidade)}</span>
+            <span className="text-2xl font-bold text-primary">{fmtBr(stats.media_mensalidade)}</span>
             <span className="text-xs text-text-tertiary">média</span>
           </div>
         )}
@@ -76,34 +227,34 @@ function CardSerie({ serie, p, escolaCodigoInep, onContribuir }: { serie: typeof
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
           <div>
             <span className="text-text-tertiary">Mín: </span>
-            <span className="text-text-secondary font-medium">{fmtBr(p.min_mensalidade)}</span>
+            <span className="text-text-secondary font-medium">{fmtBr(stats.min_mensalidade)}</span>
           </div>
           <div>
             <span className="text-text-tertiary">Máx: </span>
-            <span className="text-text-secondary font-medium">{fmtBr(p.max_mensalidade)}</span>
+            <span className="text-text-secondary font-medium">{fmtBr(stats.max_mensalidade)}</span>
           </div>
-          {(p.media_matricula != null || p.qtd_matricula > 0) && (
+          {(stats.media_matricula != null || stats.qtd_matricula > 0) && (
             <div>
               <span className="text-text-tertiary">Matrícula: </span>
-              <span className="text-text-secondary font-medium">{fmtBr(p.media_matricula)}</span>
+              <span className="text-text-secondary font-medium">{fmtBr(stats.media_matricula)}</span>
             </div>
           )}
-          {(p.media_material != null || p.qtd_material > 0) && (
+          {(stats.media_material != null || stats.qtd_material > 0) && (
             <div>
               <span className="text-text-tertiary">Material: </span>
-              <span className="text-text-secondary font-medium">{fmtBr(p.media_material)}</span>
+              <span className="text-text-secondary font-medium">{fmtBr(stats.media_material)}</span>
             </div>
           )}
         </div>
 
         <p className="text-[10px] text-text-tertiary">
-          Baseado em {p.qtd_mensalidade} {p.qtd_mensalidade === 1 ? "contribuição" : "contribuições"}
+          Baseado em {stats.qtd_mensalidade} {stats.qtd_mensalidade === 1 ? "contribuição" : "contribuições"}
         </p>
       </div>
 
       <button
         type="button"
-        onClick={() => onContribuir(escolaCodigoInep)}
+        onClick={() => onAbrirModal(serie.slug, serie.nome, stats)}
         className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 rounded-lg text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 active:scale-[0.97] min-h-[44px]"
       >
         <Edit3 className="w-3.5 h-3.5" />
@@ -113,22 +264,24 @@ function CardSerie({ serie, p, escolaCodigoInep, onContribuir }: { serie: typeof
   );
 }
 
-function InfoCard({ rotulo, valor, span }: { rotulo: string; valor: string | null | undefined; span?: boolean }) {
-  if (!valor) return null;
-  return (
-    <div className={span ? "lg:col-span-2" : ""}>
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary block mb-0.5">{rotulo}</span>
-      <span className="text-sm text-text">{valor}</span>
-    </div>
-  );
-}
-
 export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola; slug: string; precos: Estatistica[] }) {
   const router = useRouter();
   const isPrivada = escola.categoria_administrativa === "Privada";
 
-  function handleContribuir(inep: string) {
-    router.push("/contribuir?escola=" + inep);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [modalSerieSlug, setModalSerieSlug] = useState("");
+  const [modalSerieNome, setModalSerieNome] = useState("");
+  const [modalStats, setModalStats] = useState<Estatistica | null>(null);
+
+  function abrirModal(serieSlug: string, serieNome: string, stats: Estatistica | null) {
+    setModalSerieSlug(serieSlug);
+    setModalSerieNome(serieNome);
+    setModalStats(stats);
+    setModalAberto(true);
+  }
+
+  function fecharModal() {
+    setModalAberto(false);
   }
 
   const nomeFormatado = capitalizarNome(escola.nome);
@@ -159,7 +312,6 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
 
         {/* Colunas 1-2: conteúdo principal */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Cabeçalho */}
           <header className="space-y-4">
             <button
               type="button"
@@ -194,7 +346,10 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   </p>
                   <button
                     type="button"
-                    onClick={() => handleContribuir(escola.codigo_inep)}
+                    onClick={() => {
+                      const primeiraSerie = SERIES[0];
+                      abrirModal(primeiraSerie.slug, primeiraSerie.nome, null);
+                    }}
                     className="inline-flex items-center gap-2 bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] min-h-[48px]"
                   >
                     <Edit3 className="w-4 h-4" />
@@ -220,8 +375,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                               key={serie.slug}
                               serie={serie}
                               p={p}
-                              escolaCodigoInep={escola.codigo_inep}
-                              onContribuir={handleContribuir}
+                              onAbrirModal={abrirModal}
                             />
                           );
                         })}
@@ -338,7 +492,10 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               </p>
               <button
                 type="button"
-                onClick={() => handleContribuir(escola.codigo_inep)}
+                onClick={() => {
+                  const primeiraSerie = SERIES[0];
+                  abrirModal(primeiraSerie.slug, primeiraSerie.nome, null);
+                }}
                 className="block w-full bg-primary text-white font-semibold py-3 px-5 rounded-xl hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] min-h-[48px]"
               >
                 ✏ Contribuir com preços
@@ -348,6 +505,17 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           )}
         </aside>
       </div>
+
+      {/* Modal de contribuição */}
+      <ModalContribuicao
+        aberto={modalAberto}
+        fechar={fecharModal}
+        serieSlug={modalSerieSlug}
+        serieNome={modalSerieNome}
+        valoresAtuais={modalStats}
+        escolaId={escola.id}
+        escolaNome={escola.nome}
+      />
     </main>
   );
 }
