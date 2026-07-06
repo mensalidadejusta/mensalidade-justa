@@ -1,18 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Navigation, Loader2, MapPin, Building, Hash } from "lucide-react";
+import { Loader2, MapPin, X, Navigation } from "lucide-react";
 
-export interface SugestaoLocalizacao {
-  id: string;
-  textoExibicao: string;
-  tipo: "cidade" | "cep";
-  cidade?: string;
-  uf?: string;
-  bairro?: string;
-  cep?: string;
-  latitude?: number;
-  longitude?: number;
+const CEP_REGEX = /^\d{5}-?\d{3}$/;
+const FETCH_TIMEOUT_MS = 5000;
+const NOMINATIM_UA = "MensalidadeJustaApp/1.0 (contato@mensalidadejusta.com.br)";
+
+export interface LocalizacaoResult {
+  label: string;
+  lat: number;
+  lng: number;
 }
 
 export interface FiltroLocalizacao {
@@ -25,52 +23,19 @@ export interface FiltroLocalizacao {
   longitude?: number;
 }
 
-export interface LocalizacaoSelecionada {
-  label: string;
-  lat: number;
-  lng: number;
-}
-
 interface CaixaBuscaLocalizacaoProps {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
-  onLocationSelect?: (loc: LocalizacaoSelecionada) => void;
+  onLocationSelect?: (loc: LocalizacaoResult) => void;
   initialValue?: string;
   className?: string;
   iconOnlyGeo?: boolean;
 }
-
-const CEP_REGEX = /^(\d{5})-?(\d{3})$/;
-const FETCH_TIMEOUT_MS = 5000;
-
-type MunicipioIBGE = {
-  id: number;
-  nome: string;
-  microrregiao: { mesorregiao: { UF: { sigla: string; nome: string } } };
-};
 
 function fetchComTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   return fetch(input, { ...init, signal: controller.signal })
     .finally(() => clearTimeout(timer));
-}
-
-async function geocodeNominatim(cidade: string, uf: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const q = encodeURIComponent(`${cidade}, ${uf}, Brasil`);
-    const res = await fetchComTimeout(
-      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&accept-language=pt`,
-      { headers: { "User-Agent": "MensalidadeJusta/1.0" } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return { lat: Number(data[0].lat), lng: Number(data[0].lon) };
-    }
-    return null;
-  } catch {
-    return null;
-  }
 }
 
 export default function CaixaBuscaLocalizacao({
@@ -81,7 +46,7 @@ export default function CaixaBuscaLocalizacao({
   iconOnlyGeo,
 }: CaixaBuscaLocalizacaoProps) {
   const [buscaRaw, setBuscaRaw] = useState(initialValue);
-  const [sugestoes, setSugestoes] = useState<SugestaoLocalizacao[]>([]);
+  const [sugestoes, setSugestoes] = useState<any[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [carregando, setCarregando] = useState(false);
@@ -91,14 +56,13 @@ export default function CaixaBuscaLocalizacao({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reqIdRef = useRef(0);
 
   function handleChange(value: string) {
     setBuscaRaw(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     const trimmed = value.trim();
-    if (trimmed.length < 2) {
+    if (trimmed.length < 3) {
       setSugestoes([]);
       setDropdownAberto(false);
       setBuscouSemResultados(false);
@@ -107,47 +71,77 @@ export default function CaixaBuscaLocalizacao({
     }
 
     setCarregando(true);
-    debounceRef.current = setTimeout(() => buscar(trimmed), 350);
+    debounceRef.current = setTimeout(() => buscar(trimmed), 300);
+  }
+
+  function limparInput() {
+    setBuscaRaw("");
+    setSugestoes([]);
+    setDropdownAberto(false);
+    setBuscouSemResultados(false);
+    setHighlightIndex(-1);
+    inputRef.current?.focus();
   }
 
   async function buscar(query: string) {
-    const requestId = ++reqIdRef.current;
-    const trimmed = query.trim();
+    let active = true;
 
-    const cepMatch = trimmed.match(CEP_REGEX);
-    if (cepMatch) {
-      await buscarCep(trimmed, requestId);
-    } else if (/^\d+$/.test(trimmed)) {
-      // Só numeros mas não é CEP válido → tenta como CEP mesmo
-      await buscarCep(trimmed, requestId);
+    const trimmed = query.trim();
+    const isCep = CEP_REGEX.test(trimmed);
+
+    if (isCep) {
+      await buscarCep(trimmed, () => active);
     } else {
-      // Busca cidades pelo IBGE
-      await buscarCidadesIBGE(trimmed, requestId);
+      await buscarNominatim(trimmed, () => active);
     }
 
-    if (requestId === reqIdRef.current) {
+    if (active) {
       setCarregando(false);
     }
   }
 
-  async function buscarCep(cep: string, requestId: number) {
+  async function buscarCep(cep: string, isActive: () => boolean) {
     const cepClean = cep.replace(/\D/g, "");
     try {
       const res = await fetchComTimeout(`https://viacep.com.br/ws/${cepClean}/json/`);
-      if (requestId !== reqIdRef.current) return;
+      if (!isActive()) return;
       if (!res.ok) throw new Error("CEP invalido");
       const data = await res.json();
-      if (requestId !== reqIdRef.current) return;
+      if (!isActive()) return;
       if (data.erro) throw new Error("CEP nao encontrado");
 
-      const sugestao: SugestaoLocalizacao = {
+      const enderecoStr = [data.logradouro, data.bairro, data.localidade, data.uf].filter(Boolean).join(", ");
+
+      // Dispara geocode secundario no Nominatim para obter lat/lng
+      let lat: number | null = null;
+      let lng: number | null = null;
+      try {
+        const geoRes = await fetchComTimeout(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoStr)}&countrycodes=br&limit=1`,
+          { headers: { "User-Agent": NOMINATIM_UA } }
+        );
+        if (isActive() && geoRes.ok) {
+          const geoData = await geoRes.json();
+          if (Array.isArray(geoData) && geoData.length > 0) {
+            lat = Number(geoData[0].lat);
+            lng = Number(geoData[0].lon);
+          }
+        }
+      } catch {}
+
+      if (!isActive()) return;
+
+      const sugestao = {
         id: `cep-${cepClean}`,
-        textoExibicao: [data.logradouro, data.bairro, `${data.localidade} - ${data.uf}`].filter(Boolean).join(", "),
-        tipo: "cep",
-        cep: data.cep,
-        bairro: data.bairro || undefined,
+        textoExibicao: enderecoStr,
+        tipo: "cep" as const,
+        label: enderecoStr,
+        lat,
+        lng,
         cidade: data.localidade,
         uf: data.uf,
+        bairro: data.bairro || undefined,
+        cep: data.cep,
       };
 
       setSugestoes([sugestao]);
@@ -155,7 +149,7 @@ export default function CaixaBuscaLocalizacao({
       setBuscouSemResultados(false);
       setHighlightIndex(-1);
     } catch {
-      if (requestId !== reqIdRef.current) return;
+      if (!isActive()) return;
       setSugestoes([]);
       setDropdownAberto(true);
       setBuscouSemResultados(true);
@@ -163,25 +157,39 @@ export default function CaixaBuscaLocalizacao({
     }
   }
 
-  async function buscarCidadesIBGE(termo: string, requestId: number) {
+  async function buscarNominatim(query: string, isActive: () => boolean) {
     try {
       const res = await fetchComTimeout(
-        `https://servicodados.ibge.gov.br/api/v1/localidades/municipios?nome=${encodeURIComponent(termo)}`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&addressdetails=1&limit=5`,
+        { headers: { "User-Agent": NOMINATIM_UA } }
       );
-      if (requestId !== reqIdRef.current) return;
-      if (!res.ok) throw new Error("IBGE error");
-      const data: MunicipioIBGE[] = await res.json();
-      if (requestId !== reqIdRef.current) return;
+      if (!isActive()) return;
+      if (!res.ok) throw new Error("Nominatim error");
+      const data = await res.json();
+      if (!isActive()) return;
 
       if (Array.isArray(data) && data.length > 0) {
-        const lista: SugestaoLocalizacao[] = data.map((m) => ({
-          id: `ibge-${m.id}`,
-          textoExibicao: `${m.nome} - ${m.microrregiao.mesorregiao.UF.sigla}`,
-          tipo: "cidade" as const,
-          cidade: m.nome,
-          uf: m.microrregiao.mesorregiao.UF.sigla,
-        }));
-        setSugestoes(lista.slice(0, 10));
+        const lista = data.map((item: any, idx: number) => {
+          const addr = item.address || {};
+          const displayName = item.display_name || "";
+          const cidade = addr.city || addr.town || addr.village || addr.county || "";
+          const uf = (addr.state || "").toUpperCase().slice(0, 2);
+          const bairro = addr.neighbourhood || addr.suburb || "";
+          const logradouro = addr.road || addr.name || "";
+          const partes = [logradouro, bairro, cidade, uf].filter(Boolean);
+          return {
+            id: `nom-${idx}-${item.place_id}`,
+            textoExibicao: partes.length > 0 ? partes.join(", ") : displayName.split(",")[0].trim(),
+            label: displayName,
+            tipo: "local" as const,
+            lat: Number(item.lat),
+            lng: Number(item.lon),
+            cidade,
+            uf,
+            bairro: bairro || undefined,
+          };
+        });
+        setSugestoes(lista);
         setDropdownAberto(true);
         setBuscouSemResultados(false);
         setHighlightIndex(-1);
@@ -192,7 +200,7 @@ export default function CaixaBuscaLocalizacao({
         setHighlightIndex(-1);
       }
     } catch {
-      if (requestId !== reqIdRef.current) return;
+      if (!isActive()) return;
       setSugestoes([]);
       setDropdownAberto(true);
       setBuscouSemResultados(true);
@@ -200,7 +208,7 @@ export default function CaixaBuscaLocalizacao({
     }
   }
 
-  async function selecionarSugestao(sugestao: SugestaoLocalizacao) {
+  function selecionarSugestao(sugestao: any) {
     setBuscaRaw(sugestao.textoExibicao);
     setSugestoes([]);
     setDropdownAberto(false);
@@ -208,53 +216,8 @@ export default function CaixaBuscaLocalizacao({
     setHighlightIndex(-1);
     inputRef.current?.blur();
 
-    if (sugestao.tipo === "cidade" && sugestao.cidade && sugestao.uf) {
-      // Geocode a cidade para obter lat/lng
-      const geo = await geocodeNominatim(sugestao.cidade, sugestao.uf);
-
-      onLocationChange({
-        buscaRaw: sugestao.textoExibicao,
-        cidade: sugestao.cidade,
-        uf: sugestao.uf,
-        latitude: geo?.lat,
-        longitude: geo?.lng,
-      });
-
-      if (geo && onLocationSelect) {
-        onLocationSelect({
-          label: `${sugestao.cidade} - ${sugestao.uf}`,
-          lat: geo.lat,
-          lng: geo.lng,
-        });
-      }
-      return;
-    }
-
-    if (sugestao.tipo === "cep" && sugestao.cidade && sugestao.uf) {
-      // Se o CEP tem lat/lng, usa; se não, geocode a cidade
-      let lat = sugestao.latitude;
-      let lng = sugestao.longitude;
-
-      if (lat == null && sugestao.cidade) {
-        const geo = await geocodeNominatim(sugestao.cidade, sugestao.uf);
-        if (geo) { lat = geo.lat; lng = geo.lng; }
-      }
-
-      onLocationChange({
-        buscaRaw: sugestao.textoExibicao,
-        cep: sugestao.cep,
-        bairro: sugestao.bairro,
-        cidade: sugestao.cidade,
-        uf: sugestao.uf,
-        latitude: lat,
-        longitude: lng,
-      });
-
-      if (lat != null && lng != null && onLocationSelect) {
-        onLocationSelect({ label: sugestao.textoExibicao, lat, lng });
-      }
-      return;
-    }
+    const lat = sugestao.lat != null ? Number(sugestao.lat) : null;
+    const lng = sugestao.lng != null ? Number(sugestao.lng) : null;
 
     onLocationChange({
       buscaRaw: sugestao.textoExibicao,
@@ -262,9 +225,13 @@ export default function CaixaBuscaLocalizacao({
       bairro: sugestao.bairro,
       cidade: sugestao.cidade,
       uf: sugestao.uf,
-      latitude: sugestao.latitude,
-      longitude: sugestao.longitude,
+      latitude: lat ?? undefined,
+      longitude: lng ?? undefined,
     });
+
+    if (lat != null && lng != null && onLocationSelect) {
+      onLocationSelect({ label: sugestao.label || sugestao.textoExibicao, lat, lng });
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -325,25 +292,23 @@ export default function CaixaBuscaLocalizacao({
 
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
+      let cidade = "", uf = "", logradouro = "";
 
-      // Reverse geocode via Nominatim
-      let cidade = "", uf = "", bairro = "", logradouro = "";
       try {
         const res = await fetchComTimeout(
           `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pt`,
-          { headers: { "User-Agent": "MensalidadeJusta/1.0" } }
+          { headers: { "User-Agent": NOMINATIM_UA } }
         );
         if (res.ok) {
           const geo = await res.json();
           const addr = geo.address || {};
           cidade = addr.city || addr.town || addr.village || addr.county || "";
           uf = (addr.state || "").toUpperCase().slice(0, 2);
-          bairro = addr.neighbourhood || addr.suburb || "";
           logradouro = addr.road || addr.name || "";
         }
       } catch {}
 
-      const texto = [logradouro, bairro, cidade, uf].filter(Boolean).join(", ") || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      const texto = [logradouro, cidade, uf].filter(Boolean).join(", ") || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
       setBuscaRaw(texto);
       setSugestoes([]);
       setDropdownAberto(false);
@@ -354,7 +319,6 @@ export default function CaixaBuscaLocalizacao({
         longitude: lon,
         cidade: cidade || undefined,
         uf: uf || undefined,
-        bairro: bairro || undefined,
       });
     } catch (err: any) {
       if (err.code === 1) setGeoError("Permiss\u00e3o de localiza\u00e7\u00e3o negada.");
@@ -364,6 +328,7 @@ export default function CaixaBuscaLocalizacao({
   }
 
   const sugestoesArr = Array.isArray(sugestoes) ? sugestoes : [];
+  const temTexto = buscaRaw.trim().length > 0;
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -376,16 +341,29 @@ export default function CaixaBuscaLocalizacao({
             value={buscaRaw}
             onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Cidade, bairro ou CEP..."
-            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
+            onFocus={() => {
+              if (sugestoesArr.length > 0 || buscouSemResultados) setDropdownAberto(true);
+            }}
+            placeholder="Buscar cidade, endere\u00e7o ou CEP..."
+            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-10 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
           />
-          {carregando && (
+          {carregando ? (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <Loader2 className="w-4 h-4 text-text-tertiary animate-spin" />
             </div>
-          )}
+          ) : temTexto ? (
+            <button
+              type="button"
+              onClick={limparInput}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
+              tabIndex={-1}
+              aria-label="Limpar busca"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          ) : null}
 
           {(dropdownAberto || carregando) && (
             <div className="absolute w-full top-full mt-2 z-50 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
@@ -407,12 +385,11 @@ export default function CaixaBuscaLocalizacao({
 
               {!carregando && sugestoesArr.length > 0 && (
                 <ul role="listbox" className="py-1 max-h-64 overflow-y-auto">
-                  {sugestoesArr.map((sugestao, index) => {
+                  {sugestoesArr.map((sugestao: any, index: number) => {
                     const isHighlighted = index === highlightIndex;
-                    const isCidade = sugestao.tipo === "cidade";
                     return (
                       <li
-                        key={sugestao.id}
+                        key={sugestao.id || index}
                         role="option"
                         aria-selected={isHighlighted}
                         onClick={() => selecionarSugestao(sugestao)}
@@ -424,15 +401,17 @@ export default function CaixaBuscaLocalizacao({
                         <span className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
                           isHighlighted ? "bg-accent-purple/15 text-accent-purple" : "bg-surface-hover text-text-tertiary"
                         }`}>
-                          {isCidade ? <MapPin className="w-3.5 h-3.5" /> : <Hash className="w-3.5 h-3.5" />}
+                          <MapPin className="w-3.5 h-3.5" />
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-text truncate font-medium">
                             {sugestao.textoExibicao}
                           </p>
-                          <p className="text-[11px] text-text-tertiary mt-0.5 font-medium uppercase tracking-wider">
-                            {isCidade ? "Cidade" : "CEP"}
-                          </p>
+                          {sugestao.lat != null && (
+                            <p className="text-[11px] text-text-tertiary mt-0.5 font-medium">
+                              {sugestao.lat.toFixed(4)}, {sugestao.lng.toFixed(4)}
+                            </p>
+                          )}
                         </div>
                       </li>
                     );
