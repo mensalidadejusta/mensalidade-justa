@@ -533,7 +533,7 @@ export default function BuscaContent({
         </div>
 
         {/* Botoes flutuantes inferior direito (estilo Google Maps) */}
-        <div className="absolute bottom-40 right-4 z-[500] pointer-events-auto flex flex-col gap-2">
+        <div className="absolute bottom-6 right-4 z-[500] pointer-events-auto flex flex-col gap-2">
           {/* Botao localizacao (toggle on/off) */}
           <button
             type="button"

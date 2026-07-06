@@ -153,7 +153,6 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         };
 
         tiles["Padr\u00e3o"].addTo(map);
-        L.control.layers(tiles, {}, { position: "topright", collapsed: true }).addTo(map);
 
         state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null } };
         lastDataKey.current = buildKey();
