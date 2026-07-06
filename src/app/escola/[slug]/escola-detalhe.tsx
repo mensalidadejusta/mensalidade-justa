@@ -418,11 +418,19 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           <header className="space-y-4">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => {
+                const lat = escola.latitude;
+                const lon = escola.longitude;
+                const params = new URLSearchParams();
+                if (escola.municipio && escola.uf) params.set("cidade", `${escola.municipio.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}-${escola.uf.toLowerCase()}`);
+                if (lat && lon) { params.set("lat", lat.toString()); params.set("lon", lon.toString()); }
+                params.set("map", "1");
+                router.push(`/busca?${params.toString()}`);
+              }}
               className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-primary transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Voltar
+              Voltar ao Mapa
             </button>
             <div>
               <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-text">
