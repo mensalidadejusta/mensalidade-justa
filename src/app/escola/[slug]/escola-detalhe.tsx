@@ -62,6 +62,7 @@ function ModalContribuicao({
   valoresAtuais,
   escolaId,
   escolaNome,
+  onSalvo,
 }: {
   aberto: boolean;
   fechar: () => void;
@@ -70,7 +71,9 @@ function ModalContribuicao({
   valoresAtuais: Estatistica | null;
   escolaId: number;
   escolaNome: string;
+  onSalvo: () => void;
 }) {
+  const router = useRouter();
   const [mensalidade, setMensalidade] = useState(
     valoresAtuais?.media_mensalidade ? String(Math.round(valoresAtuais.media_mensalidade)) : ""
   );
@@ -80,29 +83,82 @@ function ModalContribuicao({
   const [material, setMaterial] = useState(
     valoresAtuais?.media_material ? String(Math.round(valoresAtuais.media_material)) : ""
   );
+  const [honeypot, setHoneypot] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
+  const [erro, setErro] = useState("");
+  const [discrepanciaConfirmada, setDiscrepanciaConfirmada] = useState(false);
 
-  async function handleSalvar() {
+  const valorNum = mensalidade ? parseFloat(mensalidade.replace(",", ".").replace(/[^0-9.]/g, "")) : null;
+  const valorMatNum = matricula ? parseFloat(matricula.replace(",", ".").replace(/[^0-9.]/g, "")) : null;
+
+  // Validação de faixa
+  const erroFaixa =
+    valorNum != null && (valorNum < 100 || valorNum > 15000);
+
+  // Cálculo da média atual para discrepância
+  const mediaAtual =
+    valoresAtuais?.media_mensalidade != null
+      ? Number(valoresAtuais.media_mensalidade)
+      : null;
+  const temDiscrepancia =
+    !erroFaixa &&
+    valorNum != null &&
+    mediaAtual != null &&
+    mediaAtual > 0 &&
+    (valorNum < mediaAtual * 0.5 || valorNum > mediaAtual * 1.5);
+
+  const podeSalvar =
+    !salvando &&
+    !erroFaixa &&
+    (!temDiscrepancia || discrepanciaConfirmada);
+
+  async function handleSalvar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro("");
+
+    if (erroFaixa) {
+      setErro("O valor da mensalidade deve estar entre R$ 100 e R$ 15.000.");
+      return;
+    }
+
     setSalvando(true);
-    const payload = {
-      escola_id: escolaId,
-      serie_slug: serieSlug,
-      serie_nome: serieNome,
-      valor_mensalidade: mensalidade ? parseFloat(mensalidade.replace(",", ".")) : null,
-      valor_matricula: matricula ? parseFloat(matricula.replace(",", ".")) : null,
-      valor_material: material ? parseFloat(material.replace(",", ".")) : null,
-    };
-    console.log("Salvando contribuição:", payload);
-    // TODO: chamar a API real quando disponível
-    // await supabase.from("mensalidades_series").insert(payload);
-    await new Promise((r) => setTimeout(r, 600));
-    setSalvando(false);
-    setSalvo(true);
-    setTimeout(() => {
-      setSalvo(false);
-      fechar();
-    }, 1200);
+    try {
+      const res = await fetch("/api/contribuir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          escola_id: escolaId,
+          serie_slug: serieSlug,
+          serie_nome: serieNome,
+          valor_mensalidade: valorNum,
+          valor_matricula: valorMatNum,
+          valor_material: material
+            ? parseFloat(material.replace(",", ".").replace(/[^0-9.]/g, ""))
+            : null,
+          honeypot,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErro(data.error || "Erro ao salvar. Tente novamente.");
+        setSalvando(false);
+        return;
+      }
+
+      setSalvo(true);
+      setTimeout(() => {
+        setSalvo(false);
+        fechar();
+        onSalvo();
+        router.refresh();
+      }, 1200);
+    } catch {
+      setErro("Erro de conexão. Verifique sua internet.");
+      setSalvando(false);
+    }
   }
 
   if (!aberto) return null;
@@ -136,12 +192,23 @@ function ModalContribuicao({
             <p className="text-xs text-text-tertiary">Sua contribuição foi registrada.</p>
           </div>
         ) : (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleSalvar(); }}
-            className="px-5 pb-5 space-y-4"
-          >
+          <form onSubmit={handleSalvar} className="px-5 pb-5 space-y-4">
+            {/* Honeypot: invisível para humanos, visível para robôs */}
+            <div aria-hidden="true" className="sr-only">
+              <label>Não preencher</label>
+              <input
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
+
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Mensalidade (R$)</label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">
+                Mensalidade (R$)
+              </label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -150,9 +217,16 @@ function ModalContribuicao({
                 placeholder="Ex: 1200"
                 className="w-full bg-bg border border-border/50 rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
               />
+              {erroFaixa && (
+                <p className="text-xs text-danger mt-1">
+                  A mensalidade deve estar entre R$ 100 e R$ 15.000.
+                </p>
+              )}
             </div>
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Taxa de Matrícula (R$)</label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">
+                Taxa de Matrícula (R$)
+              </label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -163,7 +237,9 @@ function ModalContribuicao({
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-text-secondary block mb-1">Custo do Material Didático (R$)</label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">
+                Custo do Material Didático (R$)
+              </label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -173,6 +249,36 @@ function ModalContribuicao({
                 className="w-full bg-bg border border-border/50 rounded-xl px-4 py-2.5 text-sm text-text placeholder:text-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
+
+            {/* Aviso de discrepância */}
+            {temDiscrepancia && !erroFaixa && (
+              <div className="bg-amber-200/20 border border-amber-400/40 rounded-xl p-3 space-y-2">
+                <p className="text-xs text-amber-300 font-medium">
+                  ⚠ O valor informado está muito acima ou abaixo da média
+                  atual ({fmtBr(mediaAtual)}). Pode ser um erro de digitação?
+                </p>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={discrepanciaConfirmada}
+                    onChange={(e) => setDiscrepanciaConfirmada(e.target.checked)}
+                    className="mt-0.5 accent-amber-500"
+                  />
+                  <span className="text-xs text-text-secondary">
+                    Confirmo que este valor está correto e confere com a
+                    tabela atual da escola.
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* Erro geral */}
+            {erro && (
+              <p className="text-xs text-danger bg-danger/10 rounded-lg p-3">
+                {erro}
+              </p>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -183,8 +289,8 @@ function ModalContribuicao({
               </button>
               <button
                 type="submit"
-                disabled={salvando}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
+                disabled={!podeSalvar}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {salvando ? "Salvando..." : "Salvar Valores"}
               </button>
@@ -515,6 +621,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
         valoresAtuais={modalStats}
         escolaId={escola.id}
         escolaNome={escola.nome}
+        onSalvo={() => {}}
       />
     </main>
   );
