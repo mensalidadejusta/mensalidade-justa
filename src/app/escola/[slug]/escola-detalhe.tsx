@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { ArrowLeft, Edit3 } from "lucide-react";
 import { SERIES } from "@/lib/series";
 
@@ -23,86 +22,98 @@ type Escola = {
   restricao_atendimento: string | null; codigo_inep: string;
 };
 
-function fmt(valor: number | null): string {
-  if (valor == null) return "\u2014";
-  return "R$ " + Number(valor).toFixed(2);
+function capitalizarNome(nome: string): string {
+  const excecoes = new Set([
+    "do", "dos", "da", "das", "de", "e", "em", "no", "na", "nos", "nas",
+    "a", "o", "as", "os", "ao", "aos",
+  ]);
+  return nome
+    .toLowerCase()
+    .split(" ")
+    .map((palavra, i) => {
+      if (i > 0 && excecoes.has(palavra)) return palavra;
+      return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+    })
+    .join(" ");
 }
 
-function fmtCurto(valor: number | null): string {
-  if (valor == null) return "\u2014";
-  return "R$ " + Math.round(Number(valor)).toLocaleString("pt-BR");
+function fmtBr(valor: number | null): string {
+  if (valor == null) return "—";
+  return "R$ " + Number(valor)
+    .toFixed(2)
+    .replace(".", ",")
+    .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
 }
 
 const grupos = [...new Set(SERIES.map((s) => s.grupo))];
 
-function CardSerie({ serie, p, escolaCodigoInep }: { serie: typeof SERIES[number]; p: Estatistica | undefined; escolaCodigoInep: string }) {
+function CardSerie({ serie, p, escolaCodigoInep, onContribuir }: { serie: typeof SERIES[number]; p: Estatistica | undefined; escolaCodigoInep: string; onContribuir: (inep: string) => void }) {
   if (!p || !p.qtd_mensalidade) return null;
-
-  const preco = p.media_mensalidade != null ? Number(p.media_mensalidade) : null;
 
   return (
     <article className="bg-surface border border-border/60 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-primary/30 transition-all duration-200">
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-base text-text">{serie.nome}</h3>
+          <h4 className="font-semibold text-base text-text">{serie.nome}</h4>
           <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
             p.qtd_mensalidade <= 1
               ? "bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
               : "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
           }`}>
             {p.qtd_mensalidade <= 1
-              ? "\u26a0\ufe0f Carece de mais confirma\u00e7\u00f5es"
-              : "\u2705 Pre\u00e7o consolidado"}
+              ? "⚠ Carece de mais confirmações"
+              : "✅ Preço consolidado"}
           </span>
         </div>
 
-        {p.qtd_mensalidade > 1 && (
+        {p.media_mensalidade != null && (
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">{fmtCurto(p.media_mensalidade)}</span>
-            <span className="text-xs text-text-tertiary">m\u00e9dia</span>
+            <span className="text-2xl font-bold text-primary">{fmtBr(p.media_mensalidade)}</span>
+            <span className="text-xs text-text-tertiary">média</span>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
           <div>
-            <span className="text-text-tertiary">M\u00edn: </span>
-            <span className="text-text-secondary font-medium">{fmt(p.min_mensalidade)}</span>
+            <span className="text-text-tertiary">Mín: </span>
+            <span className="text-text-secondary font-medium">{fmtBr(p.min_mensalidade)}</span>
           </div>
           <div>
-            <span className="text-text-tertiary">M\u00e1x: </span>
-            <span className="text-text-secondary font-medium">{fmt(p.max_mensalidade)}</span>
+            <span className="text-text-tertiary">Máx: </span>
+            <span className="text-text-secondary font-medium">{fmtBr(p.max_mensalidade)}</span>
           </div>
           {(p.media_matricula != null || p.qtd_matricula > 0) && (
             <div>
-              <span className="text-text-tertiary">Matr\u00edcula: </span>
-              <span className="text-text-secondary font-medium">{fmt(p.media_matricula)}</span>
+              <span className="text-text-tertiary">Matrícula: </span>
+              <span className="text-text-secondary font-medium">{fmtBr(p.media_matricula)}</span>
             </div>
           )}
           {(p.media_material != null || p.qtd_material > 0) && (
             <div>
               <span className="text-text-tertiary">Material: </span>
-              <span className="text-text-secondary font-medium">{fmt(p.media_material)}</span>
+              <span className="text-text-secondary font-medium">{fmtBr(p.media_material)}</span>
             </div>
           )}
         </div>
 
         <p className="text-[10px] text-text-tertiary">
-          Baseado em {p.qtd_mensalidade} contribui\u00e7\u00e3o(\u00f5es)
+          Baseado em {p.qtd_mensalidade} {p.qtd_mensalidade === 1 ? "contribuição" : "contribuições"}
         </p>
       </div>
 
-      <Link
-        href={"/contribuir?escola=" + escolaCodigoInep}
+      <button
+        type="button"
+        onClick={() => onContribuir(escolaCodigoInep)}
         className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 rounded-lg text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 active:scale-[0.97] min-h-[44px]"
       >
         <Edit3 className="w-3.5 h-3.5" />
-        Atualizar pre\u00e7o
-      </Link>
+        Atualizar preço
+      </button>
     </article>
   );
 }
 
-function Metadado({ rotulo, valor, span }: { rotulo: string; valor: string | null | undefined; span?: boolean }) {
+function InfoCard({ rotulo, valor, span }: { rotulo: string; valor: string | null | undefined; span?: boolean }) {
   if (!valor) return null;
   return (
     <div className={span ? "lg:col-span-2" : ""}>
@@ -116,34 +127,42 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
   const router = useRouter();
   const isPrivada = escola.categoria_administrativa === "Privada";
 
+  function handleContribuir(inep: string) {
+    router.push("/contribuir?escola=" + inep);
+  }
+
+  const nomeFormatado = capitalizarNome(escola.nome);
+
   const infoBasica = [
     { rotulo: "Bairro", valor: escola.bairro },
-    { rotulo: "Depend\u00eancia", valor: escola.dependencia_administrativa === "Privada" ? "Privada" : "P\u00fablica" },
+    { rotulo: "Dependência", valor: escola.dependencia_administrativa === "Privada" ? "Privada" : "Pública" },
     { rotulo: "Categoria", valor: escola.categoria_administrativa },
-    { rotulo: "Localiza\u00e7\u00e3o", valor: escola.localizacao },
+    { rotulo: "Subcategoria", valor: escola.categoria_escola_privada },
+    { rotulo: "Localização", valor: escola.localizacao },
     { rotulo: "Porte", valor: escola.porte_escola },
-    { rotulo: "Regulamenta\u00e7\u00e3o", valor: escola.regulamentacao_conselho },
-    { rotulo: "Conv\u00eanio P\u00fablico", valor: escola.conveniada_poder_publico },
+    { rotulo: "Regulamentação", valor: escola.regulamentacao_conselho },
+    { rotulo: "Convênio", valor: escola.conveniada_poder_publico },
   ];
 
   const infoExtra = [
-    { rotulo: "C\u00f3digo INEP", valor: escola.codigo_inep },
+    { rotulo: "Código INEP", valor: escola.codigo_inep },
     { rotulo: "Telefone", valor: escola.telefone },
-    { rotulo: "Restri\u00e7\u00e3o", valor: escola.restricao_atendimento },
+    { rotulo: "Restrição", valor: escola.restricao_atendimento },
     { rotulo: "Etapas", valor: escola.etapas_modalidades },
     { rotulo: "Outras Ofertas", valor: escola.outras_ofertas },
-    { rotulo: "Localidade Diferenciada", valor: escola.localidade_diferenciada !== "A escola n\u00e3o est\u00e1 em \u00e1rea de localiza\u00e7\u00e3o diferenciada" ? escola.localidade_diferenciada : null },
+    { rotulo: "Localidade", valor: escola.localidade_diferenciada !== "A escola não está em área de localização diferenciada" ? escola.localidade_diferenciada : null },
   ];
 
   return (
     <main className="min-h-dvh bg-bg text-text transition-colors">
       <div className="max-w-7xl mx-auto px-4 py-6 lg:grid lg:grid-cols-3 lg:gap-8">
 
-        {/* Colunas 1-2: conteudo principal */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Cabecalho */}
+        {/* Colunas 1-2: conteúdo principal */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Cabeçalho */}
           <header className="space-y-4">
             <button
+              type="button"
               onClick={() => router.back()}
               className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-primary transition-colors"
             >
@@ -152,7 +171,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             </button>
             <div>
               <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-text">
-                {escola.nome}
+                {nomeFormatado}
               </h1>
               <p className="text-sm md:text-base text-text-secondary mt-1">
                 {escola.bairro ? `${escola.bairro} - ` : ""}{escola.municipio} - {escola.uf}
@@ -165,7 +184,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             <section aria-label="Mensalidades">
               <h2 className="text-xl font-bold text-text mb-1">Mensalidades</h2>
               <p className="text-sm text-text-tertiary mb-6">
-                Valores colaborativos compartilhados por outros pais e respons\u00e1veis.
+                Valores colaborativos compartilhados por outros pais e responsáveis.
               </p>
 
               {precos.length === 0 ? (
@@ -173,13 +192,14 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   <p className="text-sm text-text-tertiary">
                     Nenhum valor cadastrado ainda para esta escola.
                   </p>
-                  <Link
-                    href={"/contribuir?escola=" + escola.codigo_inep}
+                  <button
+                    type="button"
+                    onClick={() => handleContribuir(escola.codigo_inep)}
                     className="inline-flex items-center gap-2 bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] min-h-[48px]"
                   >
                     <Edit3 className="w-4 h-4" />
                     Seja o primeiro a contribuir
-                  </Link>
+                  </button>
                   <div>
                     <WhatsAppShare nome={escola.nome} slug={slug} />
                   </div>
@@ -190,10 +210,8 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   const hasData = series.some((s) => precos.find((p) => p.serie_slug === s.slug));
                   if (!hasData) return null;
                   return (
-                    <section key={grupo} className="mb-8" aria-label={grupo}>
-                      <h2 className="text-xl font-bold text-text mb-4 mt-6 first:mt-0">
-                        {grupo}
-                      </h2>
+                    <section key={grupo} aria-label={grupo} className="mb-6">
+                      <h3 className="text-xl font-bold text-text mb-4">{grupo}</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                         {series.map((serie) => {
                           const p = precos.find((pr) => pr.serie_slug === serie.slug);
@@ -203,6 +221,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                               serie={serie}
                               p={p}
                               escolaCodigoInep={escola.codigo_inep}
+                              onContribuir={handleContribuir}
                             />
                           );
                         })}
@@ -216,17 +235,17 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             <section aria-label="Mensalidades" className="bg-surface border border-border/60 rounded-xl p-6">
               <h2 className="text-xl font-bold text-text mb-2">Mensalidades</h2>
               <p className="text-sm text-emerald-600 dark:text-success font-medium">
-                {"\u2705 Escola p\u00fablica gratuita"}
+                ✅ Escola pública gratuita
               </p>
               <p className="text-xs text-text-tertiary mt-1">
-                Institui\u00e7\u00f5es p\u00fablicas n\u00e3o cobram mensalidade.
+                Instituições públicas não cobram mensalidade.
               </p>
             </section>
           )}
 
-          {/* Especificacoes Fisicas */}
-          <section aria-label="Informa\u00e7\u00f5es sobre a escola">
-            <h2 className="text-xl font-bold text-text mb-4">Especifica\u00e7\u00f5es</h2>
+          {/* Especificações */}
+          <section aria-label="Informações sobre a escola">
+            <h2 className="text-xl font-bold text-text mb-4">Especificações</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {infoBasica.map((item) =>
                 item.valor ? (
@@ -240,16 +259,15 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
 
             {escola.endereco && (
               <div className="mt-3 bg-surface border border-border/60 rounded-lg p-3 text-sm">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary block mb-0.5">Endere\u00e7o</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary block mb-0.5">Endereço</span>
                 <span className="text-text">{escola.endereco}</span>
               </div>
             )}
 
-            {/* Info extra colapsada */}
             <details className="mt-3 group">
               <summary className="text-sm text-text-tertiary hover:text-text cursor-pointer transition-colors list-none flex items-center gap-1.5">
-                <span className="text-xs">{"\u25b6"}</span>
-                Mais informa\u00e7\u00f5es
+                <span className="text-xs">▶</span>
+                Mais informações
               </summary>
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {infoExtra.map((item) =>
@@ -265,9 +283,8 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           </section>
         </div>
 
-        {/* Coluna 3: Sidebar com mapa + metadados */}
+        {/* Coluna 3: Sidebar */}
         <aside className="lg:col-span-1 space-y-6 mt-8 lg:mt-0 lg:sticky lg:top-6 lg:self-start">
-          {/* Mini Mapa */}
           {escola.latitude && escola.longitude && (
             <div className="rounded-xl overflow-hidden shadow-lg border border-border/60 h-48 md:h-64">
               <iframe
@@ -283,14 +300,13 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             </div>
           )}
 
-          {/* Resumo rapido na sidebar */}
           <div className="bg-surface border border-border/60 rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-semibold text-text">Resumo</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-text-tertiary">Tipo</span>
                 <span className={`font-semibold ${isPrivada ? "text-purple-400" : "text-emerald-400"}`}>
-                  {isPrivada ? "Privada" : "P\u00fablica"}
+                  {isPrivada ? "Privada" : "Pública"}
                 </span>
               </div>
               {escola.categoria_escola_privada && (
@@ -312,21 +328,21 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             </div>
           </div>
 
-          {/* CTA para contribuir na sidebar */}
           {isPrivada && (
             <div className="bg-gradient-to-br from-primary/10 via-purple-500/10 to-coral/10 border border-primary/20 rounded-xl p-5 space-y-3 text-center">
               <p className="text-sm font-semibold text-text">
                 Ajude outros pais!
               </p>
               <p className="text-xs text-text-tertiary">
-                Seu feedback an\u00f4nimo torna os pre\u00e7os mais justos para todos.
+                Seu feedback anônimo torna os preços mais justos para todos.
               </p>
-              <Link
-                href={"/contribuir?escola=" + escola.codigo_inep}
+              <button
+                type="button"
+                onClick={() => handleContribuir(escola.codigo_inep)}
                 className="block w-full bg-primary text-white font-semibold py-3 px-5 rounded-xl hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] min-h-[48px]"
               >
-                {"\u270f"} Contribuir com pre\u00e7os
-              </Link>
+                ✏ Contribuir com preços
+              </button>
               <WhatsAppShare nome={escola.nome} slug={slug} />
             </div>
           )}
@@ -341,14 +357,14 @@ function WhatsAppShare({ nome, slug }: { nome: string; slug: string }) {
   const origin = isBrowser ? window.location.origin : "https://mensalidadejusta.com.br";
   const url = origin + "/escola/" + slug;
   const texto =
-    "Ol\u00e1! \ud83d\udc4b\n\n"
+    "Olá! 👋\n\n"
     + "Tudo bem? "
-    + "Eu encontrei a p\u00e1gina do *" + nome + "* no Mensalidade Justa e vi que ainda n\u00e3o tem nenhum valor de mensalidade cadastrado l\u00e1. "
-    + "Se voc\u00ea conhece algu\u00e9m que estuda ou j\u00e1 estudou nessa escola, poderia compartilhar esse link com essa pessoa?\n\n"
-    + "\u00c9 super r\u00e1pido e an\u00f4nimo \u2014 leva menos de 1 minuto. "
-    + "Os dados ajudam outros pais e alunos a terem uma ideia mais justa dos pre\u00e7os praticados.\n\n"
-    + "\ud83d\udd17 " + url + "\n\n"
-    + "Muito obrigado! \ud83d\udc99";
+    + "Eu encontrei a página do *" + nome + "* no Mensalidade Justa e vi que ainda não tem nenhum valor de mensalidade cadastrado lá. "
+    + "Se você conhece alguém que estuda ou já estudou nessa escola, poderia compartilhar esse link com essa pessoa?\n\n"
+    + "É super rápido e anônimo — leva menos de 1 minuto. "
+    + "Os dados ajudam outros pais e alunos a terem uma ideia mais justa dos preços praticados.\n\n"
+    + "🔗 " + url + "\n\n"
+    + "Muito obrigado! 💙";
 
   return (
     <a
@@ -360,7 +376,7 @@ function WhatsAppShare({ nome, slug }: { nome: string; slug: string }) {
       <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
       </svg>
-      Conhece algu\u00e9m? Compartilhar
+      Conhece alguém? Compartilhar
     </a>
   );
 }
