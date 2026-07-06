@@ -216,7 +216,7 @@ export default function CaixaBuscaLocalizacao({
       if (!isActive()) return;
 
       if (Array.isArray(data) && data.length > 0) {
-        const lista = data.map((item: any, idx: number) => {
+        const mapeados = data.map((item: any, idx: number) => {
           const addr = item.address || {};
           const rawName = item.display_name || "";
           const nomeLimpo = rawName.split(",")[0].trim();
@@ -228,7 +228,7 @@ export default function CaixaBuscaLocalizacao({
           return {
             id: `nom-${idx}-${item.place_id}`,
             textoExibicao: partes.length > 0 ? partes.join(", ") : nomeLimpo,
-            label: rawName,
+            label: partes.length > 0 ? partes.join(", ") : nomeLimpo,
             _tipo: "local",
             _cls: item.class || "",
             _type: item.type || "",
@@ -238,6 +238,12 @@ export default function CaixaBuscaLocalizacao({
             uf,
             bairro: bairro || undefined,
           };
+        });
+        const vistos = new Set<string>();
+        const lista = mapeados.filter((item) => {
+          if (vistos.has(item.label)) return false;
+          vistos.add(item.label);
+          return true;
         });
         setSugestoes(lista);
         setDropdownAberto(true);

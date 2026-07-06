@@ -613,6 +613,7 @@ export default function BuscaContent({
               userLocation={userLocation}
               hoveredId={hoveredId}
               serieSlug={serieSlug}
+              mapCenter={mapCenter}
               onBoundsChange={handleMapBoundsChange}
             />
           </div>
