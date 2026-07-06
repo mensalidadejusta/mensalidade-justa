@@ -735,21 +735,21 @@ export default function BuscaContent({
               <article>
                 <h2>{escola.nome}</h2>
                 <p>
-                  {escola.bairro ? `${escola.bairro}, ` : ""}
-                  {escola.municipio} - {escola.uf}
+                  {escola.bairro
+                    ? `Localizada no bairro ${escola.bairro}, na cidade de ${escola.municipio} - ${escola.uf}.`
+                    : `Localizada na cidade de ${escola.municipio} - ${escola.uf}.`}
                 </p>
                 <p>
-                  {escola.dependencia_administrativa === "Privada"
-                    ? "Escola Privada"
-                    : "Escola P\u00fablica"}
+                  Tipo de institui\u00e7\u00e3o: Escola {escola.dependencia_administrativa}.
                 </p>
-                {escola.series_precos.length > 0 && (
+                {escola.series_precos && escola.series_precos.length > 0 && (
                   <ul>
                     {escola.series_precos.map((sp) => (
                       <li key={sp.serie_slug}>
-                        {sp.serie_nome}: R$ {sp.valor_mensalidade != null
-                          ? sp.valor_mensalidade.toFixed(2)
-                          : "---"}
+                        S\u00e9rie: {sp.serie_nome}
+                        {sp.valor_mensalidade != null
+                          ? ` - Mensalidade: R$ ${sp.valor_mensalidade.toFixed(2).replace(".", ",")}`
+                          : " - Mensalidade: n\u00e3o informada"}
                       </li>
                     ))}
                   </ul>
