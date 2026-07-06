@@ -220,7 +220,7 @@ export default function CaixaBuscaLocalizacao({
           const addr = item.address || {};
           const rawName = item.display_name || "";
           const nomeLimpo = rawName.split(",")[0].trim();
-          const cidade = addr.city || addr.town || addr.village || addr.county || "";
+          const cidade = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
           const uf = extrairUf(addr.state || "");
           const bairro = addr.neighbourhood || addr.suburb || "";
           const logradouro = addr.road || addr.name || "";
