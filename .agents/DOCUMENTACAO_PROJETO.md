@@ -1198,7 +1198,21 @@ Sincroniza com `hoveredId` no BuscaContent e no MapaEscolas.
 
 ## 16. CaixaBuscaLocalizacao — Input de Endereço
 
-**Local:** `src/components/caixa-busca-localizacao.tsx` (~620 linhas completas)
+**Local:** `src/components/caixa-busca-localizacao.tsx` (~520 linhas completas)
+
+> ⚠️ **Este componente foi reescrito.** A documentação abaixo reflete a versão mais recente.
+> Para histórico de bugs corrigidos, veja [Seção 33](#33-bugs-corrigidos-e-proteções-defensivas).
+
+**Arquitetura do motor de busca:**
+- **CEP** (entrada numérica): ViaCEP → Nominatim (geocode secundário para lat/lng)
+- **Texto/endereço**: Nominatim OSM diretamente (`search?format=json&q=...&accept-language=pt-BR`)
+- Header obrigatório: `User-Agent: MensalidadeJustaApp/1.0 (contato@mensalidadejusta.com.br)`
+- Timeout: 5s via `fetchComTimeout()` com `AbortController`
+- Anti-race: flag `let active = true` + verificação após cada `await`
+- Dedup: filtro `Set<string>` por `label` único
+- `slugify()` interno para gerar slugs SEO-friendly
+- `extrairUf()` com dicionário `ESTADO_UF` para evitar bug "SÃ"
+- Badges de categoria: "Cidade", "Bairro", "Rua/Logradouro", "CEP", "Estabelecimento"
 
 ### Tipos
 
@@ -1266,29 +1280,25 @@ async function buscar(query: string) {
 }
 ```
 
-**`buscarCep`** — `fetchComTimeout` para BrasilAPI:
+**`buscarCep`** — ViaCEP + Nominatim (geocode secundário):
 ```tsx
-const res = await fetchComTimeout(`https://brasilapi.com.br/api/cep/v2/${cep}`);
+const res = await fetchComTimeout(`https://viacep.com.br/ws/${cep}/json/`);
+// Após resposta, faz segunda chamada ao Nominatim para lat/lng
+const geoRes = await fetchComTimeout(
+  `https://nominatim.openstreetmap.org/search?format=json&q=${enderecoStr}&countrycodes=br&limit=1&accept-language=pt-BR`,
+  { headers: { "User-Agent": NOMINATIM_UA } }
+);
 ```
-- Se falhar/timeout: fallback para `buscarCidadesFallback(cep, results, vistos)`
+- Se ViaCEP falhar: dropdown vazio com "Nenhum local encontrado"
 
-**`buscarLocationIQ`** — `fetchComTimeout` para LocationIQ:
+**`buscarNominatim`** — API principal para texto/endereço:
 ```tsx
-const url = `https://api.locationiq.com/v1/autocomplete?key=${token}&q=${encodeURIComponent(termo)}&limit=5&countrycodes=br&accept-language=pt-br`;
-const res = await fetchComTimeout(url);
+const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&addressdetails=1&limit=5&accept-language=pt-BR`;
+const res = await fetchComTimeout(url, { headers: { "User-Agent": NOMINATIM_UA } });
 ```
-- Se falhar: fallback silencioso para `buscarCidadesFallback`
-- **SEMPRE** executa `buscarCidadesFallback` ao final para complementar resultados
-
-**`buscarCidadesFallback`** — RPC Supabase:
-```tsx
-const { data: cidades } = await supabase.rpc("buscar_cidades", { p_termo: termo });
-```
-
-**`buscarEstadosLocal`** — match local por nome do estado:
-```tsx
-for (const [uf, nomeCompleto] of Object.entries(ESTADO_NOME)) { ... }
-```
+- Header `User-Agent` obrigatório (evita 403)
+- `&accept-language=pt-BR` para nomes completos em português
+- Resultados deduplicados por `label` via `Set<string>`
 
 ### Botão "Perto de mim"
 
@@ -1299,8 +1309,11 @@ async function buscarPertoDeMim() {
       enableHighAccuracy: true, timeout: 10000, maximumAge: 60000,
     });
   });
-  // Reverse geocode via LocationIQ (com fetchComTimeout)
-  const res = await fetchComTimeout(`https://api.locationiq.com/v1/reverse?key=${token}&lat=${lat}&lon=${lon}&format=json&accept-language=pt-br`);
+  // Reverse geocode via Nominatim
+  const res = await fetchComTimeout(
+    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pt`,
+    { headers: { "User-Agent": NOMINATIM_UA } }
+  );
   // Chama onLocationChange com lat/lon + cidade/uf
 }
 ```
@@ -1308,9 +1321,16 @@ async function buscarPertoDeMim() {
 ### Props do componente
 
 ```tsx
+interface LocalizacaoResult {
+  label: string;      // "Piracicaba, SP"
+  slug: string;       // "piracicaba-sp" (slugify para SEO)
+  lat: number;
+  lng: number;
+}
+
 interface CaixaBuscaLocalizacaoProps {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
-  onSelectSugestao?: (sugestao: SugestaoLocalizacao) => void;
+  onLocationSelect?: (loc: LocalizacaoResult) => void;  // dispara ao selecionar local com lat/lng
   initialValue?: string;
   className?: string;
   iconOnlyGeo?: boolean;  // se true, esconde texto "Perto de mim" no botão
@@ -2173,17 +2193,28 @@ useEffect(() => {
 }, [mapCenter]);
 ```
 
-### 33.5 Timeout nas APIs externas (BrasilAPI + LocationIQ)
+### 33.5 Migração de APIs externas (LocationIQ → IBGE + ViaCEP + Nominatim)
 
-**Sintoma:** Input de endereço travava se BrasilAPI ou LocationIQ estivessem lentos.
+**Sintoma:** LocationIQ exigia token pago e não funcionava consistentemente.
 
-**Causa:** `fetch()` sem timeout nas chamadas para `brasilapi.com.br` e `api.locationiq.com`.
+**Solução:** Substituído por 3 APIs gratuitas sem token:
 
-**Solução:** Helper `fetchComTimeout()` com `AbortController` + 3000ms:
+| Tipo de entrada | API | Função |
+|----------------|-----|--------|
+| Letras (cidade) | **IBGE** (`servicodados.ibge.gov.br/api/v1/localidades/municipios?nome=...`) | Autocomplete de municípios brasileiros |
+| Números (CEP) | **ViaCEP** (`viacep.com.br/ws/{cep}/json/`) | Busca endereço por CEP |
+| Geocode + texto | **Nominatim OSM** (`nominatim.openstreetmap.org/search`) | Converte texto em coordenadas (lat/lng) |
+| Reverse geocode | **Nominatim OSM** (`nominatim.openstreetmap.org/reverse`) | Converte coordenadas em endereço |
 
+**Requisitos obrigatórios do Nominatim:**
+- Header `User-Agent: MensalidadeJustaApp/1.0 (contato@mensalidadejusta.com.br)` — sem isso retorna 403
+- Parâmetro `&accept-language=pt-BR` — força nomes completos em português (resolve bug "SÃ")
+
+**CEP + Geocode secundário:** ViaCEP não retorna coordenadas. Após receber o endereço do ViaCEP, faz-se uma segunda chamada ao Nominatim com o endereço formatado para extrair lat/lng.
+
+**Helper `fetchComTimeout()`** com `AbortController` + 5000ms:
 ```tsx
-const FETCH_TIMEOUT_MS = 3000;
-
+const FETCH_TIMEOUT_MS = 5000;
 function fetchComTimeout(input, init?): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -2192,7 +2223,67 @@ function fetchComTimeout(input, init?): Promise<Response> {
 }
 ```
 
-**Fallback de CEP:** Se a BrasilAPI falhar, o CEP é interpretado como busca textual de cidade via RPC `buscar_cidades` do Supabase.
+### 33.6 Bug de encoding "SÃ" no Nominatim
+
+**Sintoma:** Estados apareciam truncados como "SÃ" em vez de "SP" (ex: "Piracicaba, SÃ").
+
+**Causa:** `addr.state` retorna "São Paulo" do Nominatim. O código anterior fazia `.toUpperCase().slice(0, 2)` → "SÃO PAULO" → "SÃ".
+
+**Solução:** Dicionário `ESTADO_UF` com mapeamento nome-completo → sigla + função `extrairUf()`:
+
+```tsx
+const ESTADO_UF: Record<string, string> = {
+  "acre": "AC", "alagoas": "AL", ..., "sao paulo": "SP", ...
+};
+
+function extrairUf(state: string): string {
+  if (!state) return "";
+  const upper = state.toUpperCase();
+  if (/^[A-Z]{2}$/.test(upper)) return upper;
+  const normalizado = state.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return ESTADO_UF[normalizado] || upper.slice(0, 2);
+}
+```
+
+### 33.7 Dropdown com duplicatas do Nominatim
+
+**Sintoma:** Nominatim retorna múltiplos registros com o mesmo texto para a mesma cidade (ex: ponto central + polígono da prefeitura). O dropdown exibia entradas duplicadas.
+
+**Solução:** Filtro de unicidade baseado no `label`:
+```tsx
+const vistos = new Set<string>();
+const lista = mapeados.filter((item) => {
+  if (vistos.has(item.label)) return false;
+  vistos.add(item.label);
+  return true;
+});
+```
+
+### 33.8 Mapa desktop não recebia mapCenter
+
+**Sintoma:** Ao selecionar uma cidade no desktop, a URL atualizava mas o mapa não movia a câmera.
+
+**Causa:** A instância desktop do `MapaEscolas` (`hidden md:flex`) não passava a prop `mapCenter`. Apenas a versão mobile tinha `mapCenter={mapCenter}`.
+
+**Solução:** Adicionado `mapCenter={mapCenter}` na instância desktop. O `mapCenter` effect em `mapa-escolas.tsx` já faz `setView` com `isInitialLoadOrFilterChange.current = true`.
+
+### 33.9 URL SEO-friendly com slug
+
+**Sintoma:** A URL gerada ao selecionar uma cidade era `?lat=X&lon=Y`, sem identificador textual para o Google indexar.
+
+**Solução:** Adicionado campo `slug` em `LocalizacaoResult` e parâmetro `cidade` na URL:
+```tsx
+interface LocalizacaoResult {
+  label: string;      // "Santos, SP"
+  slug: string;       // "santos-sp" (slugify)
+  lat: number;
+  lng: number;
+}
+```
+
+A URL gerada: `/busca?cidade=santos-sp&lat=-23.96&lon=-46.33`
+
+**Preservação de params:** `handleLocationSelect` usa `new URLSearchParams(window.location.search)` para fazer merge com params existentes (`?map=1`, `?serie=...`), evitando resetar o modo mapa.
 
 ---
 
