@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit3, X } from "lucide-react";
+import { ArrowLeft, Edit3, PenLine, AlertTriangle, X } from "lucide-react";
 import { SERIES } from "@/lib/series";
 
 type Estatistica = {
@@ -306,67 +306,45 @@ function CardSerie({ serie, p, onAbrirModal }: { serie: typeof SERIES[number]; p
   if (!p || !p.qtd_mensalidade) return null;
 
   const stats = p;
+  const precisaAviso = stats.qtd_mensalidade <= 1;
+  const temMatricula = stats.media_matricula != null || stats.qtd_matricula > 0;
+  const temMaterial = stats.media_material != null || stats.qtd_material > 0;
 
   return (
-    <article className="bg-surface border border-border/60 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-primary/30 transition-all duration-200">
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <h4 className="font-semibold text-base text-text">{serie.nome}</h4>
-          <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-            stats.qtd_mensalidade <= 1
-              ? "bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-              : "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-          }`}>
-            {stats.qtd_mensalidade <= 1
-              ? "⚠ Carece de mais confirmações"
-              : "✅ Preço consolidado"}
-          </span>
-        </div>
-
-        {stats.media_mensalidade != null && (
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">{fmtBr(stats.media_mensalidade)}</span>
-            <span className="text-xs text-text-tertiary">média</span>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-1 sm:gap-0 group">
+      <div className="flex items-center gap-2 min-w-0">
+        <h4 className="font-medium text-sm text-text truncate">{serie.nome}</h4>
+        {precisaAviso && (
+          <div className="relative group/tooltip shrink-0">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 cursor-help" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] rounded-md py-1 px-2 whitespace-nowrap z-20 shadow-lg pointer-events-none">
+              Este valor foi sugerido por usuários e carece de mais confirmações
+            </span>
           </div>
         )}
-
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-          <div>
-            <span className="text-text-tertiary">Mín: </span>
-            <span className="text-text-secondary font-medium">{fmtBr(stats.min_mensalidade)}</span>
-          </div>
-          <div>
-            <span className="text-text-tertiary">Máx: </span>
-            <span className="text-text-secondary font-medium">{fmtBr(stats.max_mensalidade)}</span>
-          </div>
-          {(stats.media_matricula != null || stats.qtd_matricula > 0) && (
-            <div>
-              <span className="text-text-tertiary">Matrícula: </span>
-              <span className="text-text-secondary font-medium">{fmtBr(stats.media_matricula)}</span>
-            </div>
-          )}
-          {(stats.media_material != null || stats.qtd_material > 0) && (
-            <div>
-              <span className="text-text-tertiary">Material: </span>
-              <span className="text-text-secondary font-medium">{fmtBr(stats.media_material)}</span>
-            </div>
-          )}
-        </div>
-
-        <p className="text-[10px] text-text-tertiary">
-          Baseado em {stats.qtd_mensalidade} {stats.qtd_mensalidade === 1 ? "contribuição" : "contribuições"}
-        </p>
       </div>
 
-      <button
-        type="button"
-        onClick={() => onAbrirModal(serie.slug, serie.nome, stats)}
-        className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 rounded-lg text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 active:scale-[0.97] min-h-[44px]"
-      >
-        <Edit3 className="w-3.5 h-3.5" />
-        Atualizar preço
-      </button>
-    </article>
+      <div className="flex items-center gap-3 sm:gap-4 text-xs text-text-secondary ml-5 sm:ml-0">
+        {stats.media_mensalidade != null && (
+          <span className="font-semibold text-text text-sm">{fmtBr(stats.media_mensalidade)}</span>
+        )}
+        {temMatricula && (
+          <span className="text-text-tertiary hidden sm:inline">Mat: {fmtBr(stats.media_matricula)}</span>
+        )}
+        {temMaterial && (
+          <span className="text-text-tertiary hidden sm:inline">Mat.: {fmtBr(stats.media_material)}</span>
+        )}
+
+        <button
+          type="button"
+          onClick={() => onAbrirModal(serie.slug, serie.nome, stats)}
+          className="p-1.5 rounded-lg text-text-tertiary hover:text-primary hover:bg-primary/10 transition-all cursor-pointer active:scale-90"
+          aria-label="Atualizar preço"
+        >
+          <PenLine className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -471,9 +449,9 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   const hasData = series.some((s) => precos.find((p) => p.serie_slug === s.slug));
                   if (!hasData) return null;
                   return (
-                    <section key={grupo} aria-label={grupo} className="mb-6">
-                      <h3 className="text-xl font-bold text-text mb-4">{grupo}</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <section key={grupo} aria-label={grupo} className="mb-4">
+                      <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">{grupo}</h3>
+                      <div className="divide-y divide-border/30">
                         {series.map((serie) => {
                           const p = precos.find((pr) => pr.serie_slug === serie.slug);
                           return (
