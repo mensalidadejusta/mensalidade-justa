@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { createServerClient } from "@/lib/supabase-server";
 import { slugify } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export default async function Footer() {
   return (
     <footer className="border-t border-border bg-bg">
       <div className="max-w-7xl mx-auto px-4 py-10">
-        <nav aria-label="Diretório de escolas por cidade">
+        <nav aria-label="Diret├│rio de escolas por cidade">
           <h2 className="text-sm font-semibold mb-6">Explore por Cidades</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {UFS_PRIORITY.map((uf) => {
