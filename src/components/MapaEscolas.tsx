@@ -49,6 +49,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   const mediasEstado = useRef<MediaEstado[]>([]);
   const mediasCidade = useRef<MediaCidade[]>([]);
   const supabase = useRef(createClient());
+  const userMarkerRef = useRef<any>(null);
   const [mediasCidadeMap, setMediasCidadeMap] = useState<any[]>([]);
   const { theme, resolvedTheme } = useTheme();
   const [temaAtual, setTemaAtual] = useState<string>("");
@@ -267,6 +268,34 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     }
   }
 
+  function renderUserLocation(L: any, map: any) {
+    if (!userLocation) {
+      if (userMarkerRef.current) {
+        if (userMarkerRef.current._int) clearInterval(userMarkerRef.current._int);
+        if (userMarkerRef.current._pulse) map.removeLayer(userMarkerRef.current._pulse);
+        map.removeLayer(userMarkerRef.current);
+        userMarkerRef.current = null;
+      }
+      return;
+    }
+    const p: [number, number] = [userLocation.lat, userLocation.lon];
+    if (userMarkerRef.current) {
+      if (userMarkerRef.current._int) clearInterval(userMarkerRef.current._int);
+      if (userMarkerRef.current._pulse) map.removeLayer(userMarkerRef.current._pulse);
+      map.removeLayer(userMarkerRef.current);
+    }
+    const um = L.circleMarker(p, { radius: 12, fillColor: "#4285f4", color: "#fff", weight: 3, fillOpacity: 0.9 });
+    um.bindTooltip("Voc\u00ea");
+    um.addTo(map);
+    const pulse = L.circleMarker(p, { radius: 18, fillColor: "#4285f4", color: "transparent", fillOpacity: 0.2 });
+    pulse.addTo(map);
+    let r = 14;
+    const int = setInterval(() => { r += 0.5; pulse.setRadius(r); pulse.setStyle({ fillOpacity: Math.max(0, 0.25 - (r - 14) * 0.02) }); if (r > 30) r = 14; }, 40);
+    userMarkerRef.current = um;
+    userMarkerRef.current._pulse = pulse;
+    userMarkerRef.current._int = int;
+  }
+
   function renderizar() {
     const s = state.current;
     if (!s) return;
@@ -284,6 +313,8 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     } else {
       renderEscolaMarkers(L, markers, false);
     }
+
+    renderUserLocation(L, map);
   }
 
   useEffect(() => {
@@ -314,7 +345,6 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           map, L,
           markers: L.layerGroup().addTo(map),
           aggMarkers: aggMarkersRef.current,
-          userMarker: { current: null },
         };
 
         // Load aggregated data
@@ -396,15 +426,19 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   // Re-render escola markers when props change (only in escola mode)
   useEffect(() => {
     const s = state.current;
-    if (!s || getZoomMode(s.map.getZoom()) !== "escola") return;
-    renderizar();
-    if (openPopupId.current !== null) {
-      s.markers.eachLayer((layer: any) => {
-        if (layer._eid === openPopupId.current && layer.getPopup) {
-          const p = layer.getPopup();
-          if (p && !p.isOpen()) layer.openPopup();
-        }
-      });
+    if (!s) return;
+    if (getZoomMode(s.map.getZoom()) === "escola") {
+      renderizar();
+      if (openPopupId.current !== null) {
+        s.markers.eachLayer((layer: any) => {
+          if (layer._eid === openPopupId.current && layer.getPopup) {
+            const p = layer.getPopup();
+            if (p && !p.isOpen()) layer.openPopup();
+          }
+        });
+      }
+    } else {
+      renderUserLocation(s.L, s.map);
     }
   }, [escolas, userLocation, hoveredId, serieSlug]);
 
