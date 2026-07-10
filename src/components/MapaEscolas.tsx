@@ -55,8 +55,8 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   const [temaAtual, setTemaAtual] = useState<string>("");
 
   function getZoomMode(z: number): "estado" | "cidade" | "escola" {
-    if (z <= 5) return "estado";
-    if (z <= 9) return "cidade";
+    if (z < 8) return "estado";
+    if (z < 13) return "cidade";
     return "escola";
   }
 
@@ -146,7 +146,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const icon = L.divIcon({
         className: "",
         iconSize: null,
-        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid var(--color-border);font-family:sans-serif" class="px-3 py-1 rounded-full shadow-md text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap animate-fade-in"><span style="opacity:0.7">${e.uf}</span><span style="color:var(--color-success)" class="font-extrabold">${preco}</span></div>`,
+        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid rgba(120,110,120,0.15);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" class="px-2.5 py-1 rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] text-xs font-medium flex items-center justify-center gap-2 whitespace-nowrap tracking-wide animate-fade-in transition-all duration-200"><span style="opacity:0.75;font-weight:400">${e.uf}</span><span style="color:var(--color-success);font-weight:700">${preco}</span></div>`,
       });
       const m = L.marker(p, { icon });
       m.bindPopup(`
@@ -178,7 +178,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const icon = L.divIcon({
         className: "",
         iconSize: null,
-        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid var(--color-border);font-family:sans-serif" class="px-3 py-1 rounded-full shadow-md text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap animate-fade-in"><span style="opacity:0.7">${nomeCurto}</span><span style="color:var(--color-success)" class="font-extrabold">${textoPreco}</span></div>`,
+        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid rgba(120,110,120,0.15);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" class="px-2.5 py-1 rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] text-xs font-medium flex items-center justify-center gap-2 whitespace-nowrap tracking-wide animate-fade-in transition-all duration-200"><span style="opacity:0.75;font-weight:400">${nomeCurto}</span><span style="color:var(--color-success);font-weight:700">${textoPreco}</span></div>`,
       });
       const m = L.marker(p, { icon });
       m.bindPopup(`<div style="font-family:sans-serif;padding:2px;color:#1e293b"><strong style="font-size:13px">${c.nome} - ${c.uf}</strong><br/><span style="font-size:12px">M\u00e9dia: R$ ${Math.round(Number(c.media_mensalidade ?? 0))}</span><br/><span style="font-size:11px;color:#64748b">Escolas: ${c.total_escolas}</span></div>`);
@@ -366,11 +366,11 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
           if (state.current?.markers) state.current.markers.clearLayers();
 
-          if (currentZoom >= 6 && currentZoom <= 9) {
+          if (currentZoom >= 8 && currentZoom < 13) {
             await carregarMediasCidade(bounds, activeMap.getCenter());
             setMediasCidadeMap([...mediasCidade.current]);
             console.log(`[TESTE_SUPABASE] ${mediasCidade.current.length} cidades com preço carregadas na Ref.`);
-          } else if (currentZoom <= 5) {
+          } else if (currentZoom < 8) {
             renderEstadoMarkers(L, aggMarkersRef.current, activeMap);
           } else {
             renderEscolaMarkers(L, state.current.markers, false);
