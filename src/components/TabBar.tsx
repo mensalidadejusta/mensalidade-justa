@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, Edit3, User, Info, Map } from "lucide-react";
-import BotaoTema from "@/components/botao-tema";
+import BotaoTema from "@/components/BotaoTema";
 
 const tabs = [
   { href: "/busca", label: "Busca", icon: Search },

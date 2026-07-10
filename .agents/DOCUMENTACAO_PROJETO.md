@@ -6,6 +6,55 @@
 
 ---
 
+## ⚠️ Instruções para o Gemini — Como criar prompts para o assistente de código
+
+Você (Gemini) vai receber esta documentação e deve gerar prompts para um **assistente de codificação sênior** (o modelo `deepseek-v4-flash` via ferramenta `opencode`) executar tarefas neste projeto.
+
+### Regras rígidas de prompt
+
+1. **Seja específico, não genérico**
+   - ❌ "ajusta a tela de busca"
+   - ✅ "No arquivo `src/app/busca/busca-content.tsx`, na função `handleLocationChange`, altere o limite da RPC `escolas_perto_de_mim` de 50km para 100km no parâmetro `p_raio_km`"
+
+2. **Sempre informe o path do arquivo + linha** quando possível
+   - O assistente precisa saber exatamente onde mexer. Procure no doc a localização exata do código.
+
+3. **Peça UMA coisa por vez**
+   - O assistente segue o protocolo "Vibe Coding": ele PÁRA e PERGUNTA se o pedido for ambíguo. Prompts atômicos evitam isso.
+   - ❌ "cria a tela de login e a de cadastro e o perfil"
+   - ✅ "cria o componente de login em `src/app/(auth)/login/page.tsx` seguindo o padrão dos componentes de auth já existentes" (depois outro prompt para cadastro, etc.)
+
+4. **Nunca peça para instalar pacotes npm sem justificativa**
+   - O projeto é minimalista em dependências. Se precisar de algo novo, explique POR QUE é estritamente necessário (ex: "precisamos de `date-fns` porque o `Intl.DateTimeFormat` não cobre o formato X"). O assistente vai perguntar antes de instalar.
+
+5. **Navegação segura**: o assistente NÃO gera código novo sem confirmar contigo se:
+   - O escopo da mudança é claro
+   - Você autorizou criar/deletar arquivos
+   - A abordagem não viola boas práticas
+   - Use prompts que já respondam essas dúvidas de antemão
+
+6. **Sempre mencione o que NÃO deve mudar**
+   - Se o prompt pede cor de fundo, explicite que a tag HTML e a lógica devem permanecer intactas. O assistente segue o Protocolo de Alteração Cirúrgica (§10 do START_HERE.md).
+
+### Checklist mental antes de escrever um prompt
+
+- [ ] O path do arquivo está no doc?
+- [ ] A função/componente está documentado?
+- [ ] O prompt é uma única tarefa atômica?
+- [ ] Eu já informei o contexto necessário (limites, o que não mexer)?
+- [ ] A mudança proposta não conflita com alguma regra do START_HERE.md (RLS, nomenclatura, etc.)?
+
+### Exemplos de prompts bons
+
+```
+No arquivo src/app/busca/busca-content.tsx, adicione um filtro por período (matutino/vespertino/noturno) no useMemo `dadosExibir`. O filtro deve vir do searchParam `turno`. Não altere tags HTML ou a estrutura do JSX — apenas a lógica de filtragem.
+```
+
+```
+Crie o arquivo src/app/termos/page.tsx como Server Component estático (sem fetch), seguindo o mesmo padrão de src/app/sobre/page.tsx. Use escape de caracteres especiais com String.fromCodePoint. Conteúdo: termos de uso genéricos com 3 seções.
+```
+---
+
 ## Índice
 
 1. [Propósito e Visão Geral](#1-propósito-e-visão-geral)
@@ -37,10 +86,11 @@
 27. [Footer — Diretório de Cidades](#27-footer--diretório-de-cidades)
 28. [TabBar — Navegação](#28-tabbar--navegação)
 29. [BotaoTema — Toggle Tema](#29-botaotema--toggle-tema)
-30. [Scripts — Import CSV e Run Migration](#30-scripts--import-csv-e-run-migration)
+30. [Scripts](#30-scripts)
 31. [Variáveis de Ambiente](#31-variáveis-de-ambiente)
 32. [Problemas Conhecidos e Workarounds](#32-problemas-conhecidos-e-workarounds)
-33. [Guia de Reprodução Zero-to-Production](#33-guia-de-reprodução-zero-to-production)
+33. [Bugs Corrigidos e Proteções Defensivas](#33-bugs-corrigidos-e-proteções-defensivas)
+A. [Guia de Reprodução Zero-to-Production](#a-guia-de-reprodução-zero-to-production)
 
 ---
 
@@ -234,13 +284,13 @@ mensalidadejusta.com.br/
 │   │   └── sobre/page.tsx                    # Página institucional
 │   │
 │   ├── components/
-│   │   ├── botao-tema.tsx                    # Toggle dark/light
-│   │   ├── caixa-busca-localizacao.tsx       # Input de endereço com autocomplete
-│   │   ├── footer.tsx                        # Footer com diretório
-│   │   ├── mapa-escolas.tsx                  # Leaflet lazy import
-│   │   ├── schema-escolas.tsx                # JSON-LD Schema
-│   │   ├── searchable-select.tsx             # Bottom sheet / sidebar select
-│   │   └── tab-bar.tsx                       # Navegação principal
+│   │   ├── BotaoTema.tsx                    # Toggle dark/light
+│   │   ├── CaixaBuscaLocalizacao.tsx        # Input de endereço com autocomplete
+│   │   ├── Footer.tsx                       # Footer com diretório
+│   │   ├── MapaEscolas.tsx                  # Leaflet lazy import
+│   │   ├── SchemaEscolas.tsx                # JSON-LD Schema
+│   │   ├── SearchableSelect.tsx             # Bottom sheet / sidebar select
+│   │   └── TabBar.tsx                       # Navegação principal
 │   │
 │   ├── lib/
 │   │   ├── auth-context.tsx                  # Contexto de autenticação
@@ -259,13 +309,19 @@ mensalidadejusta.com.br/
 │       ├── 003_profiles_e_geo.sql
 │       ├── 004_mensalidades_series.sql
 │       ├── 006_normalizacao_estado_cidade.sql
-│       └── 007_filtrar_escolas_paralisadas.sql
+│       ├── 007_filtrar_escolas_paralisadas.sql
+│       ├── 009_rename_tb_tables.sql
+│       ├── 010_rename_escolas_raw.sql
+│       ├── 011_fix_escolas_no_mapa.sql
+│       └── 012_fix_buscar_cidades.sql
 │
 ├── scripts/
-│   ├── import-csv.js                         # Import CSV de escolas
-│   └── run-migration.js                      # Executor de migrations
-│
-└── public/                                   # Assets estáticos vazios
+│   ├── create-index.mjs                     # Cria índices GIST/trgm
+│   ├── fix-accent-colors.mjs                # Corrige cores com acento
+│   ├── fix-tailwind-classes.mjs             # Substitui classes arbitrárias
+│   ├── fix-theme-colors.mjs                 # Substitui cores hardcoded
+│   ├── import-csv.js                        # Import CSV de escolas
+│   └── run-migration.js                     # Executor de migrations
 ```
 
 ---
@@ -283,16 +339,16 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;      -- Trigram index para ILIKE
 -- unaccent também instalada via migration 006
 ```
 
-### 5.2 Tabela `escolas_raw` (~181k linhas ativas)
+### 5.2 Tabela `escolas_bruta` (~181k linhas ativas)
 
-Nome original: `escolas`. Renomeada para `escolas_raw` na migration 006.
+Nome original: `escolas`. Renomeada para `escolas_raw` na migration 006 e para `escolas_bruta` na migration 010.
 
 ```sql
-CREATE TABLE IF NOT EXISTS escolas_raw (
+CREATE TABLE IF NOT EXISTS escolas_bruta (
   id SERIAL PRIMARY KEY,
   codigo_inep VARCHAR(20) UNIQUE NOT NULL,
   nome VARCHAR(500) NOT NULL,
-  cidade_id UUID REFERENCES tb_cidades(id) ON DELETE RESTRICT,
+  cidade_id UUID REFERENCES cidades(id) ON DELETE RESTRICT,
   bairro VARCHAR(300),
   endereco TEXT,
   telefone VARCHAR(100),
@@ -317,51 +373,51 @@ CREATE TABLE IF NOT EXISTS escolas_raw (
 
 **Índices:**
 ```sql
-CREATE INDEX idx_escolas_nome ON escolas_raw USING GIN (nome gin_trgm_ops);
-CREATE INDEX idx_escolas_dependencia ON escolas_raw (dependencia_administrativa);
-CREATE INDEX idx_escolas_geom ON escolas_raw USING GIST (geom);
-CREATE INDEX idx_escolas_lat_lng ON escolas_raw (latitude, longitude);
-CREATE INDEX idx_escolas_raw_cidade_id ON escolas_raw (cidade_id);
+CREATE INDEX idx_escolas_nome ON escolas_bruta USING GIN (nome gin_trgm_ops);
+CREATE INDEX idx_escolas_dependencia ON escolas_bruta (dependencia_administrativa);
+CREATE INDEX idx_escolas_geom ON escolas_bruta USING GIST (geom);
+CREATE INDEX idx_escolas_lat_lng ON escolas_bruta (latitude, longitude);
+CREATE INDEX idx_escolas_bruta_cidade_id ON escolas_bruta (cidade_id);
 ```
 
 **RLS:**
 ```sql
-ALTER TABLE escolas_raw ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Escolas visiveis para todos" ON escolas_raw FOR SELECT USING (true);
+ALTER TABLE escolas_bruta ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Escolas visiveis para todos" ON escolas_bruta FOR SELECT USING (true);
 ```
 
 **Regra de negócio:** Escolas com `restricao_atendimento = 'ESCOLA PARALISADA'` (31.321 registros)
 são excluídas de todas as RPCs de busca, mapa e contagem (migration 007).
 
-### 5.3 Tabela `tb_estados` (27 linhas)
+### 5.3 Tabela `estados` (27 linhas)
 
 ```sql
-CREATE TABLE IF NOT EXISTS tb_estados (
+CREATE TABLE IF NOT EXISTS estados (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome VARCHAR(100) NOT NULL,
   uf VARCHAR(2) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tb_estados_uf ON tb_estados (uf);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_estados_uf ON estados (uf);
 ```
 
-### 5.4 Tabela `tb_cidades` (5.570 linhas)
+### 5.4 Tabela `cidades` (5.570 linhas)
 
 ```sql
-CREATE TABLE IF NOT EXISTS tb_cidades (
+CREATE TABLE IF NOT EXISTS cidades (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  estado_id UUID NOT NULL REFERENCES tb_estados(id) ON DELETE RESTRICT,
+  estado_id UUID NOT NULL REFERENCES estados(id) ON DELETE RESTRICT,
   nome VARCHAR(200) NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tb_cidades_estado_id_nome ON tb_cidades (estado_id, nome);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cidades_estado_id_nome ON cidades (estado_id, nome);
 ```
 
-### 5.5 Tabela `mensalidades_series` (99+ linhas)
+### 5.5 Tabela `mensalidades_series` (106 linhas)
 
 ```sql
 CREATE TABLE IF NOT EXISTS mensalidades_series (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  escola_id INTEGER NOT NULL REFERENCES escolas_raw(id) ON DELETE CASCADE,
+  escola_id INTEGER NOT NULL REFERENCES escolas_bruta(id) ON DELETE CASCADE,
   serie_slug VARCHAR(50) NOT NULL,
   serie_nome VARCHAR(200) NOT NULL,
   valor_mensalidade NUMERIC(10, 2),
@@ -381,6 +437,8 @@ CREATE POLICY "Usuarios autenticados inserem" ON mensalidades_series
 GRANT SELECT ON mensalidades_series TO anon;
 GRANT SELECT, INSERT ON mensalidades_series TO authenticated;
 ```
+
+**Qualidade dos dados:** 105 registros foram inseridos via IA/import scripts (`user_id IS NULL`). Apenas 1 registro foi submetido por usuário real (`user_id` preenchido com UUID `8213da53-...`).
 
 ### 5.6 Tabela `profiles` (~2 linhas)
 
@@ -422,9 +480,9 @@ SELECT
   r.conveniada_poder_publico, r.regulamentacao_conselho,
   r.latitude, r.longitude, r.restricao_atendimento,
   r.geom, r.created_at, r.updated_at
-FROM escolas_raw r
-JOIN tb_cidades c ON c.id = r.cidade_id
-JOIN tb_estados e ON e.id = c.estado_id;
+FROM escolas_bruta r
+JOIN cidades c ON c.id = r.cidade_id
+JOIN estados e ON e.id = c.estado_id;
 ```
 
 `security_invoker = true` é CRÍTICO — herda RLS da tabela base.
@@ -488,13 +546,13 @@ Cria:
 
 **Essa migration é complexa. Executar na ordem correta:**
 
-1. Cria `tb_estados` e `tb_cidades`
-2. Popula `tb_estados` com DISTINCT uf de `escolas`
-3. Popula `tb_cidades` com DISTINCT municipio por estado
-4. Adiciona `cidade_id UUID FK → tb_cidades` em escolas
+1. Cria `estados` e `cidades`
+2. Popula `estados` com DISTINCT uf de `escolas`
+3. Popula `cidades` com DISTINCT municipio por estado
+4. Adiciona `cidade_id UUID FK → cidades` em escolas
 5. Popula `cidade_id` via JOIN
-6. Renomeia `escolas` → `escolas_raw`
-7. Remove colunas `uf` e `municipio` de `escolas_raw`
+6. Renomeia `escolas` → `escolas_bruta`
+7. Remove colunas `uf` e `municipio` de `escolas_bruta`
 8. Cria VIEW `escolas` com `security_invoker = true`
 9. Recria RPCs: `get_ufs`, `get_cidades`, `get_top_cidades`, `buscar_escolas_com_precos_detalhado`
 10. Cria RPC `buscar_cidades` (unaccent ILIKE, limite 8)
@@ -513,7 +571,7 @@ Nota: `chr(231)` = `ç`, `chr(233)` = `é` (workaround PowerShell 5.1).
 
 ### 6.6 `007_filtrar_escolas_paralisadas.sql`
 
-Drop e recria 3 RPCs adicionando filtro de escola paralisada:
+Drop e recria RPCs `escolas_perto_de_mim`, `get_top_cidades` e `buscar_escolas_com_precos_detalhado` adicionando filtro de escola paralisada:
 
 **em `buscar_escolas_com_precos_detalhado`:**
 ```sql
@@ -527,6 +585,38 @@ AND (e.restricao_atendimento IS NULL OR e.restricao_atendimento != 'ESCOLA PARAL
 ```sql
 AND (r.restricao_atendimento IS NULL OR r.restricao_atendimento != 'ESCOLA PARALISADA')
 ```
+
+### 6.7 `009_rename_tb_tables.sql`
+
+Renomeia tabelas com prefixo `tb_` (notação húngara) para nomes limpos:
+
+```sql
+ALTER TABLE tb_estados RENAME TO estados;
+ALTER TABLE tb_cidades RENAME TO cidades;
+ALTER INDEX idx_tb_estados_uf RENAME TO idx_estados_uf;
+ALTER INDEX idx_tb_cidades_estado_id_nome RENAME TO idx_cidades_estado_id_nome;
+```
+
+Recreate dependentes: `escolas` VIEW + RPCs `get_ufs`, `get_cidades`, `get_top_cidades`, `buscar_escolas_com_precos_detalhado`, `escolas_perto_de_mim`.
+
+### 6.8 `010_rename_escolas_raw.sql`
+
+Renomeia `escolas_raw` → `escolas_bruta` (português consistente):
+
+```sql
+ALTER TABLE escolas_raw RENAME TO escolas_bruta;
+ALTER INDEX idx_escolas_raw_cidade_id RENAME TO idx_escolas_bruta_cidade_id;
+```
+
+Recreate dependentes: `escolas` VIEW + RPCs com novas referências.
+
+### 6.9 `011_fix_escolas_no_mapa.sql`
+
+Recreate RPC `escolas_no_mapa` (2 overloads) que referenciava nomes antigos. Usa `escolas_bruta`, `cidades`, `estados`.
+
+### 6.10 `012_fix_buscar_cidades.sql`
+
+Recreate RPC `buscar_cidades` que referenciava `tb_cidades` e `tb_estados`.
 
 ---
 
@@ -892,8 +982,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import ThemeProvider from "@/providers/theme-provider";
-import TabBar from "@/components/tab-bar";
-import Footer from "@/components/footer";
+import TabBar from "@/components/TabBar";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Mensalidade Justa",
@@ -1198,7 +1288,7 @@ Sincroniza com `hoveredId` no BuscaContent e no MapaEscolas.
 
 ## 16. CaixaBuscaLocalizacao — Input de Endereço
 
-**Local:** `src/components/caixa-busca-localizacao.tsx` (~520 linhas completas)
+**Local:** `src/components/CaixaBuscaLocalizacao.tsx` (~520 linhas completas)
 
 > ⚠️ **Este componente foi reescrito.** A documentação abaixo reflete a versão mais recente.
 > Para histórico de bugs corrigidos, veja [Seção 33](#33-bugs-corrigidos-e-proteções-defensivas).
@@ -1341,7 +1431,7 @@ interface CaixaBuscaLocalizacaoProps {
 
 ## 17. SearchableSelect — Select com Bottom Sheet
 
-**Local:** `src/components/searchable-select.tsx` (354 linhas)
+**Local:** `src/components/SearchableSelect.tsx` (354 linhas)
 
 ### Props
 
@@ -1415,7 +1505,7 @@ O `drag` do bottom sheet foi removido (não essencial).
 
 ## 18. MapaEscolas — Leaflet Map
 
-**Local:** `src/components/mapa-escolas.tsx` (198 linhas)
+**Local:** `src/components/MapaEscolas.tsx` (198 linhas)
 
 ### Lazy Import (CRÍTICO)
 
@@ -1529,7 +1619,7 @@ Não dispara se um popup estiver aberto.
 
 ## 19. SchemaEscolas — JSON-LD Dinâmico
 
-**Local:** `src/components/schema-escolas.tsx`
+**Local:** `src/components/SchemaEscolas.tsx`
 
 ```tsx
 type SeriePreco = {
@@ -1860,7 +1950,7 @@ export default async function sitemap({ params }: Props): Promise<MetadataRoute.
 
 ## 27. Footer — Diretório de Cidades
 
-**Local:** `src/components/footer.tsx` (Server Component)
+**Local:** `src/components/Footer.tsx` (Server Component)
 
 ```tsx
 const UFS_PRIORITY = ["SP", "RJ", "MG", "RS", "PR", "BA"];
@@ -1888,7 +1978,7 @@ export default async function Footer() {
 
 ## 28. TabBar — Navegação
 
-**Local:** `src/components/tab-bar.tsx` (Client Component)
+**Local:** `src/components/TabBar.tsx` (Client Component)
 
 ### Abas
 
@@ -1933,7 +2023,7 @@ Rotas de auth: `/login`, `/cadastro`, `/recuperar-senha`, `/alterar-senha`.
 
 ## 29. BotaoTema — Toggle Tema
 
-**Local:** `src/components/botao-tema.tsx`
+**Local:** `src/components/BotaoTema.tsx`
 
 ```tsx
 export default function BotaoTema() {
@@ -1955,7 +2045,7 @@ Placeholder de 36×36px (w-9 h-9) enquanto não montado.
 
 ---
 
-## 30. Scripts — Import CSV e Run Migration
+## 30. Scripts
 
 ### 30.1 `scripts/import-csv.js`
 
@@ -2097,6 +2187,8 @@ Executar de novo que resolve.
 ---
 
 ## 33. Bugs Corrigidos e Proteções Defensivas
+
+> Seções a seguir numeradas como 34+ por legado histórico (documento cresceu organicamente).
 
 ### 33.1 framer-motion AnimatePresence + React 19
 
@@ -2347,7 +2439,7 @@ A URL gerada: `/busca?cidade=santos-sp&lat=-23.96&lon=-46.33`
 
 ---
 
-## 33. Guia de Reprodução Zero-to-Production
+## A. Guia de Reprodução Zero-to-Production
 
 ### Passo 1: Criar projeto Next.js
 
@@ -2370,7 +2462,7 @@ Copiar: `next.config.ts`, `postcss.config.cjs`, `tsconfig.json`, `globals.css`
 ### Passo 4: Configurar Supabase
 
 1. Criar projeto em `supabase.com`
-2. Executar migrations em ordem: 001 → 002 → 003 → 004 → 006 → 007
+2. Executar migrations em ordem: 001 → 002 → 003 → 004 → 006 → 007 → 009 → 010 → 011 → 012
 3. Copiar URL e anon key para `.env.local`
 
 ### Passo 5: Importar dados

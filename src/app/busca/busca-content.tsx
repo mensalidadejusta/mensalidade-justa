@@ -4,16 +4,16 @@ import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { DollarSign, GraduationCap, Search, MapPin, Crosshair, Loader2 } from "lucide-react";
-import MapaEscolas from "@/components/mapa-escolas";
+import MapaEscolas from "@/components/MapaEscolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
 import { SERIES, GRUPOS } from "@/lib/series";
-import SearchableSelect from "@/components/searchable-select";
-import CaixaBuscaLocalizacao from "@/components/caixa-busca-localizacao";
+import SearchableSelect from "@/components/SearchableSelect";
+import CaixaBuscaLocalizacao from "@/components/CaixaBuscaLocalizacao";
 import BuscaResults from "./busca-results";
 import type { EscolaResult } from "./busca-results";
-import type { FiltroLocalizacao } from "@/components/caixa-busca-localizacao";
-import SchemaEscolas from "@/components/schema-escolas";
+import type { FiltroLocalizacao } from "@/components/CaixaBuscaLocalizacao";
+import SchemaEscolas from "@/components/SchemaEscolas";
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -360,24 +360,24 @@ export default function BuscaContent({
     if (serieSlug) {
       const slugs = serieSlug.split(",").filter(Boolean);
       if (slugs.length > 0) {
-        const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
-        const gruposSelecionados = slugs.map((s) => slugToGrupo.get(s)).filter(Boolean);
+        const slugToGrupo = new Map<string, string>(SERIES.map((s) => [s.slug, s.grupo]));
+        const grupoSet = new Set<string>();
+        for (const s of slugs) {
+          const g = slugToGrupo.get(s);
+          if (g) grupoSet.add(g);
+        }
+        const termoBusca: string[] = [];
+        for (const g of grupoSet) {
+          const lower = g.toLowerCase();
+          if (lower.startsWith("ensino fundamental")) termoBusca.push("ensino fundamental");
+          else if (lower.startsWith("educação infantil")) termoBusca.push("educação infantil");
+          else if (lower.startsWith("ensino médio")) termoBusca.push("ensino médio");
+          else termoBusca.push(lower);
+        }
         filtrado = filtrado.filter((e) => {
           if (!e.etapas_modalidades) return false;
           const etapas = e.etapas_modalidades.toLowerCase();
-          return gruposSelecionados.some((g) => {
-            const grupo = g!.toLowerCase();
-            if (grupo.startsWith("ensino fundamental")) {
-              return etapas.includes("ensino fundamental");
-            }
-            if (grupo.startsWith("educação infantil")) {
-              return etapas.includes("educação infantil");
-            }
-            if (grupo.startsWith("ensino médio")) {
-              return etapas.includes("ensino médio");
-            }
-            return etapas.includes(grupo);
-          });
+          return termoBusca.some((t) => etapas.includes(t));
         });
       }
     }
@@ -466,69 +466,34 @@ export default function BuscaContent({
         />
       </div>
 
-      {/* Busca e filtros flutuando sobre o mapa (fora do container fixed do mapa) */}
+      {/* Busca e filtros flutuando sobre o mapa (estilo Google Maps) */}
       <div className="fixed inset-0 md:left-16 bottom-0 z-[500] pointer-events-none">
-        {/* Mobile */}
-        <div className="md:hidden pointer-events-auto px-3 pt-2">
-          <div className="bg-bg/90 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
-            <CaixaBuscaLocalizacao
-              onLocationChange={handleLocationChange}
-              onLocationSelect={handleLocationSelect}
-              className="w-full"
-            />
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <button
-                onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                  showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover text-text-secondary"
-                }`}
-              >
-                <DollarSign className="w-3 h-3" />
-                Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
-              </button>
-              <button
-                onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                  showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover text-text-secondary"
-                }`}
-              >
-                <GraduationCap className="w-3 h-3" />
-                P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
-              </button>
-              <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop */}
-        <div className="hidden md:block pointer-events-auto ml-3 mt-3 w-96">
-          <div className="bg-bg/90 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg p-3 space-y-2">
-            <CaixaBuscaLocalizacao
-              onLocationChange={handleLocationChange}
-              onLocationSelect={handleLocationSelect}
-              className="w-full"
-            />
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <button
-                onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                  showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover border-transparent text-text-secondary"
-                }`}
-              >
-                <DollarSign className="w-3 h-3" />
-                Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
-              </button>
-              <button
-                onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 ${
-                  showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover border-transparent text-text-secondary"
-                }`}
-              >
-                <GraduationCap className="w-3 h-3" />
-                P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
-              </button>
-              <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
-            </div>
+        <div className="pointer-events-auto px-3 pt-2 md:pl-3 md:pr-0 md:pt-3 flex flex-col md:flex-row md:items-start md:gap-3">
+          <CaixaBuscaLocalizacao
+            onLocationChange={handleLocationChange}
+            onLocationSelect={handleLocationSelect}
+            className="w-full md:w-96 shadow-lg"
+          />
+          <div className="flex justify-center items-center gap-2 flex-wrap md:justify-start md:flex-1 mt-2 md:mt-0">
+            <button
+              onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 shadow-sm ${
+                showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover text-text-secondary"
+              }`}
+            >
+              <DollarSign className="w-3 h-3" />
+              Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
+            </button>
+            <button
+              onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 shadow-sm ${
+                showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover text-text-secondary"
+              }`}
+            >
+              <GraduationCap className="w-3 h-3" />
+              P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
+            </button>
+            <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
           </div>
         </div>
 
@@ -635,6 +600,17 @@ export default function BuscaContent({
           <div className="flex flex-col items-center gap-3 bg-bg/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
             <p className="text-sm text-text-tertiary">Buscando escolas pr\u00f3ximas...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state: busca feita sem resultados */}
+      {temBusca && !carregandoCoordenadas && sortedResultados && sortedResultados.length === 0 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[600] pointer-events-none">
+          <div className="flex flex-col items-center gap-3 bg-bg/80 backdrop-blur-sm rounded-2xl px-6 py-6 shadow-lg max-w-xs text-center">
+            <p className="text-sm text-text-secondary font-medium">
+              {"Nenhuma escola encontrada para esta etapa nesta regi\u00e3o"}
+            </p>
           </div>
         </div>
       )}

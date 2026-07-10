@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import ThemeProvider from "@/providers/theme-provider";
-import TabBar from "@/components/tab-bar";
-import Footer from "@/components/footer";
+import TabBar from "@/components/TabBar";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Mensalidade Justa",

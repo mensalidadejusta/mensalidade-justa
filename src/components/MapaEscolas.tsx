@@ -8,12 +8,18 @@ type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: n
 type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
 type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
 
-const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
+const slugToGrupo = new Map<string, string>(SERIES.map((s) => [s.slug, s.grupo]));
 const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
 
+function slugsDoFiltro(serieSlug?: string): Set<string> {
+  if (!serieSlug) return new Set<string>();
+  return new Set(serieSlug.split(",").filter(Boolean));
+}
+
 function mediaPreco(e: Escola, serieSlug?: string): string {
+  const slugs = slugsDoFiltro(serieSlug);
   const precos = (Array.isArray(e.series_precos) ? e.series_precos : [])
-    .filter((s) => !serieSlug || s.serie_slug === serieSlug)
+    .filter((s) => !serieSlug || slugs.has(s.serie_slug))
     .map((s) => s.valor_mensalidade)
     .filter((v): v is number => v != null);
   if (precos.length === 0) return "";
@@ -63,19 +69,29 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: "#222", weight: h ? 2.5 : 1.5, fillOpacity: h ? 1 : 0.85 });
       m._eid = e.id;
       const endereco = e.bairro || "";
+      const slugsAtivos = slugsDoFiltro(serieSlug);
       let precosHtml = "";
       const precosArray = Array.isArray(e.series_precos) ? e.series_precos : [];
       if (precosArray.length) {
-        for (const grupo of GRUPOS) {
-          const items = precosArray.filter((sp) => slugToGrupo.get(sp.serie_slug) === grupo);
-          if (!items.length) continue;
-          const precos = items.map((s) => Number(s.valor_mensalidade)).filter((v) => !isNaN(v));
-          const min = precos.length > 0 ? Math.min(...precos) : 0;
-          const max = precos.length > 0 ? Math.max(...precos) : 0;
-          const qtd = items.reduce((s, it) => s + it.qtd, 0);
-          const label = grupo.replace("Educa\u00e7\u00e3o Infantil", "Infantil").replace("Ensino M\u00e9dio", "Ens. M\u00e9dio").replace("Ensino ", "");
-          const faixa = min === max ? `R$ ${min.toLocaleString("pt-BR")}` : `R$ ${min.toLocaleString("pt-BR")} - R$ ${max.toLocaleString("pt-BR")}`;
-          precosHtml += `<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;line-height:1.7"><span><span style="font-weight:600">${label}</span> <span style="color:var(--color-text-tertiary);font-size:10px">(${qtd})</span></span><span style="font-weight:700;color:var(--color-price-text);white-space:nowrap">${faixa}</span></div>`;
+        if (serieSlug && slugsAtivos.size > 0) {
+          const items = precosArray.filter((sp) => slugsAtivos.has(sp.serie_slug));
+          for (const item of items) {
+            const valor = Number(item.valor_mensalidade);
+            if (isNaN(valor)) continue;
+            precosHtml += `<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;line-height:1.7"><span style="font-weight:600">${item.serie_nome}</span><span style="font-weight:700;color:var(--color-price-text);white-space:nowrap">R$ ${valor.toLocaleString("pt-BR")}</span></div>`;
+          }
+        } else {
+          for (const grupo of GRUPOS) {
+            const items = precosArray.filter((sp) => slugToGrupo.get(sp.serie_slug) === grupo);
+            if (!items.length) continue;
+            const precos = items.map((s) => Number(s.valor_mensalidade)).filter((v) => !isNaN(v));
+            const min = precos.length > 0 ? Math.min(...precos) : 0;
+            const max = precos.length > 0 ? Math.max(...precos) : 0;
+            const qtd = items.reduce((s, it) => s + it.qtd, 0);
+            const label = grupo.replace("Educa\u00e7\u00e3o Infantil", "Infantil").replace("Ensino M\u00e9dio", "Ens. M\u00e9dio").replace("Ensino ", "");
+            const faixa = min === max ? `R$ ${min.toLocaleString("pt-BR")}` : `R$ ${min.toLocaleString("pt-BR")} - R$ ${max.toLocaleString("pt-BR")}`;
+            precosHtml += `<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;line-height:1.7"><span><span style="font-weight:600">${label}</span> <span style="color:var(--color-text-tertiary);font-size:10px">(${qtd})</span></span><span style="font-weight:700;color:var(--color-price-text);white-space:nowrap">${faixa}</span></div>`;
+          }
         }
       } else if (!priv) {
         precosHtml = `<div style="font-size:11px;color:#34d399;font-weight:600">Gratuito</div>`;
