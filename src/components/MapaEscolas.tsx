@@ -363,7 +363,17 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           const limites = activeMap.getBounds();
           const bounds = { minLat: limites.getSouth(), minLon: limites.getWest(), maxLat: limites.getNorth(), maxLon: limites.getEast() };
 
-          console.log(`[TESTE_LEAFLET] Evento disparado. Zoom: ${currentZoom}. Centro: ${activeMap.getCenter()}`);
+          // Não fecha popup ao arrastar o mapa — só ao clicar fora
+          if (openPopupId.current !== null) {
+            if (currentZoom >= 13 && onBoundsChange) {
+              const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
+              if (key !== lastBoundsKey.current) {
+                lastBoundsKey.current = key;
+                onBoundsChange(bounds);
+              }
+            }
+            return;
+          }
 
           // Always clear ALL layers before rendering the current mode
           if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
@@ -372,7 +382,6 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           if (currentZoom >= 8 && currentZoom < 13) {
             await carregarMediasCidade(bounds, activeMap.getCenter());
             setMediasCidadeMap([...mediasCidade.current]);
-            console.log(`[TESTE_SUPABASE] ${mediasCidade.current.length} cidades com preço carregadas na Ref.`);
           } else if (currentZoom < 8) {
             renderEstadoMarkers(L, aggMarkersRef.current, activeMap);
           } else {
