@@ -325,6 +325,9 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         await import("leaflet/dist/leaflet.css");
         const L = mod.default || mod;
         const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
+        // Force size recalculation after render (critical for mobile)
+        setTimeout(() => map.invalidateSize(), 300);
+        map.on("resize", () => map.invalidateSize());
 
         const tiles: Record<string, any> = {
           "Padr\u00e3o": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }),
