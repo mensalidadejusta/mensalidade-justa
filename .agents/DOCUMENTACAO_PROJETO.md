@@ -313,7 +313,9 @@ mensalidadejusta.com.br/
 │       ├── 009_rename_tb_tables.sql
 │       ├── 010_rename_escolas_raw.sql
 │       ├── 011_fix_escolas_no_mapa.sql
-│       └── 012_fix_buscar_cidades.sql
+│       ├── 012_fix_buscar_cidades.sql
+│       ├── 013_add_etapas_modalidades_to_rpcs.sql
+│       └── 014_medias_agregadas.sql
 │
 ├── scripts/
 │   ├── create-index.mjs                     # Cria índices GIST/trgm
@@ -602,7 +604,6 @@ Recreate dependentes: `escolas` VIEW + RPCs `get_ufs`, `get_cidades`, `get_top_c
 ### 6.8 `010_rename_escolas_raw.sql`
 
 Renomeia `escolas_raw` → `escolas_bruta` (português consistente):
-
 ```sql
 ALTER TABLE escolas_raw RENAME TO escolas_bruta;
 ALTER INDEX idx_escolas_raw_cidade_id RENAME TO idx_escolas_bruta_cidade_id;
@@ -617,6 +618,40 @@ Recreate RPC `escolas_no_mapa` (2 overloads) que referenciava nomes antigos. Usa
 ### 6.10 `012_fix_buscar_cidades.sql`
 
 Recreate RPC `buscar_cidades` que referenciava `tb_cidades` e `tb_estados`.
+
+### 6.11 `013_add_etapas_modalidades_to_rpcs.sql`
+
+Adiciona coluna `etapas_modalidades VARCHAR` ao retorno de todas as RPCs de busca:
+- `buscar_escolas_com_precos_detalhado`
+- `escolas_no_mapa` (2 overloads)
+- `escolas_perto_de_mim`
+
+Necessário para o filtro client-side baseado em `etapas_modalidades` em vez de `series_precos`.
+
+### 6.12 `014_medias_agregadas.sql`
+
+Cria tabelas de médias pré-calculadas para zoom dinâmico no mapa:
+
+```sql
+CREATE TABLE medias_estado (
+  uf VARCHAR(2) PRIMARY KEY,
+  latitude NUMERIC(10,7), longitude NUMERIC(10,7),
+  media_mensalidade NUMERIC(10,2), total_escolas INTEGER DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE medias_cidade (
+  cidade_id UUID PRIMARY KEY REFERENCES cidades(id) ON DELETE CASCADE,
+  nome VARCHAR(200) NOT NULL, uf VARCHAR(2) NOT NULL,
+  latitude NUMERIC(10,7), longitude NUMERIC(10,7),
+  media_mensalidade NUMERIC(10,2), total_escolas INTEGER DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**RPCs:** `obter_medias_estado()` e `obter_medias_cidade()`. `GRANT SELECT ON medias_estado, medias_cidade TO anon, authenticated`.
+
+**Função `atualizar_medias()`:** popula as tabelas com `AVG(valor_mensalidade)` agrupado por estado/cidade + `AVG(latitude)`/`AVG(longitude)` como centróide.
 
 ---
 
@@ -1505,23 +1540,11 @@ O `drag` do bottom sheet foi removido (não essencial).
 
 ## 18. MapaEscolas — Leaflet Map
 
-**Local:** `src/components/MapaEscolas.tsx` (198 linhas)
+**Local:** `src/components/MapaEscolas.tsx` (~360 linhas)
 
 ### Lazy Import (CRÍTICO)
 
-```tsx
-useEffect(() => {
-  if (!el.current || state.current) return;
-  (async () => {
-    const mod = await import("leaflet");
-    await import("leaflet/dist/leaflet.css");
-    const L = mod.default || mod;
-    // ...
-  })();
-}, []);
-```
-
-Leaflet é importado dinamicamente APENAS no client-side, nunca no server.
+Leaflet é importado dinamicamente via `await import("leaflet")` APENAS no client-side (dentro de `useEffect`), nunca no server.
 
 ### Inicialização
 
@@ -1533,86 +1556,82 @@ View inicial: centro do Brasil, zoom 4.
 
 ### Tiles
 
-5 opções com layer control (colapsado, canto superior direito):
+5 opções: OpenStreetMap (padrão), Esri Satélite, OpenTopoMap, CARTO Claro, CARTO Escuro.
 
-| Nome | URL |
-|------|-----|
-| Padrão | OpenStreetMap |
-| Satélite | Esri World Imagery |
-| Terreno | OpenTopoMap |
-| Claro | CARTO light_all |
-| Escuro | CARTO dark_all |
+### Zoom Dinâmico — 3 Modos de Renderização
 
-### Marcadores
+O mapa gerencia **duas layer groups** (`markers` para escolas, `aggMarkers` para agregados). A função `renderizar()` limpa ambas e renderiza de acordo com o zoom atual:
+
+| Zoom | Modo | Fonte de Dados | Visual |
+|------|------|---------------|--------|
+| 0–5 | **Estado** | `medias_estado` (tabela pré-calculada, ~27 linhas) | Pills roxas (`#6d28d9`) com preço médio do estado |
+| 6–9 | **Cidade** | `medias_cidade` (tabela pré-calculada, filtrada por bounding box + fallback top 30) | Pills azuis escuras (`var(--color-text)`) com preço médio da cidade |
+| 10+ | **Escola** | RPC `escolas_no_mapa` via `onBoundsChange` (comportamento original) | CircleMarkers roxos/verdes por escola individual |
+
+### Carregamento de Dados Agregados
+
+- `carregarMediasEstado()`: chama RPC `obter_medias_estado()`, converte `latitude`/`longitude` com `Number()` (Supabase retorna string para NUMERIC)
+- `carregarMediasCidade(bounds)`: chama RPC `obter_medias_cidade()`, filtra por bounding box visível, limita a 50 resultados. Se bounding box retornar 0, fallback para as 30 maiores cidades do país por `total_escolas`.
+
+### Marcadores de Agregação (Estado/Cidade)
+
+Usam `L.marker` + `L.divIcon` com HTML inline (sem tooltips permanentes):
 
 ```tsx
-for (const e of selecionadas) {
-  const color = priv ? "#a855f7" : "#34d399"; // roxo = privada, verde = pública
-  const m = L.circleMarker(p, {
-    radius: h ? 10 : 7,
-    fillColor: color,
-    color: "#222",
-    weight: h ? 2.5 : 1.5,
-    fillOpacity: h ? 1 : 0.85,
-  });
-  m.bindPopup(`...html com nome, preços, link...`);
-  if (preco) {
-    m.bindTooltip(`<span>${preco}</span>`, { permanent: true, direction: "top", className: "price-tip" });
-  }
-  markers.addLayer(m);
-}
+const icon = L.divIcon({
+  className: "",
+  iconSize: [0, 0], iconAnchor: [0, 0],
+  html: `<div style="background:#6d28d9;color:#fff;font-size:12px;font-weight:700;
+         padding:5px 12px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,0.3);
+         white-space:nowrap;border:1.5px solid rgba(255,255,255,0.6);cursor:pointer">
+         ${preco}</div>`,
+});
 ```
 
-### Tooltip de preço (permanente)
+Cidades usam `background:var(--color-text);color:var(--color-bg)` para contraste automático no tema claro/escuro.
 
-- Exibido apenas para privadas com preço
-- Formato: "R$ 1.2k" (se ≥ 1000) ou "R$ 1200" (se < 1000)
-- Escondido ao abrir popup, restaurado ao fechar
+### Marcadores de Escola (zoom 10+)
 
-### Popup (ao clicar)
+CircleMarkers: roxo (`#a855f7`) para privada, verde (`#34d399`) para pública. Tooltip permanente com preço formatado ("R$ 1.2k"). Popup ao clicar com nome, endereço, preços por grupo/série, link "Ver detalhes".
 
-- Conteúdo HTML inline com nome, bairro, preços por grupo, link "Ver detalhes"
-- Usa `school-popup` className para CSS theme-aware
-
-### Limite de marcadores por zoom
+### Limite de marcadores por zoom (escolas)
 
 ```tsx
 const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
 ```
 
-### Ordenação de marcadores
+### Ordenação (escolas)
 
-Com preço primeiro, depois sem preço:
+Com preço primeiro, depois sem preço.
+
+### Listener moveend
+
 ```tsx
-const comPreco = todas.filter((e) => priv && mediaPreco(e, serieSlug));
-const semPreco = todas.filter((e) => !priv || !mediaPreco(e, serieSlug));
-const ordenadas = [...comPreco, ...semPreco];
+map.on("moveend", async () => {
+  const modo = getZoomMode(map.getZoom());
+  if (modo === "cidade") await carregarMediasCidade(bounds);
+  renderizar();
+  if (modo === "escola" && onBoundsChange) {
+    onBoundsChange({ minLat, minLon, maxLat, maxLon });
+  }
+});
 ```
 
 ### Pulse animation (localização do usuário)
 
-```tsx
-let r = 14;
-const int = setInterval(() => {
-  r += 0.5;
-  pulse.setRadius(r);
-  pulse.setStyle({ fillOpacity: Math.max(0, 0.25 - (r - 14) * 0.02) });
-  if (r > 30) r = 14;
-}, 40);
-```
+CircleMarker azul com animação de pulso via `setInterval` (expande/contrai `fillOpacity`).
 
 ### mapCenter effect
 
 ```tsx
 useEffect(() => {
-  if (!mapCenter || !state.current) return;
   state.current.map.setView([mapCenter.lat, mapCenter.lon], 14, { animate: true });
 }, [mapCenter]);
 ```
 
 ### onBoundsChange
 
-Dispara `onBoundsChange` quando o mapa é movido (debounce via hash de bounds).
+Dispara `onBoundsChange` apenas no modo escola (zoom 10+), com debounce via hash de bounds.
 Não dispara se um popup estiver aberto.
 
 ---
@@ -2462,7 +2481,7 @@ Copiar: `next.config.ts`, `postcss.config.cjs`, `tsconfig.json`, `globals.css`
 ### Passo 4: Configurar Supabase
 
 1. Criar projeto em `supabase.com`
-2. Executar migrations em ordem: 001 → 002 → 003 → 004 → 006 → 007 → 009 → 010 → 011 → 012
+2. Executar migrations em ordem: 001 → 002 → 003 → 004 → 006 → 007 → 009 → 010 → 011 → 012 → 013 → 014
 3. Copiar URL e anon key para `.env.local`
 
 ### Passo 5: Importar dados

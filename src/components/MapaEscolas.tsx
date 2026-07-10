@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
+import { createClient } from "@/lib/supabase";
 import { SERIES } from "@/lib/series";
 import { makeEscolaSlug } from "@/lib/utils";
 
 type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: number | null; valor_matricula: number | null; valor_material: number | null; qtd: number };
 type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
 type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
+
+type MediaEstado = { uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number };
+type MediaCidade = { cidade_id: string; nome: string; uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; distanciaCentro?: number };
 
 const slugToGrupo = new Map<string, string>(SERIES.map((s) => [s.slug, s.grupo]));
 const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
@@ -27,35 +32,171 @@ function mediaPreco(e: Escola, serieSlug?: string): string {
   return media >= 1000 ? `R$ ${(media / 1000).toFixed(1).replace(".0", "")}k` : `R$ ${Math.round(media)}`;
 }
 
+function fmtMedia(media: number | null): string {
+  if (media == null) return "";
+  return media >= 1000 ? `R$ ${(media / 1000).toFixed(1).replace(".0", "")}k` : `R$ ${Math.round(media)}`;
+}
+
 export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const state = useRef<any>(null);
+  const aggMarkersRef = useRef<any>(null);
   const lastDataKey = useRef("");
   const lastBoundsKey = useRef("");
   const openPopupId = useRef<number | null>(null);
   const isInitialLoadOrFilterChange = useRef(true);
   const lastMapCenterKey = useRef("");
+  const mediasEstado = useRef<MediaEstado[]>([]);
+  const mediasCidade = useRef<MediaCidade[]>([]);
+  const supabase = useRef(createClient());
+  const [mediasCidadeMap, setMediasCidadeMap] = useState<any[]>([]);
+  const { theme, resolvedTheme } = useTheme();
+  const [temaAtual, setTemaAtual] = useState<string>("");
+
+  function getZoomMode(z: number): "estado" | "cidade" | "escola" {
+    if (z <= 5) return "estado";
+    if (z <= 9) return "cidade";
+    return "escola";
+  }
 
   function buildKey() {
     const locKey = userLocation ? `${userLocation.lat.toFixed(4)}${userLocation.lon.toFixed(4)}` : "0";
     return `${escolas.length}-${locKey}`;
   }
 
-  function syncMarkers(ajustarCamera: boolean) {
-    const s = state.current;
-    if (!s) return;
-    const { map, L, markers, userMarker } = s;
-    markers.clearLayers();
+  async function carregarMediasEstado() {
+    const { data } = await supabase.current.rpc("obter_medias_estado");
+    if (data) {
+      mediasEstado.current = (data as any[]).map((r) => ({
+        uf: r.uf,
+        latitude: Number(r.latitude),
+        longitude: Number(r.longitude),
+        media_mensalidade: r.media_mensalidade != null ? Number(r.media_mensalidade) : null,
+        total_escolas: r.total_escolas,
+      }));
+    }
+  }
 
+  async function carregarMediasCidade(bounds: any, centroAtual?: any) {
+    const { data } = await supabase.current.rpc("obter_medias_cidade").limit(10000);
+    if (!data) { console.log("carregarMediasCidade: sem dados"); return; }
+    const todas = (data as any[]).map((r) => ({
+      cidade_id: r.cidade_id,
+      nome: r.nome,
+      uf: r.uf,
+      latitude: Number(r.latitude ?? r.lat),
+      longitude: Number(r.longitude ?? r.lon ?? r.lng),
+      media_mensalidade: r.media_mensalidade != null ? Number(r.media_mensalidade) : null,
+      total_escolas: r.total_escolas,
+    }));
+
+    const comPreco = todas.filter((c) =>
+      c.media_mensalidade !== null &&
+      c.media_mensalidade > 0 &&
+      c.latitude && c.longitude
+    );
+
+    if (comPreco.length === 0) {
+      console.log("Nenhuma cidade com preço encontrada na base.");
+      mediasCidade.current = [];
+      return;
+    }
+
+    const latCentro = centroAtual?.lat ?? state.current.map.getCenter().lat;
+    const lonCentro = centroAtual?.lng ?? state.current.map.getCenter().lng;
+
+    const cidadesComDistancia = comPreco.map((c) => {
+      const dLat = c.latitude - latCentro;
+      const dLon = c.longitude - lonCentro;
+      return { ...c, distanciaCentro: dLat * dLat + dLon * dLon };
+    });
+
+    const dentroDaCaixa = cidadesComDistancia.filter((c) =>
+      c.latitude >= bounds.minLat && c.latitude <= bounds.maxLat &&
+      c.longitude >= bounds.minLon && c.longitude <= bounds.maxLon
+    );
+
+    if (dentroDaCaixa.length > 0) {
+      mediasCidade.current = dentroDaCaixa
+        .sort((a, b) => a.distanciaCentro - b.distanciaCentro)
+        .slice(0, 40);
+      console.log(`Renderizando ${mediasCidade.current.length} cidades de dentro da Bounding Box.`);
+    } else {
+      mediasCidade.current = cidadesComDistancia
+        .sort((a, b) => a.distanciaCentro - b.distanciaCentro)
+        .slice(0, 30);
+      console.log(`Caixa vazia. Renderizando ${mediasCidade.current.length} cidades mais próximas globalmente.`);
+    }
+    console.log("Medias salvas na Ref:", mediasCidade.current.length);
+  }
+
+  function renderEstadoMarkers(L: any, layerGroup: any, activeMap: any) {
+    if (!layerGroup || !activeMap) return;
+    layerGroup.clearLayers();
+    const posicoes: Array<{ x: number; y: number }> = [];
+    for (const e of mediasEstado.current) {
+      const preco = fmtMedia(e.media_mensalidade);
+      if (!preco) continue;
+      const p: [number, number] = [e.latitude, e.longitude];
+      const px = activeMap.latLngToLayerPoint(L.latLng(e.latitude, e.longitude));
+      const colide = posicoes.some((p2) => Math.abs(px.x - p2.x) < 90 && Math.abs(px.y - p2.y) < 40);
+      if (colide) continue;
+      posicoes.push({ x: px.x, y: px.y });
+      const icon = L.divIcon({
+        className: "",
+        iconSize: null,
+        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid var(--color-border);font-family:sans-serif" class="px-3 py-1 rounded-full shadow-md text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap animate-fade-in"><span style="opacity:0.7">${e.uf}</span><span style="color:var(--color-success)" class="font-extrabold">${preco}</span></div>`,
+      });
+      const m = L.marker(p, { icon });
+      m.bindPopup(`
+        <div style="font-family:sans-serif;text-align:center;padding:4px 8px">
+          <div style="font-weight:700;font-size:15px">${e.uf}</div>
+          <div style="font-size:12px;color:var(--color-text-tertiary)">${e.total_escolas} escolas</div>
+          ${preco ? `<div style="font-size:14px;font-weight:700;color:var(--color-price-text);margin-top:4px">${preco}</div>` : ""}
+        </div>
+      `);
+      layerGroup.addLayer(m);
+    }
+  }
+
+  function renderCidadeMarkers(L: any, layerGroup: any, activeMap: any, dados?: any[]) {
+    if (!layerGroup || !activeMap) return;
+    layerGroup.clearLayers();
+    const lista = dados ?? mediasCidade.current;
+    console.log("[RENDER] Desenhando p\u00edlulas de cidades. Total:", lista.length);
+    const posicoes: Array<{ x: number; y: number }> = [];
+    for (const c of lista) {
+      if (!c.latitude || !c.longitude) continue;
+      const px = activeMap.latLngToLayerPoint(L.latLng(c.latitude, c.longitude));
+      const colide = posicoes.some((p2) => Math.abs(px.x - p2.x) < 80 && Math.abs(px.y - p2.y) < 30);
+      if (colide) continue;
+      posicoes.push({ x: px.x, y: px.y });
+      const textoPreco = c.media_mensalidade ? `R$ ${Math.round(c.media_mensalidade)}` : "---";
+      const nomeCurto = c.nome.length > 10 ? c.nome.slice(0, 10) + "\u2026" : c.nome;
+      const p: [number, number] = [c.latitude, c.longitude];
+      const icon = L.divIcon({
+        className: "",
+        iconSize: null,
+        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid var(--color-border);font-family:sans-serif" class="px-3 py-1 rounded-full shadow-md text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap animate-fade-in"><span style="opacity:0.7">${nomeCurto}</span><span style="color:var(--color-success)" class="font-extrabold">${textoPreco}</span></div>`,
+      });
+      const m = L.marker(p, { icon });
+      m.bindPopup(`<div style="font-family:sans-serif;padding:2px;color:#1e293b"><strong style="font-size:13px">${c.nome} - ${c.uf}</strong><br/><span style="font-size:12px">M\u00e9dia: R$ ${Math.round(Number(c.media_mensalidade ?? 0))}</span><br/><span style="font-size:11px;color:#64748b">Escolas: ${c.total_escolas}</span></div>`);
+      m.addTo(layerGroup);
+    }
+    if (!activeMap.hasLayer(layerGroup)) {
+      layerGroup.addTo(activeMap);
+    }
+  }
+
+  function renderEscolaMarkers(L: any, layerGroup: any, ajustarCamera: boolean) {
     const escolasArray = Array.isArray(escolas) ? escolas : [];
-    const z = map.getZoom();
+    const z = state.current.map.getZoom();
     const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
     let todas = escolasArray.filter((e) => e.latitude && e.longitude);
     const comPreco = todas.filter((e) => e.dependencia_administrativa === "Privada" && mediaPreco(e, serieSlug));
     const semPreco = todas.filter((e) => e.dependencia_administrativa !== "Privada" || !mediaPreco(e, serieSlug));
     const ordenadas = [...comPreco, ...semPreco];
     const selecionadas = ordenadas.slice(0, Math.min(ordenadas.length, limite));
-    if (!selecionadas.length && !userLocation) return;
 
     const bounds = L.latLngBounds([]);
 
@@ -116,38 +257,32 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         m.on("popupopen", () => { openPopupId.current = e.id; });
         m.on("popupclose", () => { openPopupId.current = null; });
       }
-      markers.addLayer(m);
-    }
-
-    if (userLocation) {
-      const p: [number, number] = [userLocation.lat, userLocation.lon];
-      bounds.extend(p);
-      if (userMarker.current) {
-        if (userMarker.current._int) clearInterval(userMarker.current._int);
-        if (userMarker.current._pulse) map.removeLayer(userMarker.current._pulse);
-        map.removeLayer(userMarker.current);
-      }
-      const um = L.circleMarker(p, { radius: 12, fillColor: "#4285f4", color: "#fff", weight: 3, fillOpacity: 0.9 });
-      um.bindTooltip("Você");
-      um.addTo(map);
-      const pulse = L.circleMarker(p, { radius: 18, fillColor: "#4285f4", color: "transparent", fillOpacity: 0.2 });
-      pulse.addTo(map);
-      let r = 14;
-      const int = setInterval(() => { r += 0.5; pulse.setRadius(r); pulse.setStyle({ fillOpacity: Math.max(0, 0.25 - (r - 14) * 0.02) }); if (r > 30) r = 14; }, 40);
-      userMarker.current = um;
-      userMarker.current._pulse = pulse;
-      userMarker.current._int = int;
-    } else if (userMarker.current) {
-      if (userMarker.current._int) clearInterval(userMarker.current._int);
-      if (userMarker.current._pulse) map.removeLayer(userMarker.current._pulse);
-      map.removeLayer(userMarker.current);
-      userMarker.current = null;
+      layerGroup.addLayer(m);
     }
 
     if (ajustarCamera && isInitialLoadOrFilterChange.current && bounds.isValid()) {
-      if (selecionadas.length === 1 && !userLocation) map.setView([selecionadas[0].latitude!, selecionadas[0].longitude!], 14);
-      else map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      if (selecionadas.length === 1 && !userLocation) state.current.map.setView([selecionadas[0].latitude!, selecionadas[0].longitude!], 14);
+      else state.current.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
       isInitialLoadOrFilterChange.current = false;
+    }
+  }
+
+  function renderizar() {
+    const s = state.current;
+    if (!s) return;
+    const { map, L, markers } = s;
+    const z = map.getZoom();
+    const modo = getZoomMode(z);
+
+    markers.clearLayers();
+    if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+
+    if (modo === "estado") {
+      renderEstadoMarkers(L, aggMarkersRef.current, map);
+    } else if (modo === "cidade") {
+      renderCidadeMarkers(L, aggMarkersRef.current, map);
+    } else {
+      renderEscolaMarkers(L, markers, false);
     }
   }
 
@@ -170,40 +305,99 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
         tiles["Padr\u00e3o"].addTo(map);
 
-        state.current = { map, L, markers: L.layerGroup().addTo(map), userMarker: { current: null } };
-        lastDataKey.current = buildKey();
-
-        if (onBoundsChange) {
-          lastBoundsKey.current = "init";
-          map.on("click", (e: any) => { if (!e.layer) map.closePopup(); });
-          map.on("moveend", () => {
-            if (openPopupId.current !== null) return;
-            isInitialLoadOrFilterChange.current = false;
-            const b = map.getBounds();
-            const key = `${b.getSouth().toFixed(3)}-${b.getWest().toFixed(3)}-${b.getNorth().toFixed(3)}-${b.getEast().toFixed(3)}`;
-            if (key === lastBoundsKey.current) return;
-            lastBoundsKey.current = key;
-            if (onBoundsChange) {
-              onBoundsChange({
-                minLat: b.getSouth(), minLon: b.getWest(),
-                maxLat: b.getNorth(), maxLon: b.getEast(),
-              });
-            }
-          });
+        // Separate ref for the aggregation layer to avoid stale closures
+        if (!aggMarkersRef.current) {
+          aggMarkersRef.current = L.layerGroup().addTo(map);
         }
 
-        try { syncMarkers(true); } catch {}
+        state.current = {
+          map, L,
+          markers: L.layerGroup().addTo(map),
+          aggMarkers: aggMarkersRef.current,
+          userMarker: { current: null },
+        };
+
+        // Load aggregated data
+        await carregarMediasEstado();
+        const boundsInit = map.getBounds();
+        await carregarMediasCidade({ minLat: boundsInit.getSouth(), minLon: boundsInit.getWest(), maxLat: boundsInit.getNorth(), maxLon: boundsInit.getEast() });
+        renderizar();
+
+        // Telemetry handler with state propagation
+        const handleMapMoveTelemetria = async (e: any) => {
+          const activeMap = e.target;
+          const currentZoom = activeMap.getZoom();
+          const limites = activeMap.getBounds();
+          const bounds = { minLat: limites.getSouth(), minLon: limites.getWest(), maxLat: limites.getNorth(), maxLon: limites.getEast() };
+
+          console.log(`[TESTE_LEAFLET] Evento disparado. Zoom: ${currentZoom}. Centro: ${activeMap.getCenter()}`);
+
+          // Always clear ALL layers before rendering the current mode
+          if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+          if (state.current?.markers) state.current.markers.clearLayers();
+
+          if (currentZoom >= 6 && currentZoom <= 9) {
+            await carregarMediasCidade(bounds, activeMap.getCenter());
+            setMediasCidadeMap([...mediasCidade.current]);
+            console.log(`[TESTE_SUPABASE] ${mediasCidade.current.length} cidades com preço carregadas na Ref.`);
+          } else if (currentZoom <= 5) {
+            renderEstadoMarkers(L, aggMarkersRef.current, activeMap);
+          } else {
+            renderEscolaMarkers(L, state.current.markers, false);
+            if (onBoundsChange) {
+              const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
+              if (key !== lastBoundsKey.current) {
+                lastBoundsKey.current = key;
+                onBoundsChange(bounds);
+              }
+            }
+          }
+        };
+
+        map.off("zoomend moveend", handleMapMoveTelemetria);
+        map.on("zoomend moveend", handleMapMoveTelemetria);
+        map.on("click", (e: any) => { if (!e.layer) map.closePopup(); });
+
+        // Mapa inicia no zoom natural do usuário — sem automação
       } catch (e) {
         console.error("MapaEscolas init error:", e);
       }
     })();
   }, []);
 
+  // Render city markers when state is updated by the telemetry handler
+  useEffect(() => {
+    if (mediasCidadeMap.length > 0 && state.current && aggMarkersRef.current) {
+      if (state.current.markers) state.current.markers.clearLayers();
+      console.log(`[TESTE_RENDER] Iniciando renderização para ${mediasCidadeMap.length} cidades no state.`);
+      const { L } = state.current;
+      renderCidadeMarkers(L, aggMarkersRef.current, state.current.map, mediasCidadeMap);
+    }
+  }, [mediasCidadeMap]);
+
+  // Re-render aggregated markers when theme changes (Leaflet outside React cycle)
+  useEffect(() => {
+    if (!state.current || !aggMarkersRef.current) return;
+    const t = resolvedTheme ?? theme;
+    if (t === temaAtual) return;
+    setTemaAtual(t ?? "");
+    const zoom = state.current.map.getZoom();
+    const modo = getZoomMode(zoom);
+    if (modo === "estado" || modo === "cidade") {
+      if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+      if (modo === "estado") {
+        renderEstadoMarkers(state.current.L, aggMarkersRef.current, state.current.map);
+      } else if (mediasCidadeMap.length > 0) {
+        renderCidadeMarkers(state.current.L, aggMarkersRef.current, state.current.map, mediasCidadeMap);
+      }
+    }
+  }, [resolvedTheme, theme, mediasCidadeMap]);
+
+  // Re-render escola markers when props change (only in escola mode)
   useEffect(() => {
     const s = state.current;
-    if (!s) return;
-    const newKey = buildKey();
-    syncMarkers(false);
+    if (!s || getZoomMode(s.map.getZoom()) !== "escola") return;
+    renderizar();
     if (openPopupId.current !== null) {
       s.markers.eachLayer((layer: any) => {
         if (layer._eid === openPopupId.current && layer.getPopup) {
@@ -212,7 +406,6 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         }
       });
     }
-    lastDataKey.current = newKey;
   }, [escolas, userLocation, hoveredId, serieSlug]);
 
   useEffect(() => {
@@ -228,13 +421,9 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     const s = state.current;
     if (!s || !activeTile) return;
     const { map, L } = s;
-    // Remove all existing tile layers
     map.eachLayer((layer: any) => {
-      if (layer._url && layer._leaflet_id) {
-        map.removeLayer(layer);
-      }
+      if (layer._url && layer._leaflet_id) map.removeLayer(layer);
     });
-    // Add the selected tile
     const tileMap: Record<string, string> = {
       "Padr\u00e3o": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       "Sat\u00e9lite": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -243,12 +432,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       "Escuro": "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
     };
     const url = tileMap[activeTile];
-    if (url) {
-      L.tileLayer(url, {
-        attribution: "&copy; OpenStreetMap",
-        maxZoom: 19,
-      }).addTo(map);
-    }
+    if (url) L.tileLayer(url, { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map);
   }, [activeTile]);
 
   return <div ref={el} className="w-full h-full rounded-xl z-0" />;
