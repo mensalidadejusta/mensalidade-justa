@@ -324,7 +324,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         const mod = await import("leaflet");
         await import("leaflet/dist/leaflet.css");
         const L = mod.default || mod;
-        const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
+        const map = L.map(el.current!, { zoomControl: false, closePopupOnClick: false }).setView([-15.8, -47.9], 4);
         // Force size recalculation after render (critical for mobile)
         setTimeout(() => map.invalidateSize(), 300);
         map.on("resize", () => map.invalidateSize());
@@ -364,16 +364,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           const bounds = { minLat: limites.getSouth(), minLon: limites.getWest(), maxLat: limites.getNorth(), maxLon: limites.getEast() };
 
           // Não fecha popup ao arrastar o mapa — só ao clicar fora
-          if (openPopupId.current !== null) {
-            if (currentZoom >= 13 && onBoundsChange) {
-              const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
-              if (key !== lastBoundsKey.current) {
-                lastBoundsKey.current = key;
-                onBoundsChange(bounds);
-              }
-            }
-            return;
-          }
+          if (openPopupId.current !== null) return;
 
           // Always clear ALL layers before rendering the current mode
           if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
@@ -398,7 +389,12 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
         map.off("zoomend moveend", handleMapMoveTelemetria);
         map.on("zoomend moveend", handleMapMoveTelemetria);
-        map.on("click", (e: any) => { if (!e.layer) map.closePopup(); });
+
+        // Fechar popup apenas em clique real (sem arrasto)
+        let dragging = false;
+        map.on("dragstart", () => { dragging = true; });
+        map.on("dragend", () => { setTimeout(() => { dragging = false; }, 500); });
+        map.on("click", () => { if (!dragging) map.closePopup(); });
 
         // Mapa inicia no zoom natural do usuário — sem automação
       } catch (e) {
