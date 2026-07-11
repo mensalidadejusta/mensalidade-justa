@@ -16,9 +16,10 @@ export default function RecuperarSenhaPage() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const redirectTo = `${window.location.origin}/atualizar-senha`;
+    console.log("Enviando resetPasswordForEmail com redirectTo:", redirectTo);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/atualizar-senha`,
+      redirectTo,
     });
     setLoading(false);
     if (error) return setError(error.message);

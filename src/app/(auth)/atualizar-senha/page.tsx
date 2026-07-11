@@ -13,21 +13,34 @@ export default function AtualizarSenhaPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
+    let cancelled = false;
+    const timer = setTimeout(() => { if (!cancelled) { setChecking(false); } }, 5000);
     supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled) return;
+      clearTimeout(timer);
       if (!user) router.replace("/login");
+      else setChecking(false);
     });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && !cancelled) {
+        clearTimeout(timer);
+        setChecking(false);
+      }
+    });
+    return () => { cancelled = true; clearTimeout(timer); subscription.unsubscribe(); };
   }, [router]);
 
-  useEffect(() => {
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") setLoading(false);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg p-4">
+        <div className="text-sm text-text-tertiary animate-pulse">Verificando sessão...</div>
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
