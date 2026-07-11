@@ -44,16 +44,11 @@ function calcDiameter(total: number, min: number, max: number): number {
   return Math.round(min + scale * (max - min));
 }
 
-function corFiltro(privada: boolean, publica: boolean): string {
-  if (privada && !publica) return "from-[#FF66FF] via-[#C11BE6] to-[#64009A]";
-  if (publica && !privada) return "from-[#A3FF2A] via-[#00D632] to-[#007D1C]";
-  return "from-[#FF66FF] via-[#C11BE6] to-[#007D1C]";
-}
-
-function corFiltroPastel(privada: boolean, publica: boolean): string {
-  if (privada && !publica) return "from-[#FF66FF]/40 via-[#C11BE6]/40 to-[#64009A]/40";
-  if (publica && !privada) return "from-[#A3FF2A]/40 via-[#00D632]/40 to-[#007D1C]/40";
-  return "from-[#FF66FF]/40 via-[#C11BE6]/40 to-[#007D1C]/40";
+function calcCidadeDiameter(total: number): number {
+  if (total <= 0) return 28;
+  const min = 28, max = 64, maxEscolas = 2000;
+  const scale = Math.sqrt(Math.min(total, maxEscolas) / maxEscolas);
+  return Math.round(min + scale * (max - min));
 }
 
 export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange, showPrivada = true, showPublica = true }: Props) {
@@ -66,17 +61,22 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   const isInitialLoadOrFilterChange = useRef(true);
   const lastMapCenterKey = useRef("");
   const mediasEstado = useRef<MediaEstado[]>([]);
-  const mediasCidade = useRef<MediaCidade[]>([]);
   const supabase = useRef(createClient());
   const userMarkerRef = useRef<any>(null);
   const modoVisaoAnteriorRef = useRef<'estado' | 'cidade' | 'escola'>('estado');
-  const [mediasCidadeMap, setMediasCidadeMap] = useState<any[]>([]);
+  const mediasCidade = useRef<MediaCidade[]>([]);
+  const todasCidades = useRef<MediaCidade[]>([]);
+  const cidadeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const renderEstadoRef = useRef<(L: any, lg: any, m: any) => void>(() => {});
+  const renderCidadeRef = useRef<(L: any, lg: any, m: any) => void>(() => {});
+  const renderEscolaRef = useRef<(L: any, lg: any, a: boolean) => void>(() => {});
+  const filtrarCidadesRef = useRef<(b: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void>(() => {});
   const { theme, resolvedTheme } = useTheme();
   const [temaAtual, setTemaAtual] = useState<string>("");
 
   function getZoomMode(z: number): "estado" | "cidade" | "escola" {
     if (z < 7) return "estado";
-    if (z < 13) return "cidade";
+    if (z < 11) return "cidade";
     return "escola";
   }
 
@@ -100,10 +100,10 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     }
   }
 
-  async function carregarMediasCidade(bounds: any, centroAtual?: any) {
+  async function carregarMediasCidade() {
     const { data } = await supabase.current.rpc("obter_medias_cidade").limit(10000);
-    if (!data) { mediasCidade.current = []; return; }
-    const todas = (data as any[]).map((r) => ({
+    if (!data) { todasCidades.current = []; return; }
+    todasCidades.current = (data as any[]).map((r) => ({
       cidade_id: r.cidade_id,
       nome: r.nome,
       uf: r.uf,
@@ -114,29 +114,20 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       publicas: r.publicas ?? 0,
       privadas: r.privadas ?? 0,
     })).filter((c) => c.latitude && c.longitude);
+  }
 
-    const latCentro = centroAtual?.lat ?? state.current.map.getCenter().lat;
-    const lonCentro = centroAtual?.lng ?? state.current.map.getCenter().lng;
-
-    const cidadesComDistancia = todas.map((c) => {
-      const dLat = c.latitude - latCentro;
-      const dLon = c.longitude - lonCentro;
-      return { ...c, distanciaCentro: dLat * dLat + dLon * dLon };
-    });
-
-    const dentroDaCaixa = cidadesComDistancia.filter((c) =>
-      c.latitude >= bounds.minLat && c.latitude <= bounds.maxLat &&
-      c.longitude >= bounds.minLon && c.longitude <= bounds.maxLon
-    );
-
-    if (dentroDaCaixa.length > 0) {
-      mediasCidade.current = dentroDaCaixa
-        .sort((a, b) => a.distanciaCentro - b.distanciaCentro)
-        .slice(0, 2000);
+  function filtrarCidadesPorBounds(bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) {
+    const dentroBounds = todasCidades.current
+      .filter((c) => c.latitude >= bounds.minLat && c.latitude <= bounds.maxLat && c.longitude >= bounds.minLon && c.longitude <= bounds.maxLon);
+    if (dentroBounds.length > 0) {
+      mediasCidade.current = dentroBounds;
     } else {
-      mediasCidade.current = cidadesComDistancia
+      const latCentro = (bounds.minLat + bounds.maxLat) / 2;
+      const lonCentro = (bounds.minLon + bounds.maxLon) / 2;
+      mediasCidade.current = todasCidades.current
+        .map((c) => ({ ...c, distanciaCentro: (c.latitude - latCentro) ** 2 + (c.longitude - lonCentro) ** 2 }))
         .sort((a, b) => a.distanciaCentro - b.distanciaCentro)
-        .slice(0, 2000);
+        .slice(0, 200);
     }
   }
 
@@ -159,92 +150,62 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       if (colide) continue;
       posicoes.push({ x: px.x, y: px.y });
       const diametro = calcDiameter(totalAtivo, 32, 80);
-      const gradiente = corFiltro(showPrivada, showPublica);
       const totalTexto = totalAtivo >= 1000 ? `${(totalAtivo / 1000).toFixed(1).replace(".0", "")}k` : String(totalAtivo);
+      const bgEstilo = showPrivada && showPublica
+        ? "linear-gradient(135deg,#0070F3,#34A853)"
+        : showPrivada ? "#0070F3" : "#34A853";
       const icon = L.divIcon({
         className: "",
         iconSize: null,
-        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif" class="rounded-full bg-gradient-to-br ${gradiente} shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)] flex flex-col items-center justify-center text-white text-center transition-all duration-300 ease-out animate-fade-in"><span class="font-black text-sm drop-shadow-md leading-none">${e.uf}</span><span class="text-[10px] font-black drop-shadow-md leading-tight mt-0.5">${totalTexto}</span></div>`,
+        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif;background:${bgEstilo}" class="rounded-full flex flex-col items-center justify-center text-white text-center"><span class="font-bold text-sm leading-none">${e.uf}</span><span class="text-[10px] font-bold leading-tight mt-0.5">${totalTexto}</span></div>`,
       });
       const m = L.marker(p, { icon });
       layerGroup.addLayer(m);
     }
   }
 
-  function calcCidadeDiameter(total: number, min: number, max: number): number {
-    if (total <= 0) return min;
-    const maxEscolas = 2000;
-    const scale = Math.sqrt(Math.min(total, maxEscolas) / maxEscolas);
-    return Math.round(min + scale * (max - min));
-  }
-
-  function renderCidadeMarkers(L: any, layerGroup: any, activeMap: any, dados?: any[]) {
+  function renderCidadeMarkers(L: any, layerGroup: any, activeMap: any) {
     if (!layerGroup || !activeMap) return;
     layerGroup.clearLayers();
-    const lista = dados ?? mediasCidade.current;
-    const isTransition = modoVisaoAnteriorRef.current === "estado";
-    const estadoCentros = new Map<string, { lat: number; lng: number }>();
-    for (const e of mediasEstado.current) {
-      estadoCentros.set(e.uf, { lat: e.latitude, lng: e.longitude });
-    }
     const posicoes: Array<{ x: number; y: number }> = [];
-    lista.forEach((c: any, idx: number) => {
-      if (!c.latitude || !c.longitude) return;
+    for (const c of mediasCidade.current) {
+      if (!c.latitude || !c.longitude) continue;
+      const p: [number, number] = [c.latitude, c.longitude];
       const px = activeMap.latLngToLayerPoint(L.latLng(c.latitude, c.longitude));
-      const colide = posicoes.some((p2) => Math.abs(px.x - p2.x) < 80 && Math.abs(px.y - p2.y) < 30);
-      if (colide) return;
+      const colide = posicoes.some((p2) => Math.abs(px.x - p2.x) < 70 && Math.abs(px.y - p2.y) < 30);
+      if (colide) continue;
       posicoes.push({ x: px.x, y: px.y });
-      const delay = `${(idx % 12) * 30}ms`;
       const totalAtivo =
         !showPrivada && !showPublica ? 0
         : showPrivada && !showPublica ? (c.privadas ?? 0)
         : !showPrivada && showPublica ? (c.publicas ?? 0)
         : (c.publicas ?? 0) + (c.privadas ?? 0);
-      const pReal: [number, number] = [c.latitude, c.longitude];
-      const markerClass = isTransition ? "cidade-marker-icon cidade-marker-moving" : "cidade-marker-icon";
-      let icon: any;
-      const cidadeGrad = corFiltro(showPrivada, showPublica);
-      const cidadeGradPastel = corFiltroPastel(showPrivada, showPublica);
-      const nomeCurto = c.nome.length > 10 ? c.nome.slice(0, 9) + "\u2026" : c.nome;
-      if (totalAtivo > 0) {
-        const diametro = calcCidadeDiameter(totalAtivo, 32, 70);
-        const countTexto = totalAtivo >= 1000 ? `${(totalAtivo / 1000).toFixed(1).replace(".0", "")}k` : String(totalAtivo);
-        icon = L.divIcon({
-          className: markerClass,
-          iconSize: null,
-          html: `<div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:visible" class="flex flex-col items-center gap-0.5"><div style="width:${diametro}px;height:${diametro}px;border-radius:50%;overflow:hidden;animation-delay:${delay}" class="bg-gradient-to-br ${cidadeGrad} shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)] flex flex-col items-center justify-center text-white text-center animate-mitose-cidade"><span class="font-black text-xs drop-shadow-md leading-tight">${countTexto}</span></div><span class="text-[9px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)] whitespace-nowrap">${nomeCurto}</span></div>`,
-        });
-      } else {
-        icon = L.divIcon({
-          className: markerClass,
-          iconSize: null,
-          html: `<div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:visible" class="flex flex-col items-center gap-0.5"><div style="width:24px;height:24px;border-radius:50%;overflow:hidden;animation-delay:${delay}" class="bg-gradient-to-br ${cidadeGradPastel} shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)] flex items-center justify-center text-white/80 text-[9px] font-bold animate-mitose-cidade">0</div><span class="text-[8px] font-semibold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)] whitespace-nowrap">${c.nome.length > 8 ? c.nome.slice(0, 7) + "\u2026" : c.nome}</span></div>`,
-        });
-      }
-      const centro = estadoCentros.get(c.uf);
-      const pInicial: [number, number] = isTransition && centro ? [centro.lat, centro.lng] : pReal;
-      const m = L.marker(pInicial, { icon });
-      m.bindPopup(`<div style="font-family:sans-serif;padding:2px;color:#1e293b"><strong style="font-size:13px">${c.nome} - ${c.uf}</strong><br/><span style="font-size:12px">${totalAtivo > 0 ? `M\u00e9dia: R$ ${Math.round(Number(c.media_mensalidade ?? 0))}` : "Sem escolas cadastradas"}</span><br/><span style="font-size:11px;color:#64748b">Escolas ativas: ${totalAtivo} ${!showPrivada || !showPublica ? `(total: ${c.total_escolas ?? 0})` : ""}</span></div>`);
-      m.addTo(layerGroup);
-      if (isTransition) {
-        const delayMove = (idx % 12) * 20;
-        setTimeout(() => { m.setLatLng(pReal); }, delayMove);
-      }
-    });
-    if (!activeMap.hasLayer(layerGroup)) {
-      layerGroup.addTo(activeMap);
+      if (totalAtivo <= 0) continue;
+      const diametro = calcCidadeDiameter(totalAtivo);
+      const countTexto = totalAtivo >= 1000 ? `${(totalAtivo / 1000).toFixed(1).replace(".0", "")}k` : String(totalAtivo);
+      const bgEstilo = showPrivada && showPublica
+        ? "linear-gradient(135deg,#0070F3,#34A853)"
+        : showPrivada ? "#0070F3" : "#34A853";
+      const nomeCurto = c.nome.length > 12 ? c.nome.slice(0, 11) + "\u2026" : c.nome;
+      const icon = L.divIcon({
+        className: "",
+        iconSize: null,
+        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif;background:${bgEstilo}" class="rounded-full flex flex-col items-center justify-center text-white text-center"><span class="font-bold text-xs leading-tight">${countTexto}</span></div>`,
+      });
+      const m = L.marker(p, { icon });
+      m.bindPopup(`<div style="font-family:sans-serif;padding:2px;color:#1e293b"><strong style="font-size:13px">${c.nome} - ${c.uf}</strong><br/><span style="font-size:12px">${totalAtivo > 0 ? "M\u00e9dia: R$ " + (c.media_mensalidade != null ? Math.round(Number(c.media_mensalidade)) : "-") : "Sem escolas cadastradas"}</span><br/><span style="font-size:11px;color:#64748b">Escolas ativas: ${totalAtivo}</span></div>`);
+      layerGroup.addLayer(m);
     }
   }
 
   function renderEscolaMarkers(L: any, layerGroup: any, ajustarCamera: boolean) {
     const escolasArray = Array.isArray(escolas) ? escolas : [];
-    const z = state.current.map.getZoom();
-    const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
     let todas = escolasArray.filter((e) => e.latitude && e.longitude);
-    const comPreco = todas.filter((e) => e.dependencia_administrativa === "Privada" && mediaPreco(e, serieSlug));
-    const semPreco = todas.filter((e) => e.dependencia_administrativa !== "Privada" || !mediaPreco(e, serieSlug));
-    const ordenadas = [...comPreco, ...semPreco];
-    const selecionadas = ordenadas.slice(0, Math.min(ordenadas.length, limite));
+    const privadas = todas.filter((e) => e.dependencia_administrativa === "Privada");
+    const publicas = todas.filter((e) => e.dependencia_administrativa !== "Privada");
+    const privadasOrd = [...privadas.filter((e) => mediaPreco(e, serieSlug)), ...privadas.filter((e) => !mediaPreco(e, serieSlug))].slice(0, 100);
+    const publicasOrd = [...publicas.filter((e) => mediaPreco(e, serieSlug)), ...publicas.filter((e) => !mediaPreco(e, serieSlug))].slice(0, 100);
+    const selecionadas = [...privadasOrd, ...publicasOrd];
 
     const bounds = L.latLngBounds([]);
 
@@ -252,10 +213,10 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const p: [number, number] = [e.latitude!, e.longitude!];
       bounds.extend(p);
       const priv = e.dependencia_administrativa === "Privada";
-      const color = priv ? "#a855f7" : "#34d399";
+      const color = priv ? "#0070F3" : "#34A853";
       const preco = priv ? mediaPreco(e, serieSlug) : "";
       const h = hoveredId === e.id;
-      const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: "#222", weight: h ? 2.5 : 1.5, fillOpacity: h ? 1 : 0.85 });
+      const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: color, weight: h ? 2 : 1, fillOpacity: h ? 0.95 : 0.8 });
       m._eid = e.id;
       const endereco = e.bairro || "";
       const slugsAtivos = slugsDoFiltro(serieSlug);
@@ -355,15 +316,63 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
     if (modo === "estado") {
       renderEstadoMarkers(L, aggMarkersRef.current, map);
-      modoVisaoAnteriorRef.current = "estado";
     } else if (modo === "cidade") {
       renderCidadeMarkers(L, aggMarkersRef.current, map);
     } else {
       renderEscolaMarkers(L, markers, false);
-      modoVisaoAnteriorRef.current = "escola";
     }
+    modoVisaoAnteriorRef.current = modo;
 
     renderUserLocation(L, map);
+  }
+
+  function handleMapMoveTelemetria(e: any) {
+    const s = state.current;
+    if (!s) return;
+    const { L } = s;
+    const activeMap = e.target;
+    const currentZoom = activeMap.getZoom();
+    const limites = activeMap.getBounds();
+    const bounds = { minLat: limites.getSouth(), minLon: limites.getWest(), maxLat: limites.getNorth(), maxLon: limites.getEast() };
+
+    if (openPopupId.current !== null) return;
+
+    const modoAtual = currentZoom < 7 ? "estado" : currentZoom < 11 ? "cidade" : "escola";
+
+    // Re-render markers on mode change
+    if (modoAtual !== modoVisaoAnteriorRef.current) {
+      if (s.markers) s.markers.clearLayers();
+
+      if (modoAtual === "estado") {
+        if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+        renderEstadoRef.current?.(L, aggMarkersRef.current, activeMap);
+      } else if (modoAtual === "cidade") {
+        if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+        filtrarCidadesRef.current?.(bounds);
+        renderCidadeRef.current?.(L, aggMarkersRef.current, activeMap);
+      } else {
+        renderEscolaRef.current?.(L, s.markers, false);
+      }
+      modoVisaoAnteriorRef.current = modoAtual;
+    }
+
+    // Debounced re-filter on pan/zoom within cidade mode
+    if (modoAtual === "cidade") {
+      if (cidadeDebounceRef.current) clearTimeout(cidadeDebounceRef.current);
+      cidadeDebounceRef.current = setTimeout(() => {
+        filtrarCidadesRef.current?.(bounds);
+        renderCidadeRef.current?.(L, aggMarkersRef.current, activeMap);
+      }, 300);
+    }
+
+    // Fetch schools on every pan/zoom within escola mode
+    if (modoAtual === "escola") {
+      const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
+      if (key !== lastBoundsKey.current) {
+        lastBoundsKey.current = key;
+        onBoundsChange?.(bounds);
+      }
+    }
   }
 
   useEffect(() => {
@@ -401,46 +410,9 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
         // Load aggregated data
         await carregarMediasEstado();
-        const boundsInit = map.getBounds();
-        await carregarMediasCidade({ minLat: boundsInit.getSouth(), minLon: boundsInit.getWest(), maxLat: boundsInit.getNorth(), maxLon: boundsInit.getEast() });
-        setMediasCidadeMap([...mediasCidade.current]);
+        await carregarMediasCidade();
         renderizar();
 
-        // Telemetry handler — só reage a MUDANÇA DE MODO, não a pan/zoom dentro do mesmo modo
-        const handleMapMoveTelemetria = (e: any) => {
-          const activeMap = e.target;
-          const currentZoom = activeMap.getZoom();
-          const limites = activeMap.getBounds();
-          const bounds = { minLat: limites.getSouth(), minLon: limites.getWest(), maxLat: limites.getNorth(), maxLon: limites.getEast() };
-
-          if (openPopupId.current !== null) return;
-
-          const modoAtual = currentZoom >= 7 && currentZoom < 13 ? "cidade"
-            : currentZoom < 7 ? "estado" : "escola";
-
-          // Só faz algo se o MODO mudou (ex: estado→cidade, cidade→escola)
-          if (modoAtual === modoVisaoAnteriorRef.current) return;
-
-          if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
-          if (state.current?.markers) state.current.markers.clearLayers();
-
-          if (modoAtual === "estado") {
-            renderEstadoMarkers(L, aggMarkersRef.current, activeMap);
-          } else if (modoAtual === "cidade") {
-            // Usa dados já carregados no init — sem refetch
-            renderCidadeMarkers(L, aggMarkersRef.current, activeMap);
-          } else {
-            renderEscolaMarkers(L, state.current.markers, false);
-            const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
-            if (key !== lastBoundsKey.current) {
-              lastBoundsKey.current = key;
-              onBoundsChange?.(bounds);
-            }
-          }
-          modoVisaoAnteriorRef.current = modoAtual;
-        };
-
-        map.off("zoomend moveend", handleMapMoveTelemetria);
         map.on("zoomend moveend", handleMapMoveTelemetria);
 
         // Fechar popup apenas em clique real (sem arrasto)
@@ -448,23 +420,17 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         map.on("dragstart", () => { dragging = true; });
         map.on("dragend", () => { setTimeout(() => { dragging = false; }, 500); });
         map.on("click", () => { if (!dragging) map.closePopup(); });
-
-        // Mapa inicia no zoom natural do usuário — sem automação
       } catch (e) {
         console.error("MapaEscolas init error:", e);
       }
     })();
+    return () => {
+      if (state.current) {
+        state.current.map.off("zoomend moveend", handleMapMoveTelemetria);
+      }
+      if (cidadeDebounceRef.current) clearTimeout(cidadeDebounceRef.current);
+    };
   }, []);
-
-  // Render city markers when state is updated by the telemetry handler
-  useEffect(() => {
-    if (mediasCidadeMap.length > 0 && state.current && aggMarkersRef.current) {
-      if (state.current.markers) state.current.markers.clearLayers();
-      const { L } = state.current;
-      renderCidadeMarkers(L, aggMarkersRef.current, state.current.map, mediasCidadeMap);
-      modoVisaoAnteriorRef.current = "cidade";
-    }
-  }, [mediasCidadeMap]);
 
   // Re-render aggregated markers when theme changes (Leaflet outside React cycle)
   useEffect(() => {
@@ -474,17 +440,14 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     setTemaAtual(t ?? "");
     const zoom = state.current.map.getZoom();
     const modo = getZoomMode(zoom);
-      if (modo === "estado" || modo === "cidade") {
-        if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
-        if (modo === "estado") {
-          renderEstadoMarkers(state.current.L, aggMarkersRef.current, state.current.map);
-          modoVisaoAnteriorRef.current = "estado";
-        } else if (mediasCidadeMap.length > 0) {
-          renderCidadeMarkers(state.current.L, aggMarkersRef.current, state.current.map, mediasCidadeMap);
-          modoVisaoAnteriorRef.current = "cidade";
-        }
-      }
-  }, [resolvedTheme, theme, mediasCidadeMap]);
+    if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+    if (modo === "estado") {
+      renderEstadoMarkers(state.current.L, aggMarkersRef.current, state.current.map);
+    } else if (modo === "cidade") {
+      renderCidadeMarkers(state.current.L, aggMarkersRef.current, state.current.map);
+    }
+    modoVisaoAnteriorRef.current = modo;
+  }, [resolvedTheme, theme]);
 
   // Re-render markers when props or filters change
   useEffect(() => {
@@ -501,14 +464,12 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           }
         });
       }
-    } else if (modo === "estado") {
+    } else {
       if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
-      renderEstadoMarkers(s.L, aggMarkersRef.current, s.map);
-      renderUserLocation(s.L, s.map);
-    } else if (modo === "cidade") {
-      if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
-      if (mediasCidadeMap.length > 0) {
-        renderCidadeMarkers(s.L, aggMarkersRef.current, s.map, mediasCidadeMap);
+      if (modo === "estado") {
+        renderEstadoMarkers(s.L, aggMarkersRef.current, s.map);
+      } else {
+        renderCidadeMarkers(s.L, aggMarkersRef.current, s.map);
       }
       renderUserLocation(s.L, s.map);
     }
@@ -540,6 +501,11 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     const url = tileMap[activeTile];
     if (url) L.tileLayer(url, { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map);
   }, [activeTile]);
+
+  renderEstadoRef.current = renderEstadoMarkers;
+  renderCidadeRef.current = renderCidadeMarkers;
+  renderEscolaRef.current = renderEscolaMarkers;
+  filtrarCidadesRef.current = filtrarCidadesPorBounds;
 
   return <div ref={el} className="w-full h-full rounded-xl z-0" />;
 }

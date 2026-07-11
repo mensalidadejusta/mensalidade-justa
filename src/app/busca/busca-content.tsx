@@ -480,7 +480,7 @@ export default function BuscaContent({
             <button
               onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}
               className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 shadow-sm ${
-                showPrivada ? "bg-[#ad46ff] text-white" : "bg-surface-hover text-text-secondary"
+                showPrivada ? "bg-[#0070F3] text-white" : "bg-surface-hover text-text-secondary"
               }`}
             >
               <DollarSign className="w-3 h-3" />
