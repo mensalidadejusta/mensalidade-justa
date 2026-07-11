@@ -8,10 +8,10 @@ import { makeEscolaSlug } from "@/lib/utils";
 
 type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: number | null; valor_matricula: number | null; valor_material: number | null; qtd: number };
 type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
-type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void };
+type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void; showPrivada?: boolean; showPublica?: boolean };
 
-type MediaEstado = { uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number };
-type MediaCidade = { cidade_id: string; nome: string; uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; distanciaCentro?: number };
+type MediaEstado = { uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number };
+type MediaCidade = { cidade_id: string; nome: string; uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number; distanciaCentro?: number };
 
 const slugToGrupo = new Map<string, string>(SERIES.map((s) => [s.slug, s.grupo]));
 const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
@@ -37,7 +37,26 @@ function fmtMedia(media: number | null): string {
   return media >= 1000 ? `R$ ${(media / 1000).toFixed(1).replace(".0", "")}k` : `R$ ${Math.round(media)}`;
 }
 
-export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange }: Props) {
+function calcDiameter(total: number, min: number, max: number): number {
+  if (total <= 0) return min;
+  const maxEscolas = 35000;
+  const scale = Math.sqrt(Math.min(total, maxEscolas) / maxEscolas);
+  return Math.round(min + scale * (max - min));
+}
+
+function corFiltro(privada: boolean, publica: boolean): string {
+  if (privada && !publica) return "from-[#FF66FF] via-[#C11BE6] to-[#64009A]";
+  if (publica && !privada) return "from-[#A3FF2A] via-[#00D632] to-[#007D1C]";
+  return "from-[#FF66FF] via-[#C11BE6] to-[#007D1C]";
+}
+
+function corFiltroPastel(privada: boolean, publica: boolean): string {
+  if (privada && !publica) return "from-[#FF66FF]/40 via-[#C11BE6]/40 to-[#64009A]/40";
+  if (publica && !privada) return "from-[#A3FF2A]/40 via-[#00D632]/40 to-[#007D1C]/40";
+  return "from-[#FF66FF]/40 via-[#C11BE6]/40 to-[#007D1C]/40";
+}
+
+export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange, showPrivada = true, showPublica = true }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const state = useRef<any>(null);
   const aggMarkersRef = useRef<any>(null);
@@ -50,12 +69,13 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   const mediasCidade = useRef<MediaCidade[]>([]);
   const supabase = useRef(createClient());
   const userMarkerRef = useRef<any>(null);
+  const modoVisaoAnteriorRef = useRef<'estado' | 'cidade' | 'escola'>('estado');
   const [mediasCidadeMap, setMediasCidadeMap] = useState<any[]>([]);
   const { theme, resolvedTheme } = useTheme();
   const [temaAtual, setTemaAtual] = useState<string>("");
 
   function getZoomMode(z: number): "estado" | "cidade" | "escola" {
-    if (z < 8) return "estado";
+    if (z < 7) return "estado";
     if (z < 13) return "cidade";
     return "escola";
   }
@@ -74,13 +94,15 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         longitude: Number(r.longitude),
         media_mensalidade: r.media_mensalidade != null ? Number(r.media_mensalidade) : null,
         total_escolas: r.total_escolas,
+        publicas: r.publicas ?? 0,
+        privadas: r.privadas ?? 0,
       }));
     }
   }
 
   async function carregarMediasCidade(bounds: any, centroAtual?: any) {
     const { data } = await supabase.current.rpc("obter_medias_cidade").limit(10000);
-    if (!data) { console.log("carregarMediasCidade: sem dados"); return; }
+    if (!data) { mediasCidade.current = []; return; }
     const todas = (data as any[]).map((r) => ({
       cidade_id: r.cidade_id,
       nome: r.nome,
@@ -89,24 +111,14 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       longitude: Number(r.longitude ?? r.lon ?? r.lng),
       media_mensalidade: r.media_mensalidade != null ? Number(r.media_mensalidade) : null,
       total_escolas: r.total_escolas,
-    }));
-
-    const comPreco = todas.filter((c) =>
-      c.media_mensalidade !== null &&
-      c.media_mensalidade > 0 &&
-      c.latitude && c.longitude
-    );
-
-    if (comPreco.length === 0) {
-      console.log("Nenhuma cidade com preço encontrada na base.");
-      mediasCidade.current = [];
-      return;
-    }
+      publicas: r.publicas ?? 0,
+      privadas: r.privadas ?? 0,
+    })).filter((c) => c.latitude && c.longitude);
 
     const latCentro = centroAtual?.lat ?? state.current.map.getCenter().lat;
     const lonCentro = centroAtual?.lng ?? state.current.map.getCenter().lng;
 
-    const cidadesComDistancia = comPreco.map((c) => {
+    const cidadesComDistancia = todas.map((c) => {
       const dLat = c.latitude - latCentro;
       const dLon = c.longitude - lonCentro;
       return { ...c, distanciaCentro: dLat * dLat + dLon * dLon };
@@ -120,15 +132,12 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     if (dentroDaCaixa.length > 0) {
       mediasCidade.current = dentroDaCaixa
         .sort((a, b) => a.distanciaCentro - b.distanciaCentro)
-        .slice(0, 40);
-      console.log(`Renderizando ${mediasCidade.current.length} cidades de dentro da Bounding Box.`);
+        .slice(0, 2000);
     } else {
       mediasCidade.current = cidadesComDistancia
         .sort((a, b) => a.distanciaCentro - b.distanciaCentro)
-        .slice(0, 30);
-      console.log(`Caixa vazia. Renderizando ${mediasCidade.current.length} cidades mais próximas globalmente.`);
+        .slice(0, 2000);
     }
-    console.log("Medias salvas na Ref:", mediasCidade.current.length);
   }
 
   function renderEstadoMarkers(L: any, layerGroup: any, activeMap: any) {
@@ -138,52 +147,90 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     for (const e of mediasEstado.current) {
       const preco = fmtMedia(e.media_mensalidade);
       if (!preco) continue;
+      const totalAtivo =
+        !showPrivada && !showPublica ? 0
+        : showPrivada && !showPublica ? e.privadas
+        : !showPrivada && showPublica ? e.publicas
+        : e.publicas + e.privadas;
+      if (totalAtivo <= 0) continue;
       const p: [number, number] = [e.latitude, e.longitude];
       const px = activeMap.latLngToLayerPoint(L.latLng(e.latitude, e.longitude));
       const colide = posicoes.some((p2) => Math.abs(px.x - p2.x) < 90 && Math.abs(px.y - p2.y) < 40);
       if (colide) continue;
       posicoes.push({ x: px.x, y: px.y });
+      const diametro = calcDiameter(totalAtivo, 32, 80);
+      const gradiente = corFiltro(showPrivada, showPublica);
+      const totalTexto = totalAtivo >= 1000 ? `${(totalAtivo / 1000).toFixed(1).replace(".0", "")}k` : String(totalAtivo);
       const icon = L.divIcon({
         className: "",
         iconSize: null,
-        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid rgba(120,110,120,0.15);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" class="px-2.5 py-1 rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] text-xs font-medium flex items-center justify-center gap-2 whitespace-nowrap tracking-wide animate-fade-in transition-all duration-200"><span style="opacity:0.75;font-weight:400">${e.uf}</span><span style="color:var(--color-success);font-weight:700">${preco}</span></div>`,
+        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif" class="rounded-full bg-gradient-to-br ${gradiente} shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)] flex flex-col items-center justify-center text-white text-center transition-all duration-300 ease-out animate-fade-in"><span class="font-black text-sm drop-shadow-md leading-none">${e.uf}</span><span class="text-[10px] font-black drop-shadow-md leading-tight mt-0.5">${totalTexto}</span></div>`,
       });
       const m = L.marker(p, { icon });
-      m.bindPopup(`
-        <div style="font-family:sans-serif;text-align:center;padding:4px 8px">
-          <div style="font-weight:700;font-size:15px">${e.uf}</div>
-          <div style="font-size:12px;color:var(--color-text-tertiary)">${e.total_escolas} escolas</div>
-          ${preco ? `<div style="font-size:14px;font-weight:700;color:var(--color-price-text);margin-top:4px">${preco}</div>` : ""}
-        </div>
-      `);
       layerGroup.addLayer(m);
     }
+  }
+
+  function calcCidadeDiameter(total: number, min: number, max: number): number {
+    if (total <= 0) return min;
+    const maxEscolas = 2000;
+    const scale = Math.sqrt(Math.min(total, maxEscolas) / maxEscolas);
+    return Math.round(min + scale * (max - min));
   }
 
   function renderCidadeMarkers(L: any, layerGroup: any, activeMap: any, dados?: any[]) {
     if (!layerGroup || !activeMap) return;
     layerGroup.clearLayers();
     const lista = dados ?? mediasCidade.current;
-    console.log("[RENDER] Desenhando p\u00edlulas de cidades. Total:", lista.length);
+    const isTransition = modoVisaoAnteriorRef.current === "estado";
+    const estadoCentros = new Map<string, { lat: number; lng: number }>();
+    for (const e of mediasEstado.current) {
+      estadoCentros.set(e.uf, { lat: e.latitude, lng: e.longitude });
+    }
     const posicoes: Array<{ x: number; y: number }> = [];
-    for (const c of lista) {
-      if (!c.latitude || !c.longitude) continue;
+    lista.forEach((c: any, idx: number) => {
+      if (!c.latitude || !c.longitude) return;
       const px = activeMap.latLngToLayerPoint(L.latLng(c.latitude, c.longitude));
       const colide = posicoes.some((p2) => Math.abs(px.x - p2.x) < 80 && Math.abs(px.y - p2.y) < 30);
-      if (colide) continue;
+      if (colide) return;
       posicoes.push({ x: px.x, y: px.y });
-      const textoPreco = c.media_mensalidade ? `R$ ${Math.round(c.media_mensalidade)}` : "---";
-      const nomeCurto = c.nome.length > 10 ? c.nome.slice(0, 10) + "\u2026" : c.nome;
-      const p: [number, number] = [c.latitude, c.longitude];
-      const icon = L.divIcon({
-        className: "",
-        iconSize: null,
-        html: `<div style="background-color:var(--color-bg);color:var(--color-text);border:1px solid rgba(120,110,120,0.15);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" class="px-2.5 py-1 rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] text-xs font-medium flex items-center justify-center gap-2 whitespace-nowrap tracking-wide animate-fade-in transition-all duration-200"><span style="opacity:0.75;font-weight:400">${nomeCurto}</span><span style="color:var(--color-success);font-weight:700">${textoPreco}</span></div>`,
-      });
-      const m = L.marker(p, { icon });
-      m.bindPopup(`<div style="font-family:sans-serif;padding:2px;color:#1e293b"><strong style="font-size:13px">${c.nome} - ${c.uf}</strong><br/><span style="font-size:12px">M\u00e9dia: R$ ${Math.round(Number(c.media_mensalidade ?? 0))}</span><br/><span style="font-size:11px;color:#64748b">Escolas: ${c.total_escolas}</span></div>`);
+      const delay = `${(idx % 12) * 30}ms`;
+      const totalAtivo =
+        !showPrivada && !showPublica ? 0
+        : showPrivada && !showPublica ? (c.privadas ?? 0)
+        : !showPrivada && showPublica ? (c.publicas ?? 0)
+        : (c.publicas ?? 0) + (c.privadas ?? 0);
+      const pReal: [number, number] = [c.latitude, c.longitude];
+      const markerClass = isTransition ? "cidade-marker-icon cidade-marker-moving" : "cidade-marker-icon";
+      let icon: any;
+      const cidadeGrad = corFiltro(showPrivada, showPublica);
+      const cidadeGradPastel = corFiltroPastel(showPrivada, showPublica);
+      const nomeCurto = c.nome.length > 10 ? c.nome.slice(0, 9) + "\u2026" : c.nome;
+      if (totalAtivo > 0) {
+        const diametro = calcCidadeDiameter(totalAtivo, 32, 70);
+        const countTexto = totalAtivo >= 1000 ? `${(totalAtivo / 1000).toFixed(1).replace(".0", "")}k` : String(totalAtivo);
+        icon = L.divIcon({
+          className: markerClass,
+          iconSize: null,
+          html: `<div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:visible" class="flex flex-col items-center gap-0.5"><div style="width:${diametro}px;height:${diametro}px;border-radius:50%;overflow:hidden;animation-delay:${delay}" class="bg-gradient-to-br ${cidadeGrad} shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)] flex flex-col items-center justify-center text-white text-center animate-mitose-cidade"><span class="font-black text-xs drop-shadow-md leading-tight">${countTexto}</span></div><span class="text-[9px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)] whitespace-nowrap">${nomeCurto}</span></div>`,
+        });
+      } else {
+        icon = L.divIcon({
+          className: markerClass,
+          iconSize: null,
+          html: `<div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:visible" class="flex flex-col items-center gap-0.5"><div style="width:24px;height:24px;border-radius:50%;overflow:hidden;animation-delay:${delay}" class="bg-gradient-to-br ${cidadeGradPastel} shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)] flex items-center justify-center text-white/80 text-[9px] font-bold animate-mitose-cidade">0</div><span class="text-[8px] font-semibold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)] whitespace-nowrap">${c.nome.length > 8 ? c.nome.slice(0, 7) + "\u2026" : c.nome}</span></div>`,
+        });
+      }
+      const centro = estadoCentros.get(c.uf);
+      const pInicial: [number, number] = isTransition && centro ? [centro.lat, centro.lng] : pReal;
+      const m = L.marker(pInicial, { icon });
+      m.bindPopup(`<div style="font-family:sans-serif;padding:2px;color:#1e293b"><strong style="font-size:13px">${c.nome} - ${c.uf}</strong><br/><span style="font-size:12px">${totalAtivo > 0 ? `M\u00e9dia: R$ ${Math.round(Number(c.media_mensalidade ?? 0))}` : "Sem escolas cadastradas"}</span><br/><span style="font-size:11px;color:#64748b">Escolas ativas: ${totalAtivo} ${!showPrivada || !showPublica ? `(total: ${c.total_escolas ?? 0})` : ""}</span></div>`);
       m.addTo(layerGroup);
-    }
+      if (isTransition) {
+        const delayMove = (idx % 12) * 20;
+        setTimeout(() => { m.setLatLng(pReal); }, delayMove);
+      }
+    });
     if (!activeMap.hasLayer(layerGroup)) {
       layerGroup.addTo(activeMap);
     }
@@ -308,10 +355,12 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
     if (modo === "estado") {
       renderEstadoMarkers(L, aggMarkersRef.current, map);
+      modoVisaoAnteriorRef.current = "estado";
     } else if (modo === "cidade") {
       renderCidadeMarkers(L, aggMarkersRef.current, map);
     } else {
       renderEscolaMarkers(L, markers, false);
+      modoVisaoAnteriorRef.current = "escola";
     }
 
     renderUserLocation(L, map);
@@ -354,37 +403,41 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         await carregarMediasEstado();
         const boundsInit = map.getBounds();
         await carregarMediasCidade({ minLat: boundsInit.getSouth(), minLon: boundsInit.getWest(), maxLat: boundsInit.getNorth(), maxLon: boundsInit.getEast() });
+        setMediasCidadeMap([...mediasCidade.current]);
         renderizar();
 
-        // Telemetry handler with state propagation
-        const handleMapMoveTelemetria = async (e: any) => {
+        // Telemetry handler — só reage a MUDANÇA DE MODO, não a pan/zoom dentro do mesmo modo
+        const handleMapMoveTelemetria = (e: any) => {
           const activeMap = e.target;
           const currentZoom = activeMap.getZoom();
           const limites = activeMap.getBounds();
           const bounds = { minLat: limites.getSouth(), minLon: limites.getWest(), maxLat: limites.getNorth(), maxLon: limites.getEast() };
 
-          // Não fecha popup ao arrastar o mapa — só ao clicar fora
           if (openPopupId.current !== null) return;
 
-          // Always clear ALL layers before rendering the current mode
+          const modoAtual = currentZoom >= 7 && currentZoom < 13 ? "cidade"
+            : currentZoom < 7 ? "estado" : "escola";
+
+          // Só faz algo se o MODO mudou (ex: estado→cidade, cidade→escola)
+          if (modoAtual === modoVisaoAnteriorRef.current) return;
+
           if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
           if (state.current?.markers) state.current.markers.clearLayers();
 
-          if (currentZoom >= 8 && currentZoom < 13) {
-            await carregarMediasCidade(bounds, activeMap.getCenter());
-            setMediasCidadeMap([...mediasCidade.current]);
-          } else if (currentZoom < 8) {
+          if (modoAtual === "estado") {
             renderEstadoMarkers(L, aggMarkersRef.current, activeMap);
+          } else if (modoAtual === "cidade") {
+            // Usa dados já carregados no init — sem refetch
+            renderCidadeMarkers(L, aggMarkersRef.current, activeMap);
           } else {
             renderEscolaMarkers(L, state.current.markers, false);
-            if (onBoundsChange) {
-              const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
-              if (key !== lastBoundsKey.current) {
-                lastBoundsKey.current = key;
-                onBoundsChange(bounds);
-              }
+            const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
+            if (key !== lastBoundsKey.current) {
+              lastBoundsKey.current = key;
+              onBoundsChange?.(bounds);
             }
           }
+          modoVisaoAnteriorRef.current = modoAtual;
         };
 
         map.off("zoomend moveend", handleMapMoveTelemetria);
@@ -407,9 +460,9 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   useEffect(() => {
     if (mediasCidadeMap.length > 0 && state.current && aggMarkersRef.current) {
       if (state.current.markers) state.current.markers.clearLayers();
-      console.log(`[TESTE_RENDER] Iniciando renderização para ${mediasCidadeMap.length} cidades no state.`);
       const { L } = state.current;
       renderCidadeMarkers(L, aggMarkersRef.current, state.current.map, mediasCidadeMap);
+      modoVisaoAnteriorRef.current = "cidade";
     }
   }, [mediasCidadeMap]);
 
@@ -421,21 +474,24 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     setTemaAtual(t ?? "");
     const zoom = state.current.map.getZoom();
     const modo = getZoomMode(zoom);
-    if (modo === "estado" || modo === "cidade") {
-      if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
-      if (modo === "estado") {
-        renderEstadoMarkers(state.current.L, aggMarkersRef.current, state.current.map);
-      } else if (mediasCidadeMap.length > 0) {
-        renderCidadeMarkers(state.current.L, aggMarkersRef.current, state.current.map, mediasCidadeMap);
+      if (modo === "estado" || modo === "cidade") {
+        if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+        if (modo === "estado") {
+          renderEstadoMarkers(state.current.L, aggMarkersRef.current, state.current.map);
+          modoVisaoAnteriorRef.current = "estado";
+        } else if (mediasCidadeMap.length > 0) {
+          renderCidadeMarkers(state.current.L, aggMarkersRef.current, state.current.map, mediasCidadeMap);
+          modoVisaoAnteriorRef.current = "cidade";
+        }
       }
-    }
   }, [resolvedTheme, theme, mediasCidadeMap]);
 
-  // Re-render escola markers when props change (only in escola mode)
+  // Re-render markers when props or filters change
   useEffect(() => {
     const s = state.current;
     if (!s) return;
-    if (getZoomMode(s.map.getZoom()) === "escola") {
+    const modo = getZoomMode(s.map.getZoom());
+    if (modo === "escola") {
       renderizar();
       if (openPopupId.current !== null) {
         s.markers.eachLayer((layer: any) => {
@@ -445,10 +501,18 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           }
         });
       }
-    } else {
+    } else if (modo === "estado") {
+      if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+      renderEstadoMarkers(s.L, aggMarkersRef.current, s.map);
+      renderUserLocation(s.L, s.map);
+    } else if (modo === "cidade") {
+      if (aggMarkersRef.current) aggMarkersRef.current.clearLayers();
+      if (mediasCidadeMap.length > 0) {
+        renderCidadeMarkers(s.L, aggMarkersRef.current, s.map, mediasCidadeMap);
+      }
       renderUserLocation(s.L, s.map);
     }
-  }, [escolas, userLocation, hoveredId, serieSlug]);
+  }, [escolas, userLocation, hoveredId, serieSlug, showPrivada, showPublica]);
 
   useEffect(() => {
     if (!mapCenter || !state.current) return;

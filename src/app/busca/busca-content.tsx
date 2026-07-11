@@ -463,6 +463,8 @@ export default function BuscaContent({
           mapCenter={mapCenter}
           activeTile={activeTile}
           onBoundsChange={handleMapBoundsChange}
+          showPrivada={showPrivada}
+          showPublica={showPublica}
         />
       </div>
 

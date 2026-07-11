@@ -36,6 +36,10 @@ Você (Gemini) vai receber esta documentação e deve gerar prompts para um **as
 6. **Sempre mencione o que NÃO deve mudar**
    - Se o prompt pede cor de fundo, explicite que a tag HTML e a lógica devem permanecer intactas. O assistente segue o Protocolo de Alteração Cirúrgica (§10 do START_HERE.md).
 
+7. **Exija teste detalhado antes de entregar**
+   - Todo prompt DEVE conter no final: *"Teste exaustivamente o resultado: abra o navegador, simule os cenários, capture logs do console se necessário, e só me entregue quando 100% funcionando."*
+   - O assistente tende a otimizar para "build OK" e ignorar bugs visuais/funcionais. A validação prática é obrigatória.
+
 ### Checklist mental antes de escrever um prompt
 
 - [ ] O path do arquivo está no doc?
@@ -43,6 +47,7 @@ Você (Gemini) vai receber esta documentação e deve gerar prompts para um **as
 - [ ] O prompt é uma única tarefa atômica?
 - [ ] Eu já informei o contexto necessário (limites, o que não mexer)?
 - [ ] A mudança proposta não conflita com alguma regra do START_HERE.md (RLS, nomenclatura, etc.)?
+- [ ] O prompt pede teste exaustivo antes de entregar? (obrigatório!)
 
 ### Exemplos de prompts bons
 
@@ -51,7 +56,7 @@ No arquivo src/app/busca/busca-content.tsx, adicione um filtro por período (mat
 ```
 
 ```
-Crie o arquivo src/app/termos/page.tsx como Server Component estático (sem fetch), seguindo o mesmo padrão de src/app/sobre/page.tsx. Use escape de caracteres especiais com String.fromCodePoint. Conteúdo: termos de uso genéricos com 3 seções.
+Crie o arquivo src/app/termos/page.tsx como Server Component estático (sem fetch), seguindo o mesmo padrão de src/app/sobre/page.tsx. Use escape de caracteres especiais com String.fromCodePoint. Conteúdo: termos de uso genéricos com 3 seções. Teste exaustivamente: abra a página, verifique o HTML gerado, garanta que o tema claro/escuro funciona, e só entregue quando 100%.
 ```
 ---
 
@@ -315,7 +320,8 @@ mensalidadejusta.com.br/
 │       ├── 011_fix_escolas_no_mapa.sql
 │       ├── 012_fix_buscar_cidades.sql
 │       ├── 013_add_etapas_modalidades_to_rpcs.sql
-│       └── 014_medias_agregadas.sql
+│       ├── 014_medias_agregadas.sql
+│       └── 015_medias_cidade_publicas_privadas.sql
 │
 ├── scripts/
 │   ├── create-index.mjs                     # Cria índices GIST/trgm
@@ -637,6 +643,7 @@ CREATE TABLE medias_estado (
   uf VARCHAR(2) PRIMARY KEY,
   latitude NUMERIC(10,7), longitude NUMERIC(10,7),
   media_mensalidade NUMERIC(10,2), total_escolas INTEGER DEFAULT 0,
+  publicas INTEGER DEFAULT 0, privadas INTEGER DEFAULT 0,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -645,13 +652,20 @@ CREATE TABLE medias_cidade (
   nome VARCHAR(200) NOT NULL, uf VARCHAR(2) NOT NULL,
   latitude NUMERIC(10,7), longitude NUMERIC(10,7),
   media_mensalidade NUMERIC(10,2), total_escolas INTEGER DEFAULT 0,
+  publicas INTEGER DEFAULT 0, privadas INTEGER DEFAULT 0,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
 **RPCs:** `obter_medias_estado()` e `obter_medias_cidade()`. `GRANT SELECT ON medias_estado, medias_cidade TO anon, authenticated`.
 
-**Função `atualizar_medias()`:** popula as tabelas com `AVG(valor_mensalidade)` agrupado por estado/cidade + `AVG(latitude)`/`AVG(longitude)` como centróide.
+**Função `atualizar_medias()`:** popula as tabelas com `AVG(valor_mensalidade)` agrupado por estado/cidade + `AVG(latitude)`/`AVG(longitude)` como centróide + contagens separadas de escolas públicas e privadas.
+
+### 6.13 `015_medias_cidade_publicas_privadas.sql`
+
+Adiciona colunas `publicas` e `privadas` à tabela `medias_cidade` (já existiam em `medias_estado`). Atualiza a função `atualizar_medias()` para popular esses campos em ambas as tabelas. Recria a RPC `obter_medias_cidade()` para retornar as novas colunas.
+
+Cria trigger `trg_escolas_atualizar_medias` (AFTER INSERT/UPDATE/DELETE, FOR EACH STATEMENT) em `escolas_bruta` que executa `atualizar_medias()` automaticamente em qualquer alteração na tabela de escolas.
 
 ---
 
@@ -945,6 +959,22 @@ Configuração: classe `dark` no `<html>`, tema escuro padrão, sem fallback sys
 **Leaflet overrides:**
 - `.school-popup`: popup transparente com fundo vindo da variável CSS
 - `.price-tip`: tooltip com cor e borda do tema
+
+**Animações Candy / Mitose:**
+```css
+@keyframes mitoseExplosion {
+  0%   { transform: scale(0); border-radius: 20%; opacity: 0; }
+  50%  { transform: scale(1.3); border-radius: 35% 65% 35% 65% / 65% 35% 65% 35%; }
+  100% { transform: scale(1) translate3d(0,0,0); border-radius: 50%; opacity: 1; }
+}
+.animate-mitose-cidade { animation: mitoseExplosion 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+```
+
+**Classes de transição de movimento Leaflet:**
+```css
+.cidade-marker-icon { }
+.cidade-marker-moving { transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important; }
+```
 
 ### 9.3 ⚠️ Regra CRÍTICA: Tailwind v4 + TurboPack Bug
 
@@ -1540,7 +1570,7 @@ O `drag` do bottom sheet foi removido (não essencial).
 
 ## 18. MapaEscolas — Leaflet Map
 
-**Local:** `src/components/MapaEscolas.tsx` (~360 linhas)
+**Local:** `src/components/MapaEscolas.tsx` (~550 linhas)
 
 ### Lazy Import (CRÍTICO)
 
@@ -1560,37 +1590,102 @@ View inicial: centro do Brasil, zoom 4.
 
 ### Zoom Dinâmico — 3 Modos de Renderização
 
-O mapa gerencia **duas layer groups** (`markers` para escolas, `aggMarkers` para agregados). A função `renderizar()` limpa ambas e renderiza de acordo com o zoom atual:
+O mapa gerencia **duas layer groups** (`markers` para escolas, `aggMarkers` para agregados de estado/cidade):
 
 | Zoom | Modo | Fonte de Dados | Visual |
 |------|------|---------------|--------|
-| 0–5 | **Estado** | `medias_estado` (tabela pré-calculada, ~27 linhas) | Pills roxas (`#6d28d9`) com preço médio do estado |
-| 6–9 | **Cidade** | `medias_cidade` (tabela pré-calculada, filtrada por bounding box + fallback top 30) | Pills azuis escuras (`var(--color-text)`) com preço médio da cidade |
-| 10+ | **Escola** | RPC `escolas_no_mapa` via `onBoundsChange` (comportamento original) | CircleMarkers roxos/verdes por escola individual |
+| 0–6 | **Estado** | `medias_estado` (27 estados) | Esferas 3D Candy Crush, 32–80px, gradiente dinâmico por filtro |
+| 7–12 | **Cidade** | `medias_cidade` (bounding box, top 2000 por distância) | Esferas 3D Candy Crush, 32–70px (com escolas) ou 24px pastel (0 escolas), com label |
+| 13+ | **Escola** | RPC `escolas_no_mapa` via `onBoundsChange` | CircleMarkers roxo/verde por escola |
+
+### Telemetry Handler — Performance
+
+O `handleMapMoveTelemetria` escuta `zoomend` e `moveend`, mas **só executa quando o modo de zoom muda**:
+
+```ts
+const modoAtual = currentZoom >= 7 && currentZoom < 13 ? "cidade"
+  : currentZoom < 7 ? "estado" : "escola";
+if (modoAtual === modoVisaoAnteriorRef.current) return;
+```
+
+Pan/drag dentro do mesmo modo não dispara clearLayers, refetch ou re-render — Leaflet reposiciona os marcadores automaticamente.
 
 ### Carregamento de Dados Agregados
 
-- `carregarMediasEstado()`: chama RPC `obter_medias_estado()`, converte `latitude`/`longitude` com `Number()` (Supabase retorna string para NUMERIC)
-- `carregarMediasCidade(bounds)`: chama RPC `obter_medias_cidade()`, filtra por bounding box visível, limita a 50 resultados. Se bounding box retornar 0, fallback para as 30 maiores cidades do país por `total_escolas`.
+- `carregarMediasEstado()`: chama RPC `obter_medias_estado()`, retorna `uf`, `latitude`, `longitude`, `media_mensalidade`, `total_escolas`, `publicas`, `privadas`.
+- `carregarMediasCidade(bounds)`: chama RPC `obter_medias_cidade()`, filtra por bounding box, ordena por distância ao centro do mapa, limite 2000. Se bounding box vazia, fallback pelas 2000 mais próximas do centro.
 
-### Marcadores de Agregação (Estado/Cidade)
+### Marcadores de Agregação — Esferas 3D Candy Crush
 
-Usam `L.marker` + `L.divIcon` com HTML inline (sem tooltips permanentes):
+Ambos os modos (estado + cidade) usam `L.marker` + `L.divIcon` com esferas 3D com gradiente dinâmico baseado nos filtros ativos.
 
-```tsx
-const icon = L.divIcon({
-  className: "",
-  iconSize: [0, 0], iconAnchor: [0, 0],
-  html: `<div style="background:#6d28d9;color:#fff;font-size:12px;font-weight:700;
-         padding:5px 12px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,0.3);
-         white-space:nowrap;border:1.5px solid rgba(255,255,255,0.6);cursor:pointer">
-         ${preco}</div>`,
-});
+**Cores (função `corFiltro` em `MapaEscolas.tsx:47`):**
+
+| Filtros | Gradiente |
+|---------|-----------|
+| Só Privada | `from-[#FF66FF] via-[#C11BE6] to-[#64009A]` (Magenta) |
+| Só Pública | `from-[#A3FF2A] via-[#00D632] to-[#007D1C]` (Verde) |
+| Ambos | `from-[#FF66FF] via-[#C11BE6] to-[#007D1C]` (Mescla) |
+
+**Sombra 3D (vidro/doce):**
+```
+shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)]
 ```
 
-Cidades usam `background:var(--color-text);color:var(--color-bg)` para contraste automático no tema claro/escuro.
+**Cálculo de tamanho dinâmico** — `calcDiameter` / `calcCidadeDiameter`:
 
-### Marcadores de Escola (zoom 10+)
+```ts
+// Estados: min 32px, max 80px, maxEscolas = 35000
+const scale = Math.sqrt(Math.min(total, maxEscolas) / maxEscolas);
+return Math.round(min + scale * (max - min));
+
+// Cidades: min 32px, max 70px, maxEscolas = 2000
+// Cidades com 0 escolas ativas no filtro: 24px, gradiente pastel
+```
+
+**Conteúdo interno:**
+- **Estado**: sigla da UF (font-black) + contagem de escolas ativas
+- **Cidade**: contagem de escolas ativas dentro da esfera + nome da cidade em label branca abaixo
+- Cidades sem escolas no filtro: "0" + nome em label sutil
+
+### Animação de Mitose (Estado → Cidade)
+
+Quando o usuário dá zoom-in e o modo muda de `estado` para `cidade`, as esferas das cidades executam uma animação de "divisão celular":
+
+```ts
+const isTransition = modoVisaoAnteriorRef.current === "estado";
+```
+
+**Keyframe `mitoseExplosion`** (`globals.css:106-120`):
+```css
+@keyframes mitoseExplosion {
+  0%   { transform: scale(0) translate3d(0,0,0); border-radius: 20%; opacity: 0; }
+  50%  { transform: scale(1.3); border-radius: 35% 65% 35% 65% / 65% 35% 65% 35%; }
+  100% { transform: scale(1) translate3d(0,0,0); border-radius: 50%; opacity: 1; }
+}
+```
+- Duração: 0.6s, curva `cubic-bezier(0.34, 1.56, 0.64, 1)` (overshoot elástico)
+- `will-change: transform, opacity` (GPU acelerado)
+- Delay cascata: `animation-delay: (idx % 12) * 30ms`
+
+**Movimento de navegação real** (apenas na transição estado→cidade):
+- Marcador nasce no centro do estado (`estadoCentros.get(c.uf)`)
+- `isTransition` = true → classe `cidade-marker-moving` com `transition: transform 0.5s`
+- `setTimeout(() => m.setLatLng(pReal), (idx % 12) * 20)` para cada cidade
+- A bolinha desliza do centro do estado até a posição real da cidade
+
+**Em pans/zooms subsequentes** (`isTransition` = false):
+- Marcador nasce direto na coordenada final, sem animação de movimento
+
+### Reactividade dos Filtros
+
+O `useEffect` em `MapaEscolas.tsx:494` escuta `showPrivada` e `showPublica` e re-renderiza todos os marcadores do modo atual com novas cores, tamanhos e contagens:
+
+```tsx
+}, [escolas, userLocation, hoveredId, serieSlug, showPrivada, showPublica]);
+```
+
+### Marcadores de Escola (zoom 13+)
 
 CircleMarkers: roxo (`#a855f7`) para privada, verde (`#34d399`) para pública. Tooltip permanente com preço formatado ("R$ 1.2k"). Popup ao clicar com nome, endereço, preços por grupo/série, link "Ver detalhes".
 
@@ -1604,18 +1699,13 @@ const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
 
 Com preço primeiro, depois sem preço.
 
-### Listener moveend
+### Eventos de mapa
 
-```tsx
-map.on("moveend", async () => {
-  const modo = getZoomMode(map.getZoom());
-  if (modo === "cidade") await carregarMediasCidade(bounds);
-  renderizar();
-  if (modo === "escola" && onBoundsChange) {
-    onBoundsChange({ minLat, minLon, maxLat, maxLon });
-  }
-});
-```
+- `closePopupOnClick: false` — impedido fechamento automático no `mousedown`
+- `click` → `if (!isDragging) map.closePopup()` — fechamento manual apenas em clique limpo
+- `dragstart/dragend` — flag de arrasto com `setTimeout(500ms)` para suprimir clicks fantasmas
+- `zoomend moveend` → `handleMapMoveTelemetria` — se `openPopupId != null`, retorna sem limpar marcadores (popup protegido). Só reage a mudança de modo.
+- `resize` → `map.invalidateSize()` — recalcula dimensões em mobile/rotação
 
 ### Pulse animation (localização do usuário)
 
@@ -1631,7 +1721,7 @@ useEffect(() => {
 
 ### onBoundsChange
 
-Dispara `onBoundsChange` apenas no modo escola (zoom 10+), com debounce via hash de bounds.
+Dispara `onBoundsChange` apenas no modo escola (zoom 13+), com debounce via hash de bounds.
 Não dispara se um popup estiver aberto.
 
 ---
@@ -2450,6 +2540,48 @@ A URL gerada: `/busca?cidade=santos-sp&lat=-23.96&lon=-46.33`
 - `<h2>` → Mensalidades
 - `<h3>` → Etapas (Educação Infantil, etc.)
 - `<h4>` → Nome da série
+
+### 33.12 Marcadores agregados: de painéis retangulares para esferas 3D Candy Crush
+
+**Sintoma:** Os marcadores de estado e cidade usavam painéis retangulares escuros com visual rígido.
+
+**Solução:** Substituídos por esferas 3D com gradiente dinâmico baseado nos filtros de públicas/privadas:
+
+- **Forma:** `rounded-full` com `border-radius: 50%` + sombra 3D glass (`inset_0_4px_6px rgba(255,255,255,0.7)`)
+- **Tamanho dinâmico:** `Math.sqrt` com limites configuráveis (estados: 32–80px, cidades: 32–70px)
+- **Cores:** Função `corFiltro()` com hexadecimais Candy Crush (#FF66FF, #C11BE6, #64009A, #A3FF2A, #00D632, #007D1C)
+- **0-escolas:** Cidades sem escolas ativas no filtro recebem esfera de 24px com gradiente pastel
+
+### 33.13 Animação de mitose (divisão celular) na transição estado→cidade
+
+**Sintoma:** Cidades apareciam diretamente nas coordenadas finais sem ilusão de brotamento do estado.
+
+**Solução:** Animação em 3 camadas:
+
+1. **CSS Keyframe `mitoseExplosion`**: scale(0)→1.3→1 com distorção de border-radius (20%→35/65%→50%)
+2. **Transição de movimento**: classe `.cidade-marker-moving` com `transition: transform 0.5s` — marcador nasce no centro do estado e desliza até a cidade real via `setLatLng()`
+3. **Cascata**: `(idx % 12) * 20ms` de delay entre cada cidade para efeito de ondas
+
+Controlado por `modoVisaoAnteriorRef`: a animação só roda na primeira entrada no modo cidade (quando `modoAnterior === 'estado'`). Pans subsequentes não re-triggeram a animação.
+
+### 33.14 Performance: eliminação de refetch em pan/zoom
+
+**Sintoma:** Cada movimento do mapa recarregava todas as cidades via RPC, limpava e recriava os marcadores — causando flicker intenso.
+
+**Solução:** O `handleMapMoveTelemetria` agora compara o modo atual com `modoVisaoAnteriorRef` e só executa quando o modo muda (estado↔cidade↔escola). Pan/drag dentro do mesmo modo não dispara clearLayers, refetch ou re-render — Leaflet reposiciona os marcadores automaticamente.
+
+Dados das cidades carregados uma única vez durante o init (`setMediasCidadeMap([...mediasCidade.current])`), com limite de 2000 cidades ordenadas por distância do centro do viewport.
+
+### 33.15 Contagens pré-calculadas no banco (públicas/privadas)
+
+**Sintoma:** Cálculo de `totalAtivo` para filtros dependia de reduce/contagem client-side, e cidades não tinham contagens separadas de públicas/privadas.
+
+**Solução:** Migration `015_medias_cidade_publicas_privadas.sql`:
+- Colunas `publicas` e `privadas` adicionadas à tabela `medias_cidade`
+- `atualizar_medias()` atualizada para popular os campos
+- RPC `obter_medias_cidade()` recriada para retornar as novas colunas
+- Trigger `trg_escolas_atualizar_medias` em `escolas_bruta` para atualização automática
+- Frontend usa soma simples baseada nos filtros ativos (`c.publicas + c.privadas`, `c.privadas`, ou `c.publicas`)
 
 **Utilitários:**
 - `capitalizarNome()` — converte "ESCOLA ADVENTISTA" → "Escola Adventista"
