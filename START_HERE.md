@@ -72,8 +72,8 @@ Ao escrever código para este projeto, garanta que:
 ---
 
 ## 8. CONTROLE DE VERSÃO (GIT)
-* Sempre que terminarmos uma funcionalidade limpa e organizada, sugira o comando de commit adequado.
-* Use o padrão **Conventional Commits**. Exemplos:
+* **Nunca faça commit ou push sem permissão explícita do usuário.** Apenas sugira o comando.
+* Quando autorizado, use o padrão **Conventional Commits**. Exemplos:
   - `feat: adiciona componente de menu`
   - `fix: corrige alinhamento do botão`
   - `docs: atualiza o readme`

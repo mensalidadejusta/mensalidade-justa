@@ -8,13 +8,47 @@ import { makeEscolaSlug } from "@/lib/utils";
 
 type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: number | null; valor_matricula: number | null; valor_material: number | null; qtd: number };
 type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
-type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void; showPrivada?: boolean; showPublica?: boolean };
+type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void; showPrivada?: boolean; showPublica?: boolean; onZoomModeChange?: (mode: "estado" | "cidade" | "escola") => void };
 
-type MediaEstado = { uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number };
-type MediaCidade = { cidade_id: string; nome: string; uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number; distanciaCentro?: number };
+type MediaEstado = { uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number; total_infantil?: number; publicas_infantil?: number; privadas_infantil?: number; total_fundamental?: number; publicas_fundamental?: number; privadas_fundamental?: number; total_medio?: number; publicas_medio?: number; privadas_medio?: number };
+type MediaCidade = { cidade_id: string; nome: string; uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number; total_infantil?: number; publicas_infantil?: number; privadas_infantil?: number; total_fundamental?: number; publicas_fundamental?: number; privadas_fundamental?: number; total_medio?: number; publicas_medio?: number; privadas_medio?: number; distanciaCentro?: number };
 
 const slugToGrupo = new Map<string, string>(SERIES.map((s) => [s.slug, s.grupo]));
 const GRUPOS = [...new Set(SERIES.map((s) => s.grupo))];
+
+function gruposDoFiltro(serieSlug?: string): Set<string> {
+  if (!serieSlug) return new Set<string>();
+  const slugs = serieSlug.split(",").filter(Boolean);
+  const grupos = new Set<string>();
+  for (const slug of slugs) {
+    const g = slugToGrupo.get(slug);
+    if (g) grupos.add(g);
+  }
+  return grupos;
+}
+
+function colunaPorGrupo(grupo: string): string {
+  if (grupo.includes("Infantil")) return "infantil";
+  if (grupo.includes("Fundamental")) return "fundamental";
+  if (grupo.includes("M\u00e9dio") || grupo.includes("Medio")) return "medio";
+  return "";
+}
+
+function contagensComFiltro(item: any, serieSlug?: string): { total: number; publicas: number; privadas: number } {
+  const grupos = gruposDoFiltro(serieSlug);
+  if (grupos.size === 0) {
+    return { total: item.total_escolas ?? 0, publicas: item.publicas ?? 0, privadas: item.privadas ?? 0 };
+  }
+  let total = 0, pub = 0, priv = 0;
+  for (const g of grupos) {
+    const col = colunaPorGrupo(g);
+    if (!col) continue;
+    total += item[`total_${col}`] ?? 0;
+    pub += item[`publicas_${col}`] ?? 0;
+    priv += item[`privadas_${col}`] ?? 0;
+  }
+  return { total, publicas: pub, privadas: priv };
+}
 
 function slugsDoFiltro(serieSlug?: string): Set<string> {
   if (!serieSlug) return new Set<string>();
@@ -51,7 +85,7 @@ function calcCidadeDiameter(total: number): number {
   return Math.round(min + scale * (max - min));
 }
 
-export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange, showPrivada = true, showPublica = true }: Props) {
+export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange, showPrivada = true, showPublica = true, onZoomModeChange }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const state = useRef<any>(null);
   const aggMarkersRef = useRef<any>(null);
@@ -96,6 +130,15 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         total_escolas: r.total_escolas,
         publicas: r.publicas ?? 0,
         privadas: r.privadas ?? 0,
+        total_infantil: r.total_infantil ?? 0,
+        publicas_infantil: r.publicas_infantil ?? 0,
+        privadas_infantil: r.privadas_infantil ?? 0,
+        total_fundamental: r.total_fundamental ?? 0,
+        publicas_fundamental: r.publicas_fundamental ?? 0,
+        privadas_fundamental: r.privadas_fundamental ?? 0,
+        total_medio: r.total_medio ?? 0,
+        publicas_medio: r.publicas_medio ?? 0,
+        privadas_medio: r.privadas_medio ?? 0,
       }));
     }
   }
@@ -113,6 +156,15 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       total_escolas: r.total_escolas,
       publicas: r.publicas ?? 0,
       privadas: r.privadas ?? 0,
+      total_infantil: r.total_infantil ?? 0,
+      publicas_infantil: r.publicas_infantil ?? 0,
+      privadas_infantil: r.privadas_infantil ?? 0,
+      total_fundamental: r.total_fundamental ?? 0,
+      publicas_fundamental: r.publicas_fundamental ?? 0,
+      privadas_fundamental: r.privadas_fundamental ?? 0,
+      total_medio: r.total_medio ?? 0,
+      publicas_medio: r.publicas_medio ?? 0,
+      privadas_medio: r.privadas_medio ?? 0,
     })).filter((c) => c.latitude && c.longitude);
   }
 
@@ -136,13 +188,12 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     layerGroup.clearLayers();
     const posicoes: Array<{ x: number; y: number }> = [];
     for (const e of mediasEstado.current) {
-      const preco = fmtMedia(e.media_mensalidade);
-      if (!preco) continue;
+      const c = contagensComFiltro(e, serieSlug);
       const totalAtivo =
         !showPrivada && !showPublica ? 0
-        : showPrivada && !showPublica ? e.privadas
-        : !showPrivada && showPublica ? e.publicas
-        : e.publicas + e.privadas;
+        : showPrivada && !showPublica ? c.privadas
+        : !showPrivada && showPublica ? c.publicas
+        : c.publicas + c.privadas;
       if (totalAtivo <= 0) continue;
       const p: [number, number] = [e.latitude, e.longitude];
       const px = activeMap.latLngToLayerPoint(L.latLng(e.latitude, e.longitude));
@@ -157,7 +208,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const icon = L.divIcon({
         className: "",
         iconSize: null,
-        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif;background:${bgEstilo}" class="rounded-full flex flex-col items-center justify-center text-white text-center"><span class="font-bold text-sm leading-none">${e.uf}</span><span class="text-[10px] font-bold leading-tight mt-0.5">${totalTexto}</span></div>`,
+        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif;background:${bgEstilo};border:1px solid #222" class="rounded-full flex flex-col items-center justify-center text-white text-center"><span class="font-bold text-sm leading-none">${e.uf}</span><span class="text-[10px] font-bold leading-tight mt-0.5">${totalTexto}</span></div>`,
       });
       const m = L.marker(p, { icon });
       layerGroup.addLayer(m);
@@ -175,11 +226,12 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const colide = posicoes.some((p2) => Math.abs(px.x - p2.x) < 70 && Math.abs(px.y - p2.y) < 30);
       if (colide) continue;
       posicoes.push({ x: px.x, y: px.y });
+      const cnt = contagensComFiltro(c, serieSlug);
       const totalAtivo =
         !showPrivada && !showPublica ? 0
-        : showPrivada && !showPublica ? (c.privadas ?? 0)
-        : !showPrivada && showPublica ? (c.publicas ?? 0)
-        : (c.publicas ?? 0) + (c.privadas ?? 0);
+        : showPrivada && !showPublica ? cnt.privadas
+        : !showPrivada && showPublica ? cnt.publicas
+        : cnt.publicas + cnt.privadas;
       if (totalAtivo <= 0) continue;
       const diametro = calcCidadeDiameter(totalAtivo);
       const countTexto = totalAtivo >= 1000 ? `${(totalAtivo / 1000).toFixed(1).replace(".0", "")}k` : String(totalAtivo);
@@ -190,7 +242,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const icon = L.divIcon({
         className: "",
         iconSize: null,
-        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif;background:${bgEstilo}" class="rounded-full flex flex-col items-center justify-center text-white text-center"><span class="font-bold text-xs leading-tight">${countTexto}</span></div>`,
+        html: `<div style="width:${diametro}px;height:${diametro}px;font-family:system-ui,-apple-system,sans-serif;background:${bgEstilo};border:1px solid #222" class="rounded-full flex flex-col items-center justify-center text-white text-center"><span class="font-bold text-xs leading-tight">${countTexto}</span></div>`,
       });
       const m = L.marker(p, { icon });
       m.bindPopup(`<div style="font-family:sans-serif;padding:2px;color:#1e293b"><strong style="font-size:13px">${c.nome} - ${c.uf}</strong><br/><span style="font-size:12px">${totalAtivo > 0 ? "M\u00e9dia: R$ " + (c.media_mensalidade != null ? Math.round(Number(c.media_mensalidade)) : "-") : "Sem escolas cadastradas"}</span><br/><span style="font-size:11px;color:#64748b">Escolas ativas: ${totalAtivo}</span></div>`);
@@ -322,6 +374,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       renderEscolaMarkers(L, markers, false);
     }
     modoVisaoAnteriorRef.current = modo;
+    onZoomModeChange?.(modo);
 
     renderUserLocation(L, map);
   }
@@ -354,6 +407,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         renderEscolaRef.current?.(L, s.markers, false);
       }
       modoVisaoAnteriorRef.current = modoAtual;
+      onZoomModeChange?.(modoAtual);
     }
 
     // Debounced re-filter on pan/zoom within cidade mode

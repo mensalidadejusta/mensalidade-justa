@@ -1,48 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, ArrowLeft, Loader2, MailCheck } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle2, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
-export default function RecuperarSenhaPage() {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+export default function AtualizarSenhaPage() {
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) router.push("/login");
+    });
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (password.length < 6) return setError("A senha deve ter no mínimo 6 caracteres.");
+    if (password !== confirm) return setError("As senhas não coincidem.");
     setLoading(true);
     const supabase = createClient();
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/atualizar-senha`,
-    });
+    const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) return setError(error.message);
-    setSent(true);
+    setSuccess(true);
+    setTimeout(() => router.push("/login"), 3000);
   }
 
-  if (sent) {
+  if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg p-4">
         <div className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-xl p-8 space-y-6 text-center">
           <div className="flex justify-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-              <MailCheck className="w-7 h-7 text-primary" />
+              <CheckCircle2 className="w-7 h-7 text-primary" />
             </div>
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-text">Verifique seu e-mail</h1>
-            <p className="text-sm text-text-secondary">
-              Enviamos um link de redefinição para <strong className="text-text">{email}</strong>.
-            </p>
+            <h1 className="text-xl font-bold text-text">Senha atualizada com sucesso!</h1>
+            <p className="text-sm text-text-secondary">Redirecionando para o login...</p>
           </div>
           <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline">
             <ArrowLeft className="w-4 h-4" />
-            Voltar ao login
+            Ir para o login
           </Link>
         </div>
       </div>
@@ -58,16 +66,19 @@ export default function RecuperarSenhaPage() {
               <KeyRound className="w-6 h-6 text-primary" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-text tracking-tight">Recuperar senha</h1>
-          <p className="text-sm text-text-secondary">
-            Digite seu e-mail para receber um link de redefinição de senha.
-          </p>
+          <h1 className="text-2xl font-bold text-text tracking-tight">Nova senha</h1>
+          <p className="text-sm text-text-secondary">Digite e confirme sua nova senha de acesso.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-text-secondary mb-1 block" htmlFor="email">E-mail</label>
-            <input id="email" name="email" type="email" placeholder="seu@email.com" value={email || ""} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"
+            <label className="text-sm font-medium text-text-secondary mb-1 block" htmlFor="password">Nova Senha</label>
+            <input id="password" name="password" type="password" placeholder="Nova senha (mín. 6 caracteres)" value={password || ""} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password"
+              className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-text placeholder:text-text-tertiary focus:outline-none focus:border-text transition-colors" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-text-secondary mb-1 block" htmlFor="confirm">Confirmar Nova Senha</label>
+            <input id="confirm" name="confirm" type="password" placeholder="Repita a nova senha" value={confirm || ""} onChange={(e) => setConfirm(e.target.value)} required minLength={6} autoComplete="new-password"
               className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-text placeholder:text-text-tertiary focus:outline-none focus:border-text transition-colors" />
           </div>
 
@@ -76,16 +87,9 @@ export default function RecuperarSenhaPage() {
           <button type="submit" disabled={loading}
             className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:brightness-110 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-            {loading ? "Enviando..." : "Enviar link"}
+            {loading ? "Salvando..." : "Salvar nova senha"}
           </button>
         </form>
-
-        <div className="text-center">
-          <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline">
-            <ArrowLeft className="w-4 h-4" />
-            Voltar ao login
-          </Link>
-        </div>
       </div>
     </div>
   );

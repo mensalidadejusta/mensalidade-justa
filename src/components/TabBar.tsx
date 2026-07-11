@@ -12,7 +12,7 @@ const tabs = [
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
-const authPaths = ["/login", "/cadastro", "/recuperar-senha", "/alterar-senha"];
+const authPaths = ["/login", "/cadastro", "/recuperar-senha", "/alterar-senha", "/atualizar-senha"];
 
 export default function TabBar() {
   const pathname = usePathname();
@@ -42,7 +42,7 @@ export default function TabBar() {
       {/* Desktop: sidebar */}
       <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-16 flex-col items-center py-6 gap-6
                       border-r border-border bg-bg z-20">
-        {tabs.map((tab) => {
+        {tabs.filter((t) => t.href !== "/perfil").map((tab) => {
           const active = pathname.startsWith(tab.href);
           const Icon = tab.icon;
           return (
@@ -55,7 +55,7 @@ export default function TabBar() {
           );
         })}
         <div className="flex flex-col items-center gap-3 mt-auto">
-          <BotaoTema />
+          <span className="hidden md:hidden"><BotaoTema /></span>
           <button onClick={handleMapToggle}
             className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 text-text-tertiary hover:text-text hover:bg-surface-hover"
             title="Abrir mapa">

@@ -657,15 +657,38 @@ CREATE TABLE medias_cidade (
 );
 ```
 
-**RPCs:** `obter_medias_estado()` e `obter_medias_cidade()`. `GRANT SELECT ON medias_estado, medias_cidade TO anon, authenticated`.
+**Colunas adicionais (migration 016):** `total_infantil`, `publicas_infantil`, `privadas_infantil`, `total_fundamental`, `publicas_fundamental`, `privadas_fundamental`, `total_medio`, `publicas_medio`, `privadas_medio` — contagens de escolas por etapa de ensino (Educação Infantil, Ensino Fundamental, Ensino Médio). Populadas via `unaccent(r.etapas_modalidades) ILIKE '%' || unaccent('Educacao Infantil') || '%'` na função `atualizar_medias()`.
 
-**Função `atualizar_medias()`:** popula as tabelas com `AVG(valor_mensalidade)` agrupado por estado/cidade + `AVG(latitude)`/`AVG(longitude)` como centróide + contagens separadas de escolas públicas e privadas.
+**RPCs:** `obter_medias_estado()` e `obter_medias_cidade()`. Retornam todas as colunas acima. `GRANT SELECT ON medias_estado, medias_cidade TO anon, authenticated`.
+
+**Função `atualizar_medias()`:** popula as tabelas com `AVG(valor_mensalidade)` agrupado por estado/cidade + `AVG(latitude)`/`AVG(longitude)` como centróide + contagens separadas de escolas públicas e privadas + contagens por etapa de ensino. Usa `unaccent()` em ambos os lados do ILIKE para ignorar acentos (workaround para limitação do PostgreSQL ILIKE com diacríticos).
 
 ### 6.13 `015_medias_cidade_publicas_privadas.sql`
 
 Adiciona colunas `publicas` e `privadas` à tabela `medias_cidade` (já existiam em `medias_estado`). Atualiza a função `atualizar_medias()` para popular esses campos em ambas as tabelas. Recria a RPC `obter_medias_cidade()` para retornar as novas colunas.
 
 Cria trigger `trg_escolas_atualizar_medias` (AFTER INSERT/UPDATE/DELETE, FOR EACH STATEMENT) em `escolas_bruta` que executa `atualizar_medias()` automaticamente em qualquer alteração na tabela de escolas.
+
+### 6.14 `016_medias_etapas.sql`
+
+Adiciona 9 colunas de contagem por etapa de ensino às tabelas `medias_estado` e `medias_cidade`:
+```sql
+total_infantil INTEGER DEFAULT 0, publicas_infantil INTEGER DEFAULT 0, privadas_infantil INTEGER DEFAULT 0,
+total_fundamental INTEGER DEFAULT 0, publicas_fundamental INTEGER DEFAULT 0, privadas_fundamental INTEGER DEFAULT 0,
+total_medio INTEGER DEFAULT 0, publicas_medio INTEGER DEFAULT 0, privadas_medio INTEGER DEFAULT 0
+```
+
+Atualiza a função `atualizar_medias()` com `COUNT(DISTINCT CASE WHEN unaccent(r.etapas_modalidades) ILIKE '%' || unaccent('Educacao Infantil') || '%' THEN r.id END)` para cada etapa. Recria as RPCs `obter_medias_estado()` e `obter_medias_cidade()` para retornar as novas colunas.
+
+### 6.15 `017_fix_medias_etapas_chars.sql`
+
+Corrige caracteres acentuados na migration anterior — `chr(231)` para `ç` e `chr(227)` para `ã`. Atualiza `atualizar_medias()` com os patterns corretos.
+
+### 6.16 `018_fix_unaccent_both_sides.sql`
+
+Corrige o matching de `etapas_modalidades` aplicando `unaccent()` em **ambos** os lados da comparação ILIKE. O PostgreSQL ILIKE não ignora diacríticos naturalmente — `'São Paulo' ILIKE '%Sao Paulo%'` retorna `false`. Solução: `unaccent(r.etapas_modalidades) ILIKE '%' || unaccent('Educacao Infantil') || '%'`.
+
+Chama `SELECT atualizar_medias()` para backfill dos dados existentes.
 
 ---
 
@@ -1178,7 +1201,7 @@ export default async function BuscaPage({ searchParams }) {
 
 ## 14. Rota de Busca — Client Component (BuscaContent)
 
-**Local:** `src/app/busca/busca-content.tsx` (729+ linhas completas no código fonte)
+**Local:** `src/app/busca/busca-content.tsx` (~663 linhas)
 
 ### Props
 
@@ -1199,6 +1222,7 @@ type Props = { ufs: string[]; cidades: string[]; resultados: EscolaResult[] | nu
 | `geoError` | string | "" | Erro de geolocalização |
 | `hoveredId` | number\|null | null | ID da escola em hover |
 | `navTick` | number | 0 | Trigger para re-render após navegação |
+| `zoomMode` | `"estado"\|"cidade"\|"escola"` | `"estado"` | Modo de zoom atual do mapa (via `onZoomModeChange`) |
 | `filtroLoc` | `FiltroLocalizacao\|null` | null | Filtro de localização do CaixaBusca |
 | `resultadosCoordenadas` | `EscolaResult[]\|null` | null | Resultados por coordenadas (geoloc/mapa) |
 | `carregandoCoordenadas` | boolean | false | Loading de busca por coordenadas |
@@ -1247,6 +1271,24 @@ const temBusca = !!(uf && cidade) || !!resultadosCoordenadas;
 5. **Debounce de busca por nome**: 500ms, atualiza URL param `q`
 6. **Autocomplete de escola**: 500ms, `supabase.from("escolas").select(...).ilike("nome", "%q%").limit(6)`
 7. **Click outside**: fecha sugestões de autocomplete
+
+### Botões de Filtro (Privada / Pública)
+
+Dois botões circulares `rounded-full` flutuam sobre o mapa, abaixo do campo de busca:
+
+```tsx
+<button className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 shadow-sm ${
+  showPrivada ? "bg-[#0070F3] text-white" : "bg-surface-hover text-text-secondary"
+}`}>
+  <DollarSign className="w-3 h-3" />
+  Privadas{zoomMode === "escola" && counts.privadas > 0 ? ` (${counts.privadas})` : ""}
+</button>
+```
+
+- **Privada** ativo → `bg-[#0070F3] text-white` (mesmo azul dos placemarks de escola privada)
+- **Pública** ativo → `bg-[#34A853] text-white` (mesmo verde dos placemarks de escola pública)
+- **Contagem numérica** (`(42)`) aparece apenas no modo escola (zoom ≥ 10), via estado `zoomMode` recebido do callback `onZoomModeChange` do `MapaEscolas`
+- Ambos desligados → lista vazia (nenhuma escola exibida)
 
 ### Layout
 
@@ -1570,7 +1612,24 @@ O `drag` do bottom sheet foi removido (não essencial).
 
 ## 18. MapaEscolas — Leaflet Map
 
-**Local:** `src/components/MapaEscolas.tsx` (~514 linhas)
+**Local:** `src/components/MapaEscolas.tsx` (~563 linhas)
+
+### Props
+
+```tsx
+type Props = {
+  escolas: Escola[];
+  userLocation?: { lat: number; lon: number } | null;
+  hoveredId?: number | null;
+  serieSlug?: string;
+  mapCenter?: { lat: number; lon: number } | null;
+  activeTile?: string;
+  onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void;
+  showPrivada?: boolean;
+  showPublica?: boolean;
+  onZoomModeChange?: (mode: "estado" | "cidade" | "escola") => void;
+};
+```
 
 ### Lazy Import (CRÍTICO)
 
@@ -1642,13 +1701,61 @@ return Math.round(min + scale * (max - min));
 - **Estado**: sigla da UF + contagem de escolas ativas
 - **Cidade**: contagem de escolas ativas (sem label de nome)
 
+### Filtro por Etapa de Ensino (Estado/Cidade)
+
+As bolinhas de agregação (estado e cidade) respeitam o filtro de série selecionado (`serieSlug`). O mapeamento slug → grupo → coluna de banco é feito por:
+
+```ts
+const slugToGrupo = new Map(SERIES.map((s) => [s.slug, s.grupo]));
+
+function gruposDoFiltro(serieSlug?: string): Set<string> {
+  if (!serieSlug) return new Set<string>();
+  const slugs = serieSlug.split(",").filter(Boolean);
+  const grupos = new Set<string>();
+  for (const slug of slugs) {
+    const g = slugToGrupo.get(slug);
+    if (g) grupos.add(g);
+  }
+  return grupos;
+}
+
+function colunaPorGrupo(grupo: string): string {
+  if (grupo.includes("Infantil")) return "infantil";
+  if (grupo.includes("Fundamental")) return "fundamental";
+  if (grupo.includes("M\u00e9dio") || grupo.includes("Medio")) return "medio";
+  return "";
+}
+
+function contagensComFiltro(item: any, serieSlug?: string): { total: number; publicas: number; privadas: number } {
+  const grupos = gruposDoFiltro(serieSlug);
+  if (grupos.size === 0) {
+    return { total: item.total_escolas, publicas: item.publicas, privadas: item.privadas };
+  }
+  let total = 0, pub = 0, priv = 0;
+  for (const g of grupos) {
+    const col = colunaPorGrupo(g);
+    if (!col) continue;
+    total += item[`total_${col}`] ?? 0;
+    pub += item[`publicas_${col}`] ?? 0;
+    priv += item[`privadas_${col}`] ?? 0;
+  }
+  return { total, publicas: pub, privadas: priv };
+}
+```
+
+Quando `serieSlug` está vazio → usa `total_escolas`/`publicas`/`privadas` (total geral). Quando preenchido → usa as colunas de etapa correspondentes (`total_infantil`, `publicas_fundamental`, etc.), somando múltiplos grupos se necessário.
+
 ### Reactividade dos Filtros
 
-O `useEffect` em `MapaEscolas.tsx` escuta `showPrivada` e `showPublica` e re-renderiza todos os marcadores via refs atualizados em todo re-render:
+O `useEffect` em `MapaEscolas.tsx` escuta `showPrivada`, `showPublica`, `serieSlug` e re-renderiza todos os marcadores via refs atualizados em todo re-render:
 
 ```tsx
 }, [escolas, userLocation, hoveredId, serieSlug, showPrivada, showPublica]);
 ```
+
+### onZoomModeChange
+
+Callback disparado sempre que o nível de zoom do mapa muda de modo (estado ↔ cidade ↔ escola). Usado pelo `BuscaContent` para esconder/mostrar contagens nos botões de filtro. O modo atual é rastreado via `modoVisaoAnteriorRef`.
 
 ### Marcadores de Escola (zoom ≥ 10)
 
@@ -2552,6 +2659,46 @@ Dados das cidades carregados uma única vez durante o init (`setMediasCidadeMap(
 - `fmtBr()` — formata moeda no padrão brasileiro: `R$ 1.200,00`
 - Botões `<button>` em vez de `<a>` — preserva orçamento de crawl do Google
 
+### 33.16 Stale closure no telemetry handler (filtros ignorados no drag)
+
+**Sintoma:** Ao mudar o filtro (privada/pública) e arrastar o mapa, as bolinhas de cidade/estado ignoravam o filtro e mostravam todas as escolas.
+
+**Causa:** O `handleMapMoveTelemetria` era definido dentro de `useEffect(() => {...}, [])`, capturando as versões iniciais de `renderCidadeMarkers`, `renderEstadoMarkers`, `filtrarCidadesPorBounds` com `showPrivada=true, showPublica=true` fixos.
+
+**Solução:** Adicionados 4 refs (`renderEstadoRef`, `renderCidadeRef`, `renderEscolaRef`, `filtrarCidadesRef`) atualizados em todo re-render. O handler agora chama `ref.current?.()` garantindo sempre a versão mais recente.
+
+```tsx
+const renderEstadoRef = useRef<(L: any, lg: any, m: any) => void>(() => {});
+// Atualizado antes do return:
+renderEstadoRef.current = renderEstadoMarkers;
+```
+
+### 33.17 Cidades pequenas silenciadas no zoom intermediário
+
+**Sintoma:** Cidades pequenas não apareciam no modo cidade (zoom 7–9) durante pan/zoom.
+
+**Causa:** `filtrarCidadesPorBounds()` usava `.slice(0, 500)` ordenando por distância do centro, cortando cidades além da 500ª mais próxima.
+
+**Solução:** Removido `.slice(0, 500)`. Todas as cidades dentro do bounding box são incluídas. O colision detection foi mantido em `70×30px` para evitar sobreposição extrema.
+
+### 33.18 Transição cidade → escola com tela vazia
+
+**Sintoma:** Ao dar zoom para passar do modo cidade para o modo escola, o mapa ficava em branco (sem marcadores) até os dados das escolas chegarem via `onBoundsChange`.
+
+**Causa:** O handler limpava `aggMarkers` (bolinhas de cidade) ao entrar no modo escola, mesmo sem ter escolas para renderizar ainda.
+
+**Solução:** O `aggMarkers` NÃO é mais limpo ao entrar no modo escola — as bolinhas de cidade permanecem visíveis como fallback visual. Quando as escolas chegam e o `useEffect` de props re-renderiza, `renderizar()` limpa ambas as camadas.
+
+### 33.19 ILIKE do PostgreSQL não ignora acentos
+
+**Sintoma:** As colunas de etapa (`total_infantil`) ficavam zeradas mesmo com escolas tendo "Educação Infantil" em `etapas_modalidades`.
+
+**Causa 1:** A migration 016 usava `chr(231)` para `ç` mas esqueceu `chr(227)` para `ã` — o pattern `%Educação%` nunca casava.
+
+**Causa 2:** O `ILIKE` do PostgreSQL não ignora diacríticos — `'Educação' ILIKE '%Educacao%'` retorna `false`.
+
+**Solução:** `unaccent()` aplicado em ambos os lados: `unaccent(r.etapas_modalidades) ILIKE '%' || unaccent('Educacao Infantil') || '%'`. Migration 018 corrige a função `atualizar_medias()`.
+
 ---
 
 ## A. Guia de Reprodução Zero-to-Production
@@ -2577,7 +2724,7 @@ Copiar: `next.config.ts`, `postcss.config.cjs`, `tsconfig.json`, `globals.css`
 ### Passo 4: Configurar Supabase
 
 1. Criar projeto em `supabase.com`
-2. Executar migrations em ordem: 001 → 002 → 003 → 004 → 006 → 007 → 009 → 010 → 011 → 012 → 013 → 014
+2. Executar migrations em ordem: 001 → 002 → 003 → 004 → 006 → 007 → 009 → 010 → 011 → 012 → 013 → 014 → 015 → 016 → 017 → 018
 3. Copiar URL e anon key para `.env.local`
 
 ### Passo 5: Importar dados

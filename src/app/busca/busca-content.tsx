@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, GraduationCap, Search, MapPin, Crosshair, Loader2 } from "lucide-react";
+import { DollarSign, GraduationCap, Search, MapPin, Crosshair, Loader2, User, LogIn, LogOut } from "lucide-react";
 import MapaEscolas from "@/components/MapaEscolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -14,6 +14,8 @@ import BuscaResults from "./busca-results";
 import type { EscolaResult } from "./busca-results";
 import type { FiltroLocalizacao } from "@/components/CaixaBuscaLocalizacao";
 import SchemaEscolas from "@/components/SchemaEscolas";
+import BotaoTema from "@/components/BotaoTema";
+import { useAuth } from "@/lib/auth-context";
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -85,6 +87,15 @@ export default function BuscaContent({
   const [isLocationActive, setIsLocationActive] = useState(false);
   const [activeTile, setActiveTile] = useState("Padr\u00e3o");
   const [layersOpen, setLayersOpen] = useState(false);
+  const [zoomMode, setZoomMode] = useState<"estado" | "cidade" | "escola">("estado");
+  const [isMenuAberto, setIsMenuAberto] = useState(false);
+  const { user } = useAuth();
+
+  async function handleLogout() {
+    const client = supabase.current;
+    await client.auth.signOut();
+    setIsMenuAberto(false);
+  }
 
   const uf = filtroLoc?.uf ?? searchParams.get("uf") ?? "";
   const cidade = filtroLoc?.cidade ?? searchParams.get("cidade") ?? "";
@@ -465,7 +476,49 @@ export default function BuscaContent({
           onBoundsChange={handleMapBoundsChange}
           showPrivada={showPrivada}
           showPublica={showPublica}
+          onZoomModeChange={setZoomMode}
         />
+      </div>
+
+      {/* ===== Flutuante topo-direito (tema + auth) — apenas desktop ===== */}
+      <div className="hidden md:flex fixed top-4 right-4 z-[501] items-center gap-2 bg-surface p-2 rounded-full shadow-lg border border-border">
+        <BotaoTema />
+        {user ? (
+          <div className="relative">
+            <button onClick={() => setIsMenuAberto(!isMenuAberto)}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-hover hover:bg-border transition-colors text-text-secondary hover:text-text"
+            >
+              <User className="w-4 h-4" />
+            </button>
+            {isMenuAberto && (
+              <>
+                <div className="fixed inset-0 z-[501]" onClick={() => setIsMenuAberto(false)} />
+                <div className="absolute right-0 top-full mt-2 w-64 bg-surface rounded-2xl shadow-xl border border-border z-[502] p-4">
+                  <p className="text-sm font-semibold text-text truncate block mb-1">{user.email}</p>
+                  <div className="border-b border-border my-2" />
+                  <Link href="/perfil" onClick={() => setIsMenuAberto(false)}
+                    className="flex items-center gap-2 text-sm text-text hover:bg-surface-hover p-2 rounded-lg transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    Gerenciar sua Conta
+                  </Link>
+                  <button onClick={handleLogout}
+                    className="flex items-center gap-2 text-sm text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors w-full text-left mt-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair da conta
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <Link href="/login"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-hover hover:bg-border transition-colors text-text-secondary hover:text-text"
+          >
+            <LogIn className="w-4 h-4" />
+          </Link>
+        )}
       </div>
 
       {/* Busca e filtros flutuando sobre o mapa (estilo Google Maps) */}
@@ -484,7 +537,7 @@ export default function BuscaContent({
               }`}
             >
               <DollarSign className="w-3 h-3" />
-              Privadas{counts.privadas > 0 ? ` (${counts.privadas})` : ""}
+              Privadas{zoomMode === "escola" && counts.privadas > 0 ? ` (${counts.privadas})` : ""}
             </button>
             <button
               onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
@@ -493,7 +546,7 @@ export default function BuscaContent({
               }`}
             >
               <GraduationCap className="w-3 h-3" />
-              P{'\u00fa'}blicas{counts.publicas > 0 ? ` (${counts.publicas})` : ""}
+              P{'\u00fa'}blicas{zoomMode === "escola" && counts.publicas > 0 ? ` (${counts.publicas})` : ""}
             </button>
             <SearchableSelect label="Etapa" value={serieSlug} series={SERIES} grupos={GRUPOS} onChange={(v) => updateFilters({ serie: v })} isMultiple={true} />
           </div>
