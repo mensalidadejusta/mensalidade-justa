@@ -16,10 +16,18 @@ export default function AtualizarSenhaPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.push("/login");
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) router.replace("/login");
     });
   }, [router]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
