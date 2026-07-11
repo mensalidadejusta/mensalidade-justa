@@ -1570,7 +1570,7 @@ O `drag` do bottom sheet foi removido (não essencial).
 
 ## 18. MapaEscolas — Leaflet Map
 
-**Local:** `src/components/MapaEscolas.tsx` (~550 linhas)
+**Local:** `src/components/MapaEscolas.tsx` (~514 linhas)
 
 ### Lazy Import (CRÍTICO)
 
@@ -1579,7 +1579,7 @@ Leaflet é importado dinamicamente via `await import("leaflet")` APENAS no clien
 ### Inicialização
 
 ```tsx
-const map = L.map(el.current!, { zoomControl: false }).setView([-15.8, -47.9], 4);
+const map = L.map(el.current!, { zoomControl: false, closePopupOnClick: false }).setView([-15.8, -47.9], 4);
 ```
 
 View inicial: centro do Brasil, zoom 4.
@@ -1594,122 +1594,86 @@ O mapa gerencia **duas layer groups** (`markers` para escolas, `aggMarkers` para
 
 | Zoom | Modo | Fonte de Dados | Visual |
 |------|------|---------------|--------|
-| 0–6 | **Estado** | `medias_estado` (27 estados) | Esferas 3D Candy Crush, 32–80px, gradiente dinâmico por filtro |
-| 7–12 | **Cidade** | `medias_cidade` (bounding box, top 2000 por distância) | Esferas 3D Candy Crush, 32–70px (com escolas) ou 24px pastel (0 escolas), com label |
-| 13+ | **Escola** | RPC `escolas_no_mapa` via `onBoundsChange` | CircleMarkers roxo/verde por escola |
+| 0–6 | **Estado** | `obter_medias_estado()` (27 estados) | Círculos planos 32–80px, cor sólida conforme filtro |
+| 7–9 | **Cidade** | `obter_medias_cidade()` (~5570 cidades, filtradas client-side por bounds) | Círculos planos 28–64px, cor sólida conforme filtro |
+| ≥ 10 | **Escola** | Prop `escolas` (via `onBoundsChange`) | CircleMarkers com borda preta 1px |
 
 ### Telemetry Handler — Performance
 
-O `handleMapMoveTelemetria` escuta `zoomend` e `moveend`, mas **só executa quando o modo de zoom muda**:
+O `handleMapMoveTelemetria` é definido no nível do componente e reage a `zoomend`/`moveend`. Usa **refs** (`renderEstadoRef`, `renderCidadeRef`, `renderEscolaRef`, `filtrarCidadesRef`) para sempre chamar as versões mais recentes das funções de renderização, evitando stale closures:
 
 ```ts
-const modoAtual = currentZoom >= 7 && currentZoom < 13 ? "cidade"
-  : currentZoom < 7 ? "estado" : "escola";
+const modoAtual = currentZoom < 7 ? "estado" : currentZoom < 10 ? "cidade" : "escola";
 if (modoAtual === modoVisaoAnteriorRef.current) return;
 ```
 
-Pan/drag dentro do mesmo modo não dispara clearLayers, refetch ou re-render — Leaflet reposiciona os marcadores automaticamente.
+**Fallback visual:** ao transicionar de cidade → escola, `aggMarkers` NÃO é limpo — as bolinhas de cidade permanecem visíveis até que os dados das escolas cheguem via `onBoundsChange`.
+
+**Debounce de 300ms** no re-filter de cidades durante pan/zoom dentro do modo cidade, evitando re-render excessivo.
 
 ### Carregamento de Dados Agregados
 
 - `carregarMediasEstado()`: chama RPC `obter_medias_estado()`, retorna `uf`, `latitude`, `longitude`, `media_mensalidade`, `total_escolas`, `publicas`, `privadas`.
-- `carregarMediasCidade(bounds)`: chama RPC `obter_medias_cidade()`, filtra por bounding box, ordena por distância ao centro do mapa, limite 2000. Se bounding box vazia, fallback pelas 2000 mais próximas do centro.
+- `carregarMediasCidade()`: chama RPC `obter_medias_cidade().limit(10000)` no init, armazena em `todasCidades` ref. `filtrarCidadesPorBounds()` filtra client-side por bounding box — sem limite de corte (removido `.slice(0, 500)`).
 
-### Marcadores de Agregação — Esferas 3D Candy Crush
+### Marcadores de Agregação — Círculos Planos (sem 3D)
 
-Ambos os modos (estado + cidade) usam `L.marker` + `L.divIcon` com esferas 3D com gradiente dinâmico baseado nos filtros ativos.
+Ambos os modos (estado + cidade) usam `L.marker` + `L.divIcon` com círculos planos, sem sombras ou gradientes 3D.
 
-**Cores (função `corFiltro` em `MapaEscolas.tsx:47`):**
+**Cores por filtro (estado e cidade):**
 
-| Filtros | Gradiente |
-|---------|-----------|
-| Só Privada | `from-[#FF66FF] via-[#C11BE6] to-[#64009A]` (Magenta) |
-| Só Pública | `from-[#A3FF2A] via-[#00D632] to-[#007D1C]` (Verde) |
-| Ambos | `from-[#FF66FF] via-[#C11BE6] to-[#007D1C]` (Mescla) |
+| Filtros | Cor |
+|---------|-----|
+| Só Privada | `#0070F3` (azul) |
+| Só Pública | `#34A853` (verde) |
+| Ambos | `linear-gradient(135deg, #0070F3, #34A853)` |
 
-**Sombra 3D (vidro/doce):**
-```
-shadow-[inset_0_4px_6px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(0,0,0,0.4),0_6px_12px_rgba(0,0,0,0.2)]
-```
-
-**Cálculo de tamanho dinâmico** — `calcDiameter` / `calcCidadeDiameter`:
+**Cálculo de tamanho dinâmico:**
 
 ```ts
 // Estados: min 32px, max 80px, maxEscolas = 35000
 const scale = Math.sqrt(Math.min(total, maxEscolas) / maxEscolas);
 return Math.round(min + scale * (max - min));
 
-// Cidades: min 32px, max 70px, maxEscolas = 2000
-// Cidades com 0 escolas ativas no filtro: 24px, gradiente pastel
+// Cidades: min 28px, max 64px, maxEscolas = 2000
 ```
 
 **Conteúdo interno:**
-- **Estado**: sigla da UF (font-black) + contagem de escolas ativas
-- **Cidade**: contagem de escolas ativas dentro da esfera + nome da cidade em label branca abaixo
-- Cidades sem escolas no filtro: "0" + nome em label sutil
-
-### Animação de Mitose (Estado → Cidade)
-
-Quando o usuário dá zoom-in e o modo muda de `estado` para `cidade`, as esferas das cidades executam uma animação de "divisão celular":
-
-```ts
-const isTransition = modoVisaoAnteriorRef.current === "estado";
-```
-
-**Keyframe `mitoseExplosion`** (`globals.css:106-120`):
-```css
-@keyframes mitoseExplosion {
-  0%   { transform: scale(0) translate3d(0,0,0); border-radius: 20%; opacity: 0; }
-  50%  { transform: scale(1.3); border-radius: 35% 65% 35% 65% / 65% 35% 65% 35%; }
-  100% { transform: scale(1) translate3d(0,0,0); border-radius: 50%; opacity: 1; }
-}
-```
-- Duração: 0.6s, curva `cubic-bezier(0.34, 1.56, 0.64, 1)` (overshoot elástico)
-- `will-change: transform, opacity` (GPU acelerado)
-- Delay cascata: `animation-delay: (idx % 12) * 30ms`
-
-**Movimento de navegação real** (apenas na transição estado→cidade):
-- Marcador nasce no centro do estado (`estadoCentros.get(c.uf)`)
-- `isTransition` = true → classe `cidade-marker-moving` com `transition: transform 0.5s`
-- `setTimeout(() => m.setLatLng(pReal), (idx % 12) * 20)` para cada cidade
-- A bolinha desliza do centro do estado até a posição real da cidade
-
-**Em pans/zooms subsequentes** (`isTransition` = false):
-- Marcador nasce direto na coordenada final, sem animação de movimento
+- **Estado**: sigla da UF + contagem de escolas ativas
+- **Cidade**: contagem de escolas ativas (sem label de nome)
 
 ### Reactividade dos Filtros
 
-O `useEffect` em `MapaEscolas.tsx:494` escuta `showPrivada` e `showPublica` e re-renderiza todos os marcadores do modo atual com novas cores, tamanhos e contagens:
+O `useEffect` em `MapaEscolas.tsx` escuta `showPrivada` e `showPublica` e re-renderiza todos os marcadores via refs atualizados em todo re-render:
 
 ```tsx
 }, [escolas, userLocation, hoveredId, serieSlug, showPrivada, showPublica]);
 ```
 
-### Marcadores de Escola (zoom 13+)
+### Marcadores de Escola (zoom ≥ 10)
 
-CircleMarkers: roxo (`#a855f7`) para privada, verde (`#34d399`) para pública. Tooltip permanente com preço formatado ("R$ 1.2k"). Popup ao clicar com nome, endereço, preços por grupo/série, link "Ver detalhes".
+CircleMarkers: azul `#0070F3` para privada, verde `#34A853` para pública. Borda `#222` (1px, 1.5px no hover). Tooltip permanente com preço formatado ("R$ 1.2k"). Popup ao clicar com nome, endereço, preços por grupo/série, link "Ver detalhes".
 
-### Limite de marcadores por zoom (escolas)
+### Limite de marcadores (escolas)
 
-```tsx
-const limite = z >= 14 ? 9999 : z >= 12 ? 50 : z >= 10 ? 30 : 15;
-```
+Até **100 privadas** + **100 públicas** = até 200 pins no total. Dentro de cada categoria, escolas com preço aparecem primeiro.
 
 ### Ordenação (escolas)
 
-Com preço primeiro, depois sem preço.
+Privadas primeiro (com preço → sem preço), depois públicas (com preço → sem preço).
 
 ### Eventos de mapa
 
 - `closePopupOnClick: false` — impedido fechamento automático no `mousedown`
 - `click` → `if (!isDragging) map.closePopup()` — fechamento manual apenas em clique limpo
 - `dragstart/dragend` — flag de arrasto com `setTimeout(500ms)` para suprimir clicks fantasmas
-- `zoomend moveend` → `handleMapMoveTelemetria` — se `openPopupId != null`, retorna sem limpar marcadores (popup protegido). Só reage a mudança de modo.
+- `zoomend moveend` → `handleMapMoveTelemetria` — se `openPopupId != null`, retorna sem limpar marcadores (popup protegido).
 - `resize` → `map.invalidateSize()` — recalcula dimensões em mobile/rotação
+- Cleanup no unmount: `map.off("zoomend moveend")` + `clearTimeout` do debounce
 
 ### Pulse animation (localização do usuário)
 
-CircleMarker azul com animação de pulso via `setInterval` (expande/contrai `fillOpacity`).
+CircleMarker azul (`#4285f4`) com animação de pulso via `setInterval` (expande/contrai `fillOpacity`).
 
 ### mapCenter effect
 
@@ -1721,7 +1685,7 @@ useEffect(() => {
 
 ### onBoundsChange
 
-Dispara `onBoundsChange` apenas no modo escola (zoom 13+), com debounce via hash de bounds.
+Dispara no modo escola (zoom ≥ 10) em todo pan/zoom, com dedup via hash de bounds.
 Não dispara se um popup estiver aberto.
 
 ---
