@@ -101,6 +101,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   const mediasCidade = useRef<MediaCidade[]>([]);
   const todasCidades = useRef<MediaCidade[]>([]);
   const cidadeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const escolaDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const renderEstadoRef = useRef<(L: any, lg: any, m: any) => void>(() => {});
   const renderCidadeRef = useRef<(L: any, lg: any, m: any) => void>(() => {});
   const renderEscolaRef = useRef<(L: any, lg: any, a: boolean) => void>(() => {});
@@ -419,12 +420,15 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       }, 300);
     }
 
-    // Fetch schools on every pan/zoom within escola mode
+    // Fetch schools on every pan/zoom within escola mode (debounced 500ms)
     if (modoAtual === "escola") {
       const key = `${bounds.minLat.toFixed(3)}-${bounds.minLon.toFixed(3)}-${bounds.maxLat.toFixed(3)}-${bounds.maxLon.toFixed(3)}`;
       if (key !== lastBoundsKey.current) {
         lastBoundsKey.current = key;
-        onBoundsChange?.(bounds);
+        if (escolaDebounceRef.current) clearTimeout(escolaDebounceRef.current);
+        escolaDebounceRef.current = setTimeout(() => {
+          onBoundsChange?.(bounds);
+        }, 500);
       }
     }
   }
@@ -483,6 +487,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         state.current.map.off("zoomend moveend", handleMapMoveTelemetria);
       }
       if (cidadeDebounceRef.current) clearTimeout(cidadeDebounceRef.current);
+      if (escolaDebounceRef.current) clearTimeout(escolaDebounceRef.current);
     };
   }, []);
 

@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit3, PenLine, AlertTriangle, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Edit3, PenLine, AlertTriangle, X, LogIn, ChevronDown, Star, School, LogOut, Sun, Moon, MapPin, Phone, Building2, Expand, Info } from "lucide-react";
 import { SERIES } from "@/lib/series";
+import { useAuth } from "@/lib/auth-context";
+import { createClient } from "@/lib/supabase";
+import { useTheme } from "next-themes";
+import AvaliacaoModal from "@/components/AvaliacaoModal";
 
 type Estatistica = {
   serie_slug: string; serie_nome: string;
@@ -57,8 +62,8 @@ const grupos = [...new Set(SERIES.map((s) => s.grupo))];
 function ModalContribuicao({
   aberto,
   fechar,
-  serieSlug,
-  serieNome,
+  serieSlug: initialSlug,
+  serieNome: initialNome,
   valoresAtuais,
   escolaId,
   escolaNome,
@@ -74,6 +79,9 @@ function ModalContribuicao({
   onSalvo: () => void;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const [selectedSlug, setSelectedSlug] = useState(initialSlug);
+  const [selectedNome, setSelectedNome] = useState(initialNome);
   const [mensalidade, setMensalidade] = useState(
     valoresAtuais?.media_mensalidade ? String(Math.round(valoresAtuais.media_mensalidade)) : ""
   );
@@ -129,8 +137,9 @@ function ModalContribuicao({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           escola_id: escolaId,
-          serie_slug: serieSlug,
-          serie_nome: serieNome,
+          serie_slug: selectedSlug,
+          serie_nome: selectedNome,
+          user_id: user?.id || null,
           valor_mensalidade: valorNum,
           valor_matricula: valorMatNum,
           valor_material: material
@@ -161,6 +170,28 @@ function ModalContribuicao({
     }
   }
 
+  useEffect(() => {
+    if (!aberto) return;
+    setSelectedSlug(initialSlug);
+    setSelectedNome(initialNome);
+    setMensalidade(valoresAtuais?.media_mensalidade ? String(Math.round(valoresAtuais.media_mensalidade)) : "");
+    setMatricula(valoresAtuais?.media_matricula ? String(Math.round(valoresAtuais.media_matricula)) : "");
+    setMaterial(valoresAtuais?.media_material ? String(Math.round(valoresAtuais.media_material)) : "");
+    setSalvando(false);
+    setSalvo(false);
+    setErro("");
+    setDiscrepanciaConfirmada(false);
+    setHoneypot("");
+  }, [aberto, initialSlug, initialNome]);
+
+  function handleSerieChange(slug: string) {
+    const serie = SERIES.find((s) => s.slug === slug);
+    if (serie) {
+      setSelectedSlug(serie.slug);
+      setSelectedNome(serie.nome);
+    }
+  }
+
   if (!aberto) return null;
 
   return (
@@ -178,14 +209,36 @@ function ModalContribuicao({
           </button>
         </div>
 
-        <div className="px-5 pb-2">
-          <p className="text-sm text-text-secondary">
-            <span className="font-medium text-text">{serieNome}</span>
-          </p>
-          <p className="text-xs text-text-tertiary mt-0.5">{escolaNome}</p>
+        <div className="px-5 pb-2 space-y-2">
+          <div className="relative">
+            <select
+              value={selectedSlug}
+              onChange={(e) => handleSerieChange(e.target.value)}
+              className="w-full appearance-none bg-bg border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:border-text transition-colors pr-10"
+            >
+              {grupos.map((grupo) => (
+                <optgroup key={grupo} label={grupo}>
+                  {SERIES.filter((s) => s.grupo === grupo).map((s) => (
+                    <option key={s.slug} value={s.slug}>{s.nome}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-text-tertiary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+          <p className="text-xs text-text-tertiary">{escolaNome}</p>
         </div>
 
-        {salvo ? (
+        {!user ? (
+          <div className="px-5 pb-5 text-center space-y-4">
+            <p className="text-sm text-text-secondary">Faça login para contribuir com preços.</p>
+            <Link href="/login"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:brightness-110 transition-all">
+              <LogIn className="w-4 h-4" />
+              Entrar
+            </Link>
+          </div>
+        ) : salvo ? (
           <div className="px-5 py-8 text-center space-y-2">
             <div className="text-3xl">✅</div>
             <p className="text-sm font-semibold text-text">Obrigado!</p>
@@ -369,12 +422,31 @@ function LinhaSerie({ serie, stats, onAbrirModal }: { serie: typeof SERIES[numbe
 
 export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola; slug: string; precos: Estatistica[] }) {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const isPrivada = escola.categoria_administrativa === "Privada";
 
   const [modalAberto, setModalAberto] = useState(false);
   const [modalSerieSlug, setModalSerieSlug] = useState("");
   const [modalSerieNome, setModalSerieNome] = useState("");
   const [modalStats, setModalStats] = useState<Estatistica | null>(null);
+  const [reviewModalAberto, setReviewModalAberto] = useState(false);
+  const [mediasAvaliacoes, setMediasAvaliacoes] = useState<any>(null);
+  const [comentariosAvaliacoes, setComentariosAvaliacoes] = useState<any[]>([]);
+
+  const supabaseAval = createClient();
+
+  useEffect(() => {
+    supabaseAval.rpc("get_medias_avaliacoes", { p_escola_id: escola.id }).then(({ data }) => {
+      if (data?.[0]) setMediasAvaliacoes(data[0]);
+    });
+    supabaseAval.from("avaliacoes").select("nota_infraestrutura, nota_seguranca, nota_pedagogico, nota_acolhimento, nota_cursos_extras, nota_diversidade, nota_inclusao, comentario, created_at")
+      .eq("escola_id", escola.id).order("created_at", { ascending: false }).limit(10).then(({ data }) => {
+        if (data) setComentariosAvaliacoes(data.filter((r) => r.comentario));
+      });
+  }, []);
 
   function abrirModal(serieSlug: string, serieNome: string, stats: Estatistica | null) {
     setModalSerieSlug(serieSlug);
@@ -389,49 +461,73 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
 
   const nomeFormatado = capitalizarNome(escola.nome);
 
-  const infoBasica = [
-    { rotulo: "Bairro", valor: escola.bairro },
-    { rotulo: "Dependência", valor: escola.dependencia_administrativa === "Privada" ? "Privada" : "Pública" },
-    { rotulo: "Categoria", valor: escola.categoria_administrativa },
-    { rotulo: "Subcategoria", valor: escola.categoria_escola_privada },
-    { rotulo: "Localização", valor: escola.localizacao },
-    { rotulo: "Porte", valor: escola.porte_escola },
-    { rotulo: "Regulamentação", valor: escola.regulamentacao_conselho },
-    { rotulo: "Convênio", valor: escola.conveniada_poder_publico },
-  ];
-
-  const infoExtra = [
-    { rotulo: "Código INEP", valor: escola.codigo_inep },
-    { rotulo: "Telefone", valor: escola.telefone },
-    { rotulo: "Restrição", valor: escola.restricao_atendimento },
-    { rotulo: "Etapas", valor: escola.etapas_modalidades },
-    { rotulo: "Outras Ofertas", valor: escola.outras_ofertas },
-    { rotulo: "Localidade", valor: escola.localidade_diferenciada !== "A escola não está em área de localização diferenciada" ? escola.localidade_diferenciada : null },
-  ];
-
   return (
     <main className="min-h-dvh bg-bg text-text transition-colors">
+      {/* Navbar */}
+      <nav className="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push("/busca")} className="flex items-center gap-2 text-text font-bold text-base hover:text-primary transition-colors">
+              <School className="w-5 h-5 text-primary" />
+              Mensalidade Justa
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            {mounted && (
+              <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-hover hover:bg-border transition-all duration-300 text-text-secondary hover:text-text"
+              >
+                <span className={`inline-block transition-transform duration-300 ${theme === "dark" ? "rotate-0" : "rotate-90"}`}>
+                  {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </span>
+              </button>
+            )}
+            {user ? (
+              <div className="flex items-center gap-2 pl-2 border-l border-border">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+                  {user.email?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <button onClick={async () => { const s = createClient(); await s.auth.signOut(); router.push("/"); }}
+                  className="w-9 h-9 flex items-center justify-center rounded-full text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
+                  title="Sair"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <Link href="/login"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-border text-sm font-medium text-text hover:bg-surface-hover transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Acessar Conta
+              </Link>
+            )}
+          </div>
+        </div>
+      </nav>
+
       <div className="max-w-7xl mx-auto px-4 py-6 lg:grid lg:grid-cols-3 lg:gap-8">
 
         {/* Colunas 1-2: conteúdo principal */}
         <div className="lg:col-span-2 space-y-8">
           <header className="space-y-4">
-            <button
-              type="button"
-              onClick={() => {
-                const lat = escola.latitude;
-                const lon = escola.longitude;
-                const params = new URLSearchParams();
-                if (escola.municipio && escola.uf) params.set("cidade", `${escola.municipio.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}-${escola.uf.toLowerCase()}`);
-                if (lat && lon) { params.set("lat", lat.toString()); params.set("lon", lon.toString()); }
-                params.set("map", "1");
-                router.push(`/busca?${params.toString()}`);
-              }}
-              className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-primary transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar ao Mapa
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.length > 1) { router.back(); return; }
+                  const params = new URLSearchParams();
+                  if (escola.municipio && escola.uf) params.set("cidade", `${escola.municipio.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}-${escola.uf.toLowerCase()}`);
+                  if (escola.latitude && escola.longitude) { params.set("lat", escola.latitude.toString()); params.set("lon", escola.longitude.toString()); }
+                  params.set("map", "1");
+                  router.push(`/busca?${params.toString()}`);
+                }}
+                className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-primary transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Voltar ao Mapa
+              </button>
+            </div>
             <div>
               <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-text">
                 {nomeFormatado}
@@ -444,55 +540,33 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
 
           {/* Mensalidades */}
           {isPrivada ? (
-            <section aria-label="Mensalidades">
+            <section aria-label="Mensalidades" className="bg-surface border border-border/60 rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-text mb-1">Mensalidades</h2>
               <p className="text-sm text-text-tertiary mb-6">
                 Valores colaborativos compartilhados por outros pais e responsáveis.
               </p>
 
               {precos.length === 0 ? (
-                <div className="bg-surface border border-border/60 rounded-xl p-6 text-center space-y-4">
-                  <p className="text-sm text-text-tertiary">
-                    Nenhum valor cadastrado ainda para esta escola.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const primeiraSerie = SERIES[0];
-                      abrirModal(primeiraSerie.slug, primeiraSerie.nome, null);
-                    }}
-                    className="inline-flex items-center gap-2 bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] min-h-[48px]"
+                <div className="text-center space-y-4 py-4">
+                  <p className="text-sm text-text-tertiary">Nenhum valor cadastrado ainda para esta escola.</p>
+                  <button onClick={() => { const s = SERIES[0]; abrirModal(s.slug, s.nome, null); }}
+                    className="inline-flex items-center gap-2 bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:brightness-110 transition-all active:scale-[0.97] min-h-[48px]"
                   >
-                    <Edit3 className="w-4 h-4" />
-                    Seja o primeiro a contribuir
+                    <Edit3 className="w-4 h-4" /> Seja o primeiro a contribuir
                   </button>
-                  <div>
-                    <WhatsAppShare nome={escola.nome} slug={slug} />
-                  </div>
+                  <WhatsAppShare nome={escola.nome} slug={slug} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {grupos.map((grupo) => {
                     const series = SERIES.filter((s) => s.grupo === grupo);
-                    const hasAnyData = series.some((s) => {
-                      const p = precos.find((pr) => pr.serie_slug === s.slug);
-                      return p && p.qtd_mensalidade > 0;
-                    });
                     return (
-                      <section key={grupo} aria-label={grupo} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                      <section key={grupo} aria-label={grupo} className="bg-surface-hover/50 border border-border/60 rounded-2xl p-5 shadow-sm">
                         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">{grupo}</h3>
-                        <div className="divide-y divide-white/5 mt-2">
-                          {series.map((serie) => {
-                            const p = precos.find((pr) => pr.serie_slug === serie.slug);
-                            return (
-                              <LinhaSerie
-                                key={serie.slug}
-                                serie={serie}
-                                stats={p}
-                                onAbrirModal={abrirModal}
-                              />
-                            );
-                          })}
+                        <div className="divide-y divide-border/20 mt-2">
+                          {series.map((serie) => (
+                            <LinhaSerie key={serie.slug} serie={serie} stats={precos.find((pr) => pr.serie_slug === serie.slug)} onAbrirModal={abrirModal} />
+                          ))}
                         </div>
                       </section>
                     );
@@ -501,61 +575,116 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               )}
             </section>
           ) : (
-            <section aria-label="Mensalidades" className="bg-surface border border-border/60 rounded-xl p-6">
+            <section aria-label="Mensalidades" className="bg-surface border border-border/60 rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-text mb-2">Mensalidades</h2>
-              <p className="text-sm text-emerald-600 dark:text-success font-medium">
-                ✅ Escola pública gratuita
-              </p>
-              <p className="text-xs text-text-tertiary mt-1">
-                Instituições públicas não cobram mensalidade.
-              </p>
+              <p className="text-sm text-emerald-600 dark:text-success font-medium">✅ Escola pública gratuita</p>
+              <p className="text-xs text-text-tertiary mt-1">Instituições públicas não cobram mensalidade.</p>
             </section>
           )}
 
           {/* Especificações */}
           <section aria-label="Informações sobre a escola">
-            <h2 className="text-xl font-bold text-text mb-4">Especificações</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {infoBasica.map((item) =>
-                item.valor ? (
-                  <div key={item.rotulo} className="bg-surface border border-border/60 rounded-lg p-3 text-sm flex flex-col gap-0.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">{item.rotulo}</span>
-                    <span className="text-text">{item.valor}</span>
-                  </div>
-                ) : null
-              )}
-            </div>
+            <h2 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-text-tertiary" />
+              Informações da Escola
+            </h2>
 
-            {escola.endereco && (
-              <div className="mt-3 bg-surface border border-border/60 rounded-lg p-3 text-sm">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary block mb-0.5">Endereço</span>
-                <span className="text-text">{escola.endereco}</span>
-              </div>
-            )}
-
-            <details className="mt-3 group">
-              <summary className="text-sm text-text-tertiary hover:text-text cursor-pointer transition-colors list-none flex items-center gap-1.5">
-                <span className="text-xs">▶</span>
-                Mais informações
-              </summary>
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {infoExtra.map((item) =>
-                  item.valor ? (
-                    <div key={item.rotulo} className="bg-surface border border-border/60 rounded-lg p-3 text-sm flex flex-col gap-0.5">
+            <div className="space-y-4">
+              {/* Estrutura Administrativa */}
+              <div className="bg-surface border border-border/60 rounded-2xl shadow-lg p-5">
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Info className="w-4 h-4" /> Estrutura Administrativa
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    { rotulo: "Dependência", valor: isPrivada ? "Privada" : "Pública" },
+                    { rotulo: "Categoria", valor: escola.categoria_administrativa },
+                    { rotulo: "Subcategoria", valor: escola.categoria_escola_privada },
+                    { rotulo: "Porte", valor: escola.porte_escola },
+                    { rotulo: "Regulamentação", valor: escola.regulamentacao_conselho },
+                    { rotulo: "Convênio", valor: escola.conveniada_poder_publico },
+                  ].map((item) => item.valor ? (
+                    <div key={item.rotulo} className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex flex-col gap-0.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">{item.rotulo}</span>
-                      <span className="text-text break-all">{item.valor}</span>
+                      <span className="text-text">{item.valor}</span>
                     </div>
-                  ) : null
+                  ) : null)}
+                </div>
+              </div>
+
+              {/* Localização */}
+              <div className="bg-surface border border-border/60 rounded-2xl shadow-lg p-5">
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" /> Localização
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {escola.bairro && (
+                    <div className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex flex-col gap-0.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Bairro</span>
+                      <span className="text-text">{escola.bairro}</span>
+                    </div>
+                  )}
+                  {escola.localizacao && (
+                    <div className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex flex-col gap-0.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Localização</span>
+                      <span className="text-text">{escola.localizacao}</span>
+                    </div>
+                  )}
+                </div>
+                {escola.endereco && (
+                  <div className="mt-3 bg-bg border border-border/40 rounded-xl p-3 text-sm">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary block mb-0.5">Endereço</span>
+                    <span className="text-text">{escola.endereco}</span>
+                  </div>
                 )}
               </div>
-            </details>
+
+              {/* Contato e Identificação */}
+              <div className="bg-surface border border-border/60 rounded-2xl shadow-lg p-5">
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Phone className="w-4 h-4" /> Contato e Identificação
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {escola.telefone && (
+                    <div className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex flex-col gap-0.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Telefone</span>
+                      <span className="text-text">{escola.telefone}</span>
+                    </div>
+                  )}
+                  <div className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex flex-col gap-0.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Código INEP</span>
+                    <span className="text-text font-mono text-xs">{escola.codigo_inep}</span>
+                  </div>
+                </div>
+
+                <details className="mt-4 group">
+                  <summary className="text-sm text-text-tertiary hover:text-text cursor-pointer transition-colors list-none flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5" />
+                    <span>Mais informações</span>
+                  </summary>
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {[
+                      { rotulo: "Restrição", valor: escola.restricao_atendimento },
+                      { rotulo: "Etapas", valor: escola.etapas_modalidades },
+                      { rotulo: "Outras Ofertas", valor: escola.outras_ofertas },
+                      { rotulo: "Localidade", valor: escola.localidade_diferenciada !== "A escola não está em área de localização diferenciada" ? escola.localidade_diferenciada : null },
+                    ].map((item) => item.valor ? (
+                      <div key={item.rotulo} className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex flex-col gap-0.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">{item.rotulo}</span>
+                        <span className="text-text break-all">{item.valor}</span>
+                      </div>
+                    ) : null)}
+                  </div>
+                </details>
+              </div>
+            </div>
           </section>
         </div>
 
         {/* Coluna 3: Sidebar */}
-        <aside className="lg:col-span-1 space-y-6 mt-8 lg:mt-0 lg:sticky lg:top-6 lg:self-start">
+        <aside className="lg:col-span-1 space-y-6 mt-8 lg:mt-0 lg:sticky lg:top-20 lg:self-start">
           {escola.latitude && escola.longitude && (
-            <div className="rounded-xl overflow-hidden shadow-lg border border-border/60 h-48 md:h-64">
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-border/60 h-48 md:h-64 group relative">
               <iframe
                 title={"Mapa - " + escola.nome}
                 src={"https://www.openstreetmap.org/export/embed.html?bbox="
@@ -566,11 +695,23 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
+              <a href={`https://www.openstreetmap.org/?mlat=${escola.latitude}&mlon=${escola.longitude}&zoom=15`}
+                target="_blank" rel="noopener noreferrer"
+                className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300"
+              >
+                <span className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface text-sm font-medium text-text shadow-lg transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                  <Expand className="w-4 h-4" />
+                  Expandir Mapa
+                </span>
+              </a>
             </div>
           )}
 
-          <div className="bg-surface border border-border/60 rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-text">Resumo</h3>
+          <div className="bg-surface border border-border/60 rounded-2xl shadow-lg p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-text flex items-center gap-1.5">
+              <School className="w-4 h-4 text-primary" />
+              Resumo
+            </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-text-tertiary">Tipo</span>
@@ -579,45 +720,85 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                 </span>
               </div>
               {escola.categoria_escola_privada && (
-                <div className="flex justify-between">
-                  <span className="text-text-tertiary">Categoria</span>
-                  <span className="text-text text-right">{escola.categoria_escola_privada}</span>
-                </div>
+                <div className="flex justify-between"><span className="text-text-tertiary">Categoria</span><span className="text-text text-right">{escola.categoria_escola_privada}</span></div>
               )}
               {escola.porte_escola && (
-                <div className="flex justify-between">
-                  <span className="text-text-tertiary">Porte</span>
-                  <span className="text-text">{escola.porte_escola}</span>
-                </div>
+                <div className="flex justify-between"><span className="text-text-tertiary">Porte</span><span className="text-text">{escola.porte_escola}</span></div>
               )}
-              <div className="flex justify-between">
-                <span className="text-text-tertiary">INEP</span>
-                <span className="text-text font-mono text-xs">{escola.codigo_inep}</span>
-              </div>
+              <div className="flex justify-between"><span className="text-text-tertiary">INEP</span><span className="text-text font-mono text-xs">{escola.codigo_inep}</span></div>
             </div>
           </div>
 
+          {/* Avaliações */}
+          {mediasAvaliacoes?.total_avaliacoes > 0 && (
+            <div className="bg-surface border border-border/60 rounded-xl p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-text flex items-center gap-1.5">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                Avaliações ({mediasAvaliacoes.total_avaliacoes})
+              </h3>
+              <div className="text-center mb-2">
+                <span className="text-2xl font-bold text-text">{Number(mediasAvaliacoes.media_geral).toFixed(1)}</span>
+                <span className="text-sm text-text-tertiary ml-1">/ 5</span>
+              </div>
+              <div className="space-y-1.5 text-xs">
+                {[
+                  ["Infraestrutura", mediasAvaliacoes.media_infraestrutura],
+                  ["Segurança", mediasAvaliacoes.media_seguranca],
+                  ["Pedagógico", mediasAvaliacoes.media_pedagogico],
+                  ["Acolhimento", mediasAvaliacoes.media_acolhimento],
+                  ["Cursos extras", mediasAvaliacoes.media_cursos_extras],
+                  ["Diversidade", mediasAvaliacoes.media_diversidade],
+                  ["Inclusão", mediasAvaliacoes.media_inclusao],
+                ].map(([label, media]) => (
+                  <div key={label as string} className="flex items-center justify-between gap-2">
+                    <span className="text-text-secondary flex-1">{label as string}</span>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((e) => (
+                        <Star key={e} className={`w-3 h-3 ${Number(media) >= e ? "fill-amber-400 text-amber-400" : "text-border"}`} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {comentariosAvaliacoes.length > 0 && (
+                <div className="border-t border-border pt-3 space-y-3 mt-2">
+                  {comentariosAvaliacoes.slice(0, 3).map((c, i) => (
+                    <div key={i} className="text-xs text-text-secondary leading-relaxed">
+                      <p className="italic">&ldquo;{c.comentario}&rdquo;</p>
+                      <p className="text-text-tertiary mt-0.5 text-[10px]">
+                        {new Date(c.created_at).toLocaleDateString("pt-BR")} &bull; Nota média: {(
+                          (c.nota_infraestrutura + c.nota_seguranca + c.nota_pedagogico + c.nota_acolhimento + c.nota_cursos_extras + c.nota_diversidade + c.nota_inclusao) / 7
+                        ).toFixed(1)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Contribuição (só privada) */}
           {isPrivada && (
             <div className="bg-gradient-to-br from-primary/10 via-purple-500/10 to-coral/10 border border-primary/20 rounded-xl p-5 space-y-3 text-center">
-              <p className="text-sm font-semibold text-text">
-                Ajude outros pais!
-              </p>
-              <p className="text-xs text-text-tertiary">
-                Seu feedback anônimo torna os preços mais justos para todos.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  const primeiraSerie = SERIES[0];
-                  abrirModal(primeiraSerie.slug, primeiraSerie.nome, null);
-                }}
-                className="block w-full bg-primary text-white font-semibold py-3 px-5 rounded-xl hover:bg-primary-hover transition-all duration-200 active:scale-[0.97] min-h-[48px]"
-              >
-                ✏ Contribuir com preços
-              </button>
+              <p className="text-sm font-semibold text-text">Ajude outros pais!</p>
+              <p className="text-xs text-text-tertiary">Seu feedback anônimo torna os preços mais justos para todos.</p>
+              <button onClick={() => { const s = SERIES[0]; abrirModal(s.slug, s.nome, null); }}
+                className="block w-full bg-primary text-white font-semibold py-3 px-5 rounded-xl hover:brightness-110 transition-all active:scale-[0.97] min-h-[48px]">✏ Contribuir com preços</button>
               <WhatsAppShare nome={escola.nome} slug={slug} />
             </div>
           )}
+
+          {/* Avaliar escola (todas as escolas) */}
+          <div className="bg-surface border border-border/60 rounded-2xl shadow-lg p-5 text-center space-y-3">
+            <p className="text-sm font-semibold text-text">Avalie esta escola</p>
+            <p className="text-xs text-text-tertiary">Sua opinião anônima ajuda outros pais.</p>
+            <button onClick={() => setReviewModalAberto(true)}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:brightness-110 transition-all active:scale-[0.97]"
+            >
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              Avaliar escola
+            </button>
+          </div>
         </aside>
       </div>
 
@@ -628,6 +809,13 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
         serieSlug={modalSerieSlug}
         serieNome={modalSerieNome}
         valoresAtuais={modalStats}
+        escolaId={escola.id}
+        escolaNome={escola.nome}
+        onSalvo={() => {}}
+      />
+      <AvaliacaoModal
+        aberto={reviewModalAberto}
+        fechar={() => setReviewModalAberto(false)}
         escolaId={escola.id}
         escolaNome={escola.nome}
         onSalvo={() => {}}

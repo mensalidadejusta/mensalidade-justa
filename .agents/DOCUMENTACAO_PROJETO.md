@@ -280,12 +280,13 @@ mensalidadejusta.com.br/
 │   │   │   └── page.tsx                      # Formulário de contribuição
 │   │   │
 │   │   ├── (auth)/                           # Grupo de rotas de autenticação
-│   │   │   ├── login/page.tsx
-│   │   │   ├── cadastro/page.tsx
+│   │   │   ├── login/page.tsx                 # Login + Cadastro unificados (isLogin toggle)
+│   │   │   ├── cadastro/page.tsx              # Redirect para /login
 │   │   │   ├── recuperar-senha/page.tsx
-│   │   │   └── alterar-senha/page.tsx
+│   │   │   ├── alterar-senha/page.tsx         # Alterar senha (via /perfil)
+│   │   │   └── atualizar-senha/page.tsx       # Redefinição via email
 │   │   │
-│   │   ├── perfil/page.tsx                   # Perfil + exclusão
+│   │   ├── perfil/page.tsx                   # Perfil + contribuições com edição/exclusão
 │   │   └── sobre/page.tsx                    # Página institucional
 │   │
 │   ├── components/
@@ -321,7 +322,10 @@ mensalidadejusta.com.br/
 │       ├── 012_fix_buscar_cidades.sql
 │       ├── 013_add_etapas_modalidades_to_rpcs.sql
 │       ├── 014_medias_agregadas.sql
-│       └── 015_medias_cidade_publicas_privadas.sql
+│       ├── 015_medias_cidade_publicas_privadas.sql
+│       ├── 016_medias_etapas.sql              # Colunas de etapa (infantil, fundamental, medio)
+│       ├── 017_fix_medias_etapas_chars.sql    # Corrige acentos nos patterns
+│       └── 018_fix_unaccent_both_sides.sql    # unaccent() em ambos os lados do ILIKE
 │
 ├── scripts/
 │   ├── create-index.mjs                     # Cria índices GIST/trgm
@@ -1668,7 +1672,8 @@ if (modoAtual === modoVisaoAnteriorRef.current) return;
 
 **Fallback visual:** ao transicionar de cidade → escola, `aggMarkers` NÃO é limpo — as bolinhas de cidade permanecem visíveis até que os dados das escolas cheguem via `onBoundsChange`.
 
-**Debounce de 300ms** no re-filter de cidades durante pan/zoom dentro do modo cidade, evitando re-render excessivo.
+**Debounce de 300ms** no re-filter de cidades durante pan/zoom dentro do modo cidade.
+**Debounce de 500ms** no `onBoundsChange` dentro do modo escola — a busca de escolas via RPC `escolas_no_mapa` só dispara após o mapa ficar parado por ≥500ms.
 
 ### Carregamento de Dados Agregados
 
@@ -1792,8 +1797,9 @@ useEffect(() => {
 
 ### onBoundsChange
 
-Dispara no modo escola (zoom ≥ 10) em todo pan/zoom, com dedup via hash de bounds.
-Não dispara se um popup estiver aberto.
+Dispara no modo escola (zoom ≥ 10) em todo pan/zoom, com **debounce de 500ms** (`escolaDebounceRef`). Não dispara se um popup estiver aberto.
+
+No `BuscaContent`, a função `handleMapBoundsChange` possui um **cache por bounds** (`boundsCache` ref — `Map<string, EscolaResult[]>`), onde a chave é o bounds arredondado para 0.1° (~11km). Se o usuário navegar para uma área já visitada, os dados são servidos da memória sem chamar a RPC `escolas_no_mapa`. O cache tem limite de 10 entradas (evicção FIFO).
 
 ---
 
@@ -1990,46 +1996,66 @@ Renderizado no BuscaContent imediatamente antes do shadow content sr-only.
 
 ---
 
-## 23. Autenticação — Login, Cadastro, Recuperar/Alterar Senha
+## 23. Autenticação — Login, Cadastro, Recuperar/Alterar/Atualizar Senha
 
-### Login (`(auth)/login/page.tsx`)
+### Login + Cadastro Unificados (`(auth)/login/page.tsx`)
 
+Login e cadastro no mesmo arquivo com toggle `const [isLogin, setIsLogin] = useState(true)`.
+
+**Campos do login:** E-mail, Senha.
+**Campos do cadastro:** Nome, E-mail, Senha, Confirmar Senha, Estado (UF), Cidade.
+
+**Login:**
 ```tsx
 const { error } = await supabase.auth.signInWithPassword({ email, password });
 if (!error) router.push("/busca");
 ```
 
+**Cadastro:**
+```tsx
+const { error } = await supabase.auth.signUp({
+  email, password,
+  options: { data: { nome_usuario: nome, estado: uf, cidade } },
+});
+```
+
+**Select de cidades:** Ao selecionar UF, chama `supabase.rpc("get_cidades", { p_uf })` que retorna `TABLE(municipio character varying)`. A coluna no resultado se chama `municipio`, não `nome`. Protegido com `try/catch` + `carregandoCidades` state + timeout de 5s via `getUser()` + `onAuthStateChange`.
+
+**Card visual:** `bg-surface border-border rounded-2xl shadow-xl max-w-md`, ícone `School` no topo.
+
 ### Cadastro (`(auth)/cadastro/page.tsx`)
 
-**2 etapas:**
-
-Etapa 1 — Credenciais:
-```tsx
-const { error } = await supabase.auth.signUp({ email, password });
-```
-Se ok → step = "endereco"
-
-Etapa 2 — Endereço:
-- CEP com autocomplete ViaCEP: `https://viacep.com.br/ws/{cep}/json/`
-- Geocode Nominatim: `https://nominatim.openstreetmap.org/search?q={endereco}&format=json`
-- `supabase.from("profiles").upsert({ id: user.id, logradouro, numero, bairro, cidade, uf, cep, latitude, longitude, geom })`
-- Pode pular ("Pular esta etapa")
+Redireciona para `/login` — o cadastro agora é feito diretamente na página de login via toggle.
 
 ### Recuperar senha (`(auth)/recuperar-senha/page.tsx`)
 
 ```tsx
-const { error } = await supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: `${origin}/alterar-senha`,
-});
+const redirectTo = `${window.location.origin}/atualizar-senha`;
+const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 ```
 
+Card com ícone `KeyRound`. Após envio bem-sucedido, exibe estado de sucesso com `MailCheck`.
+
+**Importante:** A URL `https://www.mensalidadejusta.com.br/atualizar-senha` (e a versão sem `www`) devem estar na lista **Redirect URLs** do Supabase Dashboard (Authentication → URL Configuration), senão o Supabase ignora o `redirectTo` e cai no Site URL.
+
 ### Alterar senha (`(auth)/alterar-senha/page.tsx`)
+
+Acessado via `/perfil`. Usa `updateUser({ password })`. Verifica sessão com `getSession()`.
+
+### Atualizar senha (`(auth)/atualizar-senha/page.tsx`)
+
+Acessado via link de recuperação por email. O Supabase redireciona para `#access_token=...` no hash da URL.
 
 ```tsx
 const { error } = await supabase.auth.updateUser({ password });
 ```
 
-Verifica sessão existente (`getSession()`), senão redireciona para `/login`.
+**Fluxo de sessão temporária:** O `createBrowserClient` do `@supabase/ssr` processa o hash da URL automaticamente. A página aguarda a sessão com 3 mecanismos:
+1. `getUser()` — tenta validar sessão dos cookies/hash
+2. `onAuthStateChange` — escuta `SIGNED_IN`
+3. Timeout de 5s — fallback para evitar loop infinito
+
+Se não houver sessão após 5s, redireciona para `/login`.
 
 ---
 
@@ -2037,12 +2063,30 @@ Verifica sessão existente (`getSession()`), senão redireciona para `/login`.
 
 **Local:** `src/app/perfil/page.tsx`
 
-- Mostra email do usuário
-- Link para alterar senha (`/alterar-senha`)
-- Botão "Sair": `supabase.auth.signOut()`
-- Seção "Excluir conta" com confirmação em 2 etapas:
-  1. Clique em "Excluir minha conta" → mostra confirmação
-  2. "Sim, excluir" → `supabase.rpc("excluir_minha_conta")` + `signOut()`
+### Estrutura em grid (2/3 + 1/3 no desktop)
+
+**Coluna principal (2/3):**
+- Card de Perfil: email do usuário com avatar `School`
+- Minhas Contribuições: listagem de `mensalidades_series` com JOIN na VIEW `escolas`
+
+**Coluna lateral (1/3):**
+- Ações: "Alterar senha" → `/alterar-senha`, "Sair" → `supabase.auth.signOut()`
+- Ranking (placeholder): "Em breve"
+- Excluir conta: confirmação em 2 etapas
+
+### Minhas Contribuições
+
+Fetch com `supabase.from("mensalidades_series").select("id, serie_nome, valor_mensalidade, valor_matricula, valor_material, ano_vigencia, escola_id").eq("user_id", user.id)`, depois busca os nomes das escolas via `supabase.from("escolas").select("id, nome").in("id", escolaIds)`.
+
+**Edição:** Modal `fixed inset-0 z-[600]` com `backdrop-blur-sm`. Campos editáveis: Ano, Mensalidade, Matrícula, Material. Submit com `supabase.from("mensalidades_series").update({...}).eq("id", id)`.
+
+**Exclusão:** Botão "Excluir" → primeiro clique vira "Confirmar Exclusão?" → segundo clique executa `supabase.from("mensalidades_series").delete().eq("id", id)`.
+
+### Excluir conta
+```tsx
+const { error } = await supabase.rpc("excluir_minha_conta");
+await supabase.auth.signOut();
+```
 
 ---
 

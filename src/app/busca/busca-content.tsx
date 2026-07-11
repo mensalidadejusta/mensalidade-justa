@@ -83,6 +83,7 @@ export default function BuscaContent({
   const [carregandoCoordenadas, setCarregandoCoordenadas] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mapReqId = useRef(0);
+  const boundsCache = useRef<Map<string, EscolaResult[]>>(new Map());
   const [mapCenter, setMapCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [isLocationActive, setIsLocationActive] = useState(false);
   const [activeTile, setActiveTile] = useState("Padr\u00e3o");
@@ -409,6 +410,10 @@ export default function BuscaContent({
   }, []);
 
   const handleMapBoundsChange = useCallback(async (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => {
+    const cacheKey = `${bounds.minLat.toFixed(1)}-${bounds.minLon.toFixed(1)}-${bounds.maxLat.toFixed(1)}-${bounds.maxLon.toFixed(1)}`;
+    const cached = boundsCache.current.get(cacheKey);
+    if (cached) { setResultadosCoordenadas(cached); return; }
+
     const id = ++mapReqId.current;
     const clat = (bounds.minLat + bounds.maxLat) / 2;
     const clon = (bounds.minLon + bounds.maxLon) / 2;
@@ -424,6 +429,11 @@ export default function BuscaContent({
         const mapped = data.map((item: any) => ({
           ...item, distancia_km: undefined,
         })) as EscolaResult[];
+        boundsCache.current.set(cacheKey, mapped);
+        if (boundsCache.current.size > 10) {
+          const firstKey = boundsCache.current.keys().next().value;
+          if (firstKey) boundsCache.current.delete(firstKey);
+        }
         setResultadosCoordenadas(mapped);
       }
     } catch {}

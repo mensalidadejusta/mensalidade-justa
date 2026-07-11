@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, LogOut, Key, Trash2, Award, Plus, School, Pencil, X } from "lucide-react";
+import { DollarSign, LogOut, Key, Trash2, Award, Plus, School, Pencil, X, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
@@ -15,6 +15,21 @@ type Contribuicao = {
   valor_material: number | null;
   ano_vigencia: number;
   escola_nome: string;
+};
+
+type Avaliacao = {
+  id: string;
+  escola_id: number;
+  escola_nome: string;
+  nota_infraestrutura: number;
+  nota_seguranca: number;
+  nota_pedagogico: number;
+  nota_acolhimento: number;
+  nota_cursos_extras: number;
+  nota_diversidade: number;
+  nota_inclusao: number;
+  comentario: string | null;
+  created_at: string;
 };
 
 function fmtBr(valor: number | null): string {
@@ -32,6 +47,10 @@ export default function PerfilPage() {
   const [contribuicaoEditando, setContribuicaoEditando] = useState<Contribuicao | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [loadingAvaliacoes, setLoadingAvaliacoes] = useState(true);
+  const [avaliacaoEditando, setAvaliacaoEditando] = useState<Avaliacao | null>(null);
+  const [salvandoAvaliacao, setSalvandoAvaliacao] = useState(false);
 
   const supabase = createClient();
 
@@ -66,6 +85,38 @@ export default function PerfilPage() {
   }
 
   useEffect(() => { carregarContribuicoes(); }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      setLoadingAvaliacoes(true);
+      const { data } = await supabase
+        .from("avaliacoes")
+        .select("id, escola_id, nota_infraestrutura, nota_seguranca, nota_pedagogico, nota_acolhimento, nota_cursos_extras, nota_diversidade, nota_inclusao, comentario, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) {
+        const escolaIds = [...new Set(data.map((r) => r.escola_id))];
+        const { data: escolas } = await supabase
+          .from("escolas")
+          .select("id, nome")
+          .in("id", escolaIds);
+        const escolaMap = new Map((escolas || []).map((e) => [e.id, e.nome]));
+        setAvaliacoes(data.map((r) => ({
+          ...r,
+          escola_nome: escolaMap.get(r.escola_id) || "Escola não encontrada",
+        })) as Avaliacao[]);
+      }
+      setLoadingAvaliacoes(false);
+    })();
+  }, [user]);
+
+  async function handleExcluirAvaliacao(id: string) {
+    if (!confirm("Excluir esta avaliação?")) return;
+    const { error } = await supabase.from("avaliacoes").delete().eq("id", id);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    setAvaliacoes((prev) => prev.filter((a) => a.id !== id));
+  }
 
   async function handleSalvarEdicao(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -211,6 +262,50 @@ export default function PerfilPage() {
             )}
           </div>
 
+          {/* Minhas Avaliações */}
+          <div className="bg-surface border border-border rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-5 h-5 text-amber-400" />
+              <h2 className="text-base font-semibold text-text">Minhas Avaliações</h2>
+            </div>
+
+            {loadingAvaliacoes ? (
+              <div className="text-sm text-text-tertiary animate-pulse">Carregando avaliações...</div>
+            ) : avaliacoes.length === 0 ? (
+              <p className="text-sm text-text-secondary">Você ainda não avaliou nenhuma escola.</p>
+            ) : (
+              <div className="space-y-2">
+                {avaliacoes.map((a) => {
+                  const media = ((a.nota_infraestrutura + a.nota_seguranca + a.nota_pedagogico + a.nota_acolhimento + a.nota_cursos_extras + a.nota_diversidade + a.nota_inclusao) / 7).toFixed(1);
+                  return (
+                    <div key={a.id} className="flex items-start justify-between gap-3 px-4 py-3 rounded-xl bg-surface-hover/50 text-sm">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-text truncate">{a.escola_nome}</p>
+                        <div className="flex gap-0.5 mt-1">
+                          {[1, 2, 3, 4, 5].map((e) => (
+                            <Star key={e} className={`w-3 h-3 ${Number(media) >= e ? "fill-amber-400 text-amber-400" : "text-border"}`} />
+                          ))}
+                        </div>
+                        <p className="text-xs text-text-tertiary mt-1">{new Date(a.created_at).toLocaleDateString("pt-BR")}</p>
+                        {a.comentario && <p className="text-xs text-text-secondary mt-1 italic truncate">"{a.comentario}"</p>}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => setAvaliacaoEditando(a)}
+                          className="text-text-tertiary hover:text-text p-1 rounded-md transition-colors">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleExcluirAvaliacao(a.id)}
+                          className="text-text-tertiary hover:text-red-500 p-1 rounded-md transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Coluna lateral (1/3) */}
@@ -322,6 +417,77 @@ export default function PerfilPage() {
                 <button type="submit" disabled={salvando}
                   className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-white text-sm font-medium hover:brightness-110 transition-all disabled:opacity-50">
                   {salvando ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de edição de avaliação */}
+      {avaliacaoEditando && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-[600] p-4">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-md p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-text">Editar avaliação</h3>
+              <button onClick={() => setAvaliacaoEditando(null)} className="text-text-tertiary hover:text-text p-1 rounded-md transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault(); setSalvandoAvaliacao(true);
+              const form = e.currentTarget;
+              const campos = [
+                ["nota_infraestrutura", "Infraestrutura"],
+                ["nota_seguranca", "Segurança"],
+                ["nota_pedagogico", "Pedagógico"],
+                ["nota_acolhimento", "Acolhimento"],
+                ["nota_cursos_extras", "Cursos extras"],
+                ["nota_diversidade", "Diversidade"],
+                ["nota_inclusao", "Inclusão"],
+              ];
+              const updateData: Record<string, any> = {};
+              for (const [col] of campos) {
+                const val = Number((form.elements.namedItem(col) as HTMLSelectElement).value);
+                if (val >= 1 && val <= 5) updateData[col] = val;
+              }
+              updateData.comentario = (form.elements.namedItem("comentario") as HTMLTextAreaElement).value || null;
+              const { error } = await supabase.from("avaliacoes").update(updateData).eq("id", avaliacaoEditando.id);
+              setSalvandoAvaliacao(false);
+              if (error) { alert("Erro ao salvar: " + error.message); return; }
+              setAvaliacoes((prev) => prev.map((a) => a.id === avaliacaoEditando.id ? { ...a, ...updateData } as Avaliacao : a));
+              setAvaliacaoEditando(null);
+            }}>
+              <p className="text-sm font-medium text-text mb-3">{avaliacaoEditando.escola_nome}</p>
+              <div className="grid grid-cols-1 gap-3 mb-4">
+                {[
+                  ["nota_infraestrutura", "Infraestrutura", avaliacaoEditando.nota_infraestrutura],
+                  ["nota_seguranca", "Segurança", avaliacaoEditando.nota_seguranca],
+                  ["nota_pedagogico", "Pedagógico", avaliacaoEditando.nota_pedagogico],
+                  ["nota_acolhimento", "Acolhimento", avaliacaoEditando.nota_acolhimento],
+                  ["nota_cursos_extras", "Cursos extras", avaliacaoEditando.nota_cursos_extras],
+                  ["nota_diversidade", "Diversidade", avaliacaoEditando.nota_diversidade],
+                  ["nota_inclusao", "Inclusão", avaliacaoEditando.nota_inclusao],
+                ].map(([col, label, value]) => (
+                  <div key={col as string} className="flex items-center gap-2">
+                    <span className="text-xs text-text-secondary w-28 shrink-0">{label as string}</span>
+                    <select name={col as string} defaultValue={value as number}
+                      className="flex-1 bg-surface-hover border border-border rounded-lg px-2 py-1.5 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/30">
+                      <option value={0}>—</option>
+                      {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <label className="block text-xs text-text-secondary mb-1">Comentário</label>
+              <textarea name="comentario" defaultValue={avaliacaoEditando.comentario || ""} rows={3} maxLength={1000}
+                className="w-full mb-4 px-3 py-2 rounded-xl bg-surface-hover border border-border text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setAvaliacaoEditando(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-border text-sm font-medium text-text hover:bg-surface-hover transition-colors">Cancelar</button>
+                <button type="submit" disabled={salvandoAvaliacao}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-white text-sm font-medium hover:brightness-110 transition-all disabled:opacity-50">
+                  {salvandoAvaliacao ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </form>
