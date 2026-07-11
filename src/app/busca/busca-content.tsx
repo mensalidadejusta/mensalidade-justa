@@ -489,7 +489,7 @@ export default function BuscaContent({
             <button
               onClick={() => { const c = readParam("publica") !== "0"; updateFilters({ publica: c ? "0" : "1" }); }}
               className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 border border-border/50 shadow-sm ${
-                showPublica ? "bg-[#6ee7b7] text-black" : "bg-surface-hover text-text-secondary"
+                showPublica ? "bg-[#34A853] text-white" : "bg-surface-hover text-text-secondary"
               }`}
             >
               <GraduationCap className="w-3 h-3" />

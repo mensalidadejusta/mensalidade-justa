@@ -76,7 +76,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
   function getZoomMode(z: number): "estado" | "cidade" | "escola" {
     if (z < 7) return "estado";
-    if (z < 11) return "cidade";
+    if (z < 10) return "cidade";
     return "escola";
   }
 
@@ -216,7 +216,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
       const color = priv ? "#0070F3" : "#34A853";
       const preco = priv ? mediaPreco(e, serieSlug) : "";
       const h = hoveredId === e.id;
-      const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: color, weight: h ? 2 : 1, fillOpacity: h ? 0.95 : 0.8 });
+      const m = L.circleMarker(p, { radius: h ? 10 : 7, fillColor: color, color: "#222", weight: h ? 1.5 : 1, fillOpacity: h ? 0.95 : 0.85 });
       m._eid = e.id;
       const endereco = e.bairro || "";
       const slugsAtivos = slugsDoFiltro(serieSlug);
@@ -337,7 +337,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
 
     if (openPopupId.current !== null) return;
 
-    const modoAtual = currentZoom < 7 ? "estado" : currentZoom < 11 ? "cidade" : "escola";
+    const modoAtual = currentZoom < 7 ? "estado" : currentZoom < 10 ? "cidade" : "escola";
 
     // Re-render markers on mode change
     if (modoAtual !== modoVisaoAnteriorRef.current) {
