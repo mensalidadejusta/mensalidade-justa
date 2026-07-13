@@ -14,6 +14,12 @@ const UFS = [
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  function getRedirectTo(): string {
+    if (typeof window === "undefined") return "/busca";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("redirectTo") || "/busca";
+  }
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +57,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return setError(error.message);
-    router.push("/busca");
+    router.push(getRedirectTo());
   }
 
   async function handleCadastro(e: React.FormEvent) {
@@ -67,7 +73,7 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (error) return setError(error.message);
-    router.push("/busca");
+    router.push(getRedirectTo());
   }
 
   return (
