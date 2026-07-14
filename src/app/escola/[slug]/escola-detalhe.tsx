@@ -505,6 +505,26 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             </div>
           </section>
 
+          {/* Informações */}
+          <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-5 space-y-2.5">
+            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Informações</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-text-tertiary">Tipo</span>
+                <span className={`font-semibold ${isPrivada ? "text-purple-400" : "text-emerald-400"}`}>
+                  {isPrivada ? "Privada" : "Pública"}
+                </span>
+              </div>
+              {escola.categoria_escola_privada && (
+                <div className="flex justify-between"><span className="text-text-tertiary">Categoria</span><span className="text-text text-right text-xs">{escola.categoria_escola_privada}</span></div>
+              )}
+              {escola.porte_escola && (
+                <div className="flex justify-between"><span className="text-text-tertiary">Porte</span><span className="text-text">{escola.porte_escola}</span></div>
+              )}
+              <div className="flex justify-between"><span className="text-text-tertiary">INEP</span><span className="text-text font-mono text-xs">{escola.codigo_inep}</span></div>
+            </div>
+          </section>
+
           {/* IDEB */}
           {Object.keys(idebDados).length > 0 && (
             <section>
@@ -775,25 +795,6 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             </Link>
           </div>
 
-          {/* 3. Informações */}
-          <div className="bg-surface border border-border/60 rounded-2xl shadow-sm p-5 space-y-2.5">
-            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Informações</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-text-tertiary">Tipo</span>
-                <span className={`font-semibold ${isPrivada ? "text-purple-400" : "text-emerald-400"}`}>
-                  {isPrivada ? "Privada" : "Pública"}
-                </span>
-              </div>
-              {escola.categoria_escola_privada && (
-                <div className="flex justify-between"><span className="text-text-tertiary">Categoria</span><span className="text-text text-right text-xs">{escola.categoria_escola_privada}</span></div>
-              )}
-              {escola.porte_escola && (
-                <div className="flex justify-between"><span className="text-text-tertiary">Porte</span><span className="text-text">{escola.porte_escola}</span></div>
-              )}
-              <div className="flex justify-between"><span className="text-text-tertiary">INEP</span><span className="text-text font-mono text-xs">{escola.codigo_inep}</span></div>
-            </div>
-          </div>
         </aside>
       </article>
 

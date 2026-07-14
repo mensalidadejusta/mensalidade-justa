@@ -419,7 +419,7 @@ export default function CaixaBuscaLocalizacao({
           onFocus={() => {
             if (sugestoesArr.length > 0 || buscouSemResultados) setDropdownAberto(true);
           }}
-          placeholder="Buscar cidade, escola, endereço ou CEP..."
+          placeholder="Buscar escola, cidade, endereço..."
           className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-12 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
           autoComplete="off"
           spellCheck={false}
