@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, GraduationCap, MapPin, Crosshair, Loader2, User, LogIn, LogOut } from "lucide-react";
+import { DollarSign, GraduationCap, MapPin, Crosshair, Loader2, User, LogIn, LogOut, Info } from "lucide-react";
 import MapaEscolas from "@/components/MapaEscolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -450,7 +450,7 @@ export default function BuscaContent({
   return (
     <div className="min-h-dvh bg-bg text-text selection:bg-primary/30">
       {/* ===== MAPA (fixed, respeita sidebar + bottom) ===== */}
-      <div className="fixed inset-0 md:left-16 bottom-0 z-0">
+      <div className="fixed inset-0 bottom-0 z-0">
         <MapaEscolas
           escolas={sortedResultados || []}
           userLocation={userLocation}
@@ -507,9 +507,15 @@ export default function BuscaContent({
       </div>
 
       {/* Busca e filtros flutuando sobre o mapa (estilo Google Maps) */}
-      <div className="fixed inset-0 md:left-16 bottom-0 z-[500] pointer-events-none">
+      <div className="fixed inset-0 bottom-0 z-[500] pointer-events-none">
         <div className="pointer-events-auto px-3 pt-2 md:pl-3 md:pr-0 md:pt-3 flex flex-col md:flex-row md:items-start md:gap-3">
-          <CaixaBuscaLocalizacao
+          <div className="flex items-center gap-2">
+            <Link href="/sobre"
+              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-fuchsia-500/20 text-fuchsia-500 hover:bg-fuchsia-500/30 hover:text-fuchsia-400 transition-all duration-200 shadow-sm border border-fuchsia-500/30"
+              title="Sobre o projeto">
+              <Info className="w-5 h-5" />
+            </Link>
+            <CaixaBuscaLocalizacao
             onLocationChange={handleLocationChange}
             onLocationSelect={handleLocationSelect}
             onSchoolSelect={(_slug, nome, lat, lng) => {
@@ -521,6 +527,7 @@ export default function BuscaContent({
             }}
             className="w-full md:w-96 shadow-lg"
           />
+          </div>
           <div className="flex justify-center items-center gap-2 flex-wrap md:justify-start md:flex-1 mt-2 md:mt-0">
             <button
               onClick={() => { const c = readParam("privada") !== "0"; updateFilters({ privada: c ? "0" : "1" }); }}

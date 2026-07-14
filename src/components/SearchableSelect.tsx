@@ -254,7 +254,7 @@ export default function SearchableSelect({ label, value, options, series, grupos
       {open && sidebar && (
         <div className="fixed inset-0 z-50 lg:block hidden animate-fade-in">
           <div className="absolute inset-0 bg-black/40" onClick={closeSheet} />
-          <div className="fixed left-16 top-0 bottom-0 w-80 z-50 bg-surface border-r border-border shadow-2xl flex flex-col animate-slide-up">
+          <div className="fixed left-0 top-0 bottom-0 w-80 z-50 bg-surface border-r border-border shadow-2xl flex flex-col animate-slide-up">
             <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
               <h2 className="text-base font-semibold text-text">{title}</h2>
               <button onClick={closeSheet} className="p-1 rounded-lg text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors">
