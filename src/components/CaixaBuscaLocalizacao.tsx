@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Loader2, MapPin, X, Search } from "lucide-react";
+import { Loader2, MapPin, X, Search, GraduationCap } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import { makeEscolaSlug } from "@/lib/utils";
 
 const CEP_REGEX = /^\d{5}-?\d{3}$/;
 const FETCH_TIMEOUT_MS = 5000;
@@ -41,6 +43,7 @@ const CATEGORIA_CORES: Record<string, string> = {
   "Rua/Logradouro": "bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   CEP: "bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   Estabelecimento: "bg-pink-200 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+  Escola: "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   Local: "bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200",
 };
 
@@ -75,6 +78,7 @@ export interface FiltroLocalizacao {
 interface CaixaBuscaLocalizacaoProps {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
   onLocationSelect?: (loc: LocalizacaoResult) => void;
+  onSchoolSelect?: (slug: string, nome: string) => void;
   initialValue?: string;
   className?: string;
 }
@@ -89,6 +93,7 @@ function fetchComTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<
 export default function CaixaBuscaLocalizacao({
   onLocationChange,
   onLocationSelect,
+  onSchoolSelect,
   initialValue = "",
   className = "",
 }: CaixaBuscaLocalizacaoProps) {
@@ -145,7 +150,10 @@ export default function CaixaBuscaLocalizacao({
     if (isCep) {
       await buscarCep(trimmed, () => active);
     } else {
-      await buscarNominatim(trimmed, () => active);
+      await Promise.all([
+        buscarNominatim(trimmed, () => active),
+        buscarEscolas(trimmed, () => active),
+      ]);
     }
 
     if (active) {
@@ -269,7 +277,55 @@ export default function CaixaBuscaLocalizacao({
     }
   }
 
+  async function buscarEscolas(query: string, isActive: () => boolean) {
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("escolas")
+        .select("id, nome, municipio, uf, codigo_inep")
+        .ilike("nome", `%${query}%`)
+        .order("nome")
+        .limit(5);
+      if (!isActive()) return;
+      if (data && data.length > 0) {
+        const escolas = data.map((item: any) => ({
+          id: `esc-${item.id}`,
+          textoExibicao: `${item.nome} - ${item.municipio}, ${item.uf}`,
+          label: item.nome,
+          _tipo: "escola",
+          _codigoInep: item.codigo_inep,
+          _nome: item.nome,
+        }));
+        setSugestoes((prev) => {
+          const combinadas = [...escolas, ...prev];
+          const vistos = new Set<string>();
+          return combinadas.filter((item) => {
+            const key = item.id || item.label;
+            if (vistos.has(key)) return false;
+            vistos.add(key);
+            return true;
+          });
+        });
+        setDropdownAberto(true);
+        setBuscouSemResultados(false);
+      }
+    } catch {}
+  }
+
   function selecionarSugestao(sugestao: any) {
+    if (sugestao._tipo === "escola") {
+      setBuscaRaw(sugestao._nome);
+      setSugestoes([]);
+      setDropdownAberto(false);
+      setBuscouSemResultados(false);
+      setHighlightIndex(-1);
+      inputRef.current?.blur();
+      if (onSchoolSelect && sugestao._codigoInep) {
+        onSchoolSelect(makeEscolaSlug(sugestao._codigoInep, sugestao._nome), sugestao._nome);
+      }
+      return;
+    }
+
     setBuscaRaw(sugestao.textoExibicao);
     setSugestoes([]);
     setDropdownAberto(false);
@@ -361,7 +417,7 @@ export default function CaixaBuscaLocalizacao({
           onFocus={() => {
             if (sugestoesArr.length > 0 || buscouSemResultados) setDropdownAberto(true);
           }}
-          placeholder="Buscar cidade, endereço ou CEP..."
+          placeholder="Buscar cidade, escola, endereço ou CEP..."
           className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-12 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300"
           autoComplete="off"
           spellCheck={false}
@@ -428,7 +484,7 @@ export default function CaixaBuscaLocalizacao({
                       <span className={`mt-0.5 shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
                         isHighlighted ? "bg-accent-purple/15 text-accent-purple" : "bg-surface-hover text-text-tertiary"
                       }`}>
-                        <MapPin className="w-3.5 h-3.5" />
+                        {sugestao._tipo === "escola" ? <GraduationCap className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
                       </span>
                       <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
                         <p className="text-sm text-text truncate font-medium">

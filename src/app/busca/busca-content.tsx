@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, GraduationCap, Search, MapPin, Crosshair, Loader2, User, LogIn, LogOut } from "lucide-react";
+import { DollarSign, GraduationCap, MapPin, Crosshair, Loader2, User, LogIn, LogOut } from "lucide-react";
 import MapaEscolas from "@/components/MapaEscolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -447,39 +447,6 @@ export default function BuscaContent({
     } catch {}
   }, []);
 
-  const nomeBuscaInput = (
-    <div className="relative w-full" ref={searchRef}>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-text-tertiary z-10" />
-          <input
-            className="w-full bg-surface border border-border/50 rounded-full py-3 pl-11 pr-4 text-[15px] text-text placeholder:text-text-tertiary focus:outline-none focus:border-[#1f3b9b]/40 focus:ring-4 focus:ring-[#1f3b9b]/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_20px_-5px_rgba(66,133,244,0.2),0_-4px_20px_-8px_rgba(139,92,246,0.15),0_4px_20px_-8px_rgba(236,72,153,0.1)]"
-            placeholder="Buscar escola por nome..."
-            value={localQuery}
-            onChange={(e) => setLocalQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); updateFilters({ q: localQuery }); } }}
-          />
-        </div>
-      </div>
-      {suggestions.length > 0 && (
-        <div className="absolute top-full mt-2 left-0 right-0 bg-surface border border-border rounded-2xl shadow-xl z-30 overflow-hidden">
-          {suggestions.map((s) => (
-            <Link
-              key={s.id}
-              href={`/escola/${makeEscolaSlug(s.codigo_inep, s.nome)}`}
-              className="block px-4 py-3 text-sm hover:bg-surface-hover border-b border-border last:border-0 transition-all duration-200"
-            >
-              <div className="font-medium text-text truncate">{s.nome}</div>
-              <div className="text-xs text-text-tertiary mt-0.5">
-                {s.municipio} - {s.uf}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="min-h-dvh bg-bg text-text selection:bg-primary/30">
       {/* ===== MAPA (fixed, respeita sidebar + bottom) ===== */}
@@ -545,6 +512,7 @@ export default function BuscaContent({
           <CaixaBuscaLocalizacao
             onLocationChange={handleLocationChange}
             onLocationSelect={handleLocationSelect}
+            onSchoolSelect={(slug) => router.push(`/escola/${slug}`)}
             className="w-full md:w-96 shadow-lg"
           />
           <div className="flex justify-center items-center gap-2 flex-wrap md:justify-start md:flex-1 mt-2 md:mt-0">
