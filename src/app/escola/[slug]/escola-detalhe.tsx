@@ -567,6 +567,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           )}
 
           {/* Programa de ensino */}
+          {escola.etapas_modalidades && (
           <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-6">
             <h2 className="text-base font-bold text-text mb-4 flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-text-tertiary" />
@@ -599,6 +600,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   })}
                 </div>
           </section>
+          )}
 
           {/* Localização */}
           <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-6">
