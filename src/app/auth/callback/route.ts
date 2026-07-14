@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
               req.cookies.set(name, value);
-              res.cookies.set(name, value, options);
+              const isDev = process.env.NODE_ENV === "development";
+              res.cookies.set(name, value, { ...options, secure: isDev ? false : options.secure });
             });
           },
         },

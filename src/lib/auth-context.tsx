@@ -17,12 +17,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user ?? null);
-      setLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        setLoading(false);
+      } else {
+        supabase.auth.getUser().then(({ data }) => {
+          setUser(data?.user ?? null);
+          setLoading(false);
+        });
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setLoading(false);
     });
     return () => subscription.unsubscribe();
   }, []);

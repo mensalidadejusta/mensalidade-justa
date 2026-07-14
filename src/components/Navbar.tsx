@@ -16,7 +16,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  if (pathname === "/busca") return null;
+  if (pathname === "/busca" && !user) return null;
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border/40">
