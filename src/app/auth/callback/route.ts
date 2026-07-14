@@ -1,34 +1,23 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { createRouteHandlerClient } from "@/lib/supabase";
 
-export async function GET(req: NextRequest) {
-  const { searchParams, origin } = new URL(req.url);
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/busca";
 
-  if (code) {
-    const res = NextResponse.redirect(`${origin}${next}`);
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return req.cookies.getAll(); },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              req.cookies.set(name, value);
-              const isDev = process.env.NODE_ENV === "development";
-              res.cookies.set(name, value, { ...options, secure: isDev ? false : options.secure });
-            });
-          },
-        },
-      }
-    );
-
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return res;
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("C\u00f3digo de autentica\u00e7\u00e3o ausente")}`);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Falha na autentica\u00e7\u00e3o")}`);
+  const res = NextResponse.redirect(`${origin}${next}`);
+  const supabase = createRouteHandlerClient(request, res);
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    console.error("Erro no exchangeCodeForSession:", error.message);
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  return res;
 }
