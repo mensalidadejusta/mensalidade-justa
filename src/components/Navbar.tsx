@@ -14,6 +14,8 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  if (pathname === "/busca") return null;
+
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border/40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
