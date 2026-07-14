@@ -539,7 +539,6 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     const key = `${mapCenter.lat.toFixed(4)}-${mapCenter.lon.toFixed(4)}`;
     if (key === lastMapCenterKey.current) return;
     lastMapCenterKey.current = key;
-    isInitialLoadOrFilterChange.current = true;
     state.current.map.flyTo([mapCenter.lat, mapCenter.lon], 14, { duration: 2 });
   }, [mapCenter]);
 

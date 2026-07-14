@@ -78,7 +78,7 @@ export interface FiltroLocalizacao {
 interface CaixaBuscaLocalizacaoProps {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
   onLocationSelect?: (loc: LocalizacaoResult) => void;
-  onSchoolSelect?: (slug: string, nome: string) => void;
+  onSchoolSelect?: (slug: string, nome: string, lat: number, lng: number) => void;
   initialValue?: string;
   className?: string;
 }
@@ -282,7 +282,7 @@ export default function CaixaBuscaLocalizacao({
       const supabase = createClient();
       const { data } = await supabase
         .from("escolas")
-        .select("id, nome, municipio, uf, codigo_inep")
+        .select("id, nome, municipio, uf, codigo_inep, latitude, longitude")
         .ilike("nome", `%${query}%`)
         .order("nome")
         .limit(5);
@@ -292,6 +292,8 @@ export default function CaixaBuscaLocalizacao({
           id: `esc-${item.id}`,
           textoExibicao: `${item.nome} - ${item.municipio}, ${item.uf}`,
           label: item.nome,
+          lat: item.latitude != null ? Number(item.latitude) : null,
+          lng: item.longitude != null ? Number(item.longitude) : null,
           _tipo: "escola",
           _codigoInep: item.codigo_inep,
           _nome: item.nome,
@@ -321,7 +323,7 @@ export default function CaixaBuscaLocalizacao({
       setHighlightIndex(-1);
       inputRef.current?.blur();
       if (onSchoolSelect && sugestao._codigoInep) {
-        onSchoolSelect(makeEscolaSlug(sugestao._codigoInep, sugestao._nome), sugestao._nome);
+        onSchoolSelect(makeEscolaSlug(sugestao._codigoInep, sugestao._nome), sugestao._nome, sugestao.lat, sugestao.lng);
       }
       return;
     }

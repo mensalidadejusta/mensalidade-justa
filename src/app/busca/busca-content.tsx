@@ -512,7 +512,13 @@ export default function BuscaContent({
           <CaixaBuscaLocalizacao
             onLocationChange={handleLocationChange}
             onLocationSelect={handleLocationSelect}
-            onSchoolSelect={(slug) => router.push(`/escola/${slug}`)}
+            onSchoolSelect={(_slug, nome, lat, lng) => {
+              setLocalQuery(nome);
+              updateFilters({ q: nome });
+              if (lat && lng) {
+                setMapCenter({ lat, lon: lng });
+              }
+            }}
             className="w-full md:w-96 shadow-lg"
           />
           <div className="flex justify-center items-center gap-2 flex-wrap md:justify-start md:flex-1 mt-2 md:mt-0">
