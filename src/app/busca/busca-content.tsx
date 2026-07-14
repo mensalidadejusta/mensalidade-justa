@@ -394,8 +394,16 @@ export default function BuscaContent({
       }
     }
 
+    if (localQuery) {
+      const termo = localQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      filtrado = filtrado.filter((e) => {
+        const nome = e.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return nome.includes(termo);
+      });
+    }
+
     return filtrado;
-  }, [resultados, resultadosCoordenadas, showPrivada, showPublica, serieSlug]);
+  }, [resultados, resultadosCoordenadas, showPrivada, showPublica, serieSlug, localQuery]);
 
   const sortedResultados = useMemo(
     () => (dadosExibir ? sortResults(dadosExibir, userLocation) : null),
