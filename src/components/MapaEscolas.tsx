@@ -323,8 +323,8 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     }
 
     if (ajustarCamera && isInitialLoadOrFilterChange.current && bounds.isValid()) {
-      if (selecionadas.length === 1 && !userLocation) state.current.map.setView([selecionadas[0].latitude!, selecionadas[0].longitude!], 14);
-      else state.current.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      if (selecionadas.length === 1 && !userLocation) state.current.map.flyTo([selecionadas[0].latitude!, selecionadas[0].longitude!], 14, { duration: 1.2 });
+      else state.current.map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 16, duration: 1.2 });
       isInitialLoadOrFilterChange.current = false;
     }
   }
@@ -540,7 +540,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
     if (key === lastMapCenterKey.current) return;
     lastMapCenterKey.current = key;
     isInitialLoadOrFilterChange.current = true;
-    state.current.map.setView([mapCenter.lat, mapCenter.lon], 14, { animate: true });
+    state.current.map.flyTo([mapCenter.lat, mapCenter.lon], 14, { duration: 1.5 });
   }, [mapCenter]);
 
   useEffect(() => {
