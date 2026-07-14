@@ -511,7 +511,7 @@ export default function BuscaContent({
         <div className="pointer-events-auto px-3 pt-2 md:pl-3 md:pr-0 md:pt-3 flex flex-col md:flex-row md:items-start md:gap-3">
           <div className="flex items-center gap-2">
             <Link href="/sobre"
-              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-fuchsia-500/20 text-fuchsia-500 hover:bg-fuchsia-500/30 hover:text-fuchsia-400 transition-all duration-200 shadow-sm border border-fuchsia-500/30"
+              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-[#0070F3] text-white hover:brightness-110 transition-all duration-200 shadow-sm"
               title="Sobre o projeto">
               <Info className="w-5 h-5" />
             </Link>
@@ -552,7 +552,7 @@ export default function BuscaContent({
         </div>
 
         {/* Botoes flutuantes inferior direito (estilo Google Maps) */}
-        <div className="absolute bottom-6 right-4 z-[500] pointer-events-auto flex flex-col gap-2">
+        <div className="absolute bottom-20 md:bottom-6 right-4 z-[500] pointer-events-auto flex flex-col gap-2">
           {/* Botao localizacao (toggle on/off) */}
           <button
             type="button"

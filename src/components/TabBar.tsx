@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, User, LogIn, Map } from "lucide-react";
+import { User, LogIn, Map } from "lucide-react";
 import BotaoTema from "@/components/BotaoTema";
 import { useAuth } from "@/lib/auth-context";
 
@@ -20,11 +20,8 @@ export default function TabBar() {
       const params = new URLSearchParams(
         typeof window !== "undefined" ? window.location.search : ""
       );
-      if (params.get("map") === "1") {
-        params.delete("map");
-      } else {
-        params.set("map", "1");
-      }
+      if (params.get("map") === "1") params.delete("map");
+      else params.set("map", "1");
       const qs = params.toString();
       router.push(qs ? `/busca?${qs}` : "/busca");
     } else {
@@ -33,13 +30,16 @@ export default function TabBar() {
   }
 
   return (
-    <nav className="md:hidden sticky bottom-0 bg-surface border-t border-border z-20">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-20">
       <div className="max-w-lg mx-auto flex items-center">
-        <Link href="/busca"
-          className={`flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 ${pathname.startsWith("/busca") ? "text-primary" : "text-text-tertiary"}`}>
-          <Search className="w-[18px] h-[18px]" />
-          Busca
-        </Link>
+        <button onClick={handleMapToggle}
+          className={`flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 ${
+            pathname === "/busca" ? "text-primary" : "text-text-tertiary"
+          }`}
+        >
+          <Map className="w-[18px] h-[18px]" />
+          Mapa
+        </button>
         {user ? (
           <Link href="/perfil"
             className={`flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 ${pathname.startsWith("/perfil") ? "text-primary" : "text-text-tertiary"}`}>
@@ -53,16 +53,6 @@ export default function TabBar() {
             Entrar
           </Link>
         )}
-        <button onClick={handleMapToggle}
-          className={`flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 ${
-            pathname === "/busca" && new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("map") === "1"
-              ? "text-primary"
-              : "text-text-tertiary"
-          }`}
-        >
-          <Map className="w-[18px] h-[18px]" />
-          Mapa
-        </button>
         <div className="flex-1 flex flex-col items-center py-2 text-[10px] gap-0.5 text-text-tertiary">
           <BotaoTema />
           <span>Tema</span>

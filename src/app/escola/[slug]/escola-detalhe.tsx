@@ -537,13 +537,13 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                       <p className="text-sm text-text-secondary">Nenhum valor cadastrado ainda.</p>
                     </div>
                   )}
-                  <div className="border-t border-border/10 px-5 py-3 flex items-center gap-3">
+                  <div className="border-t border-border/10 px-5 py-3 space-y-2">
                     <button onClick={() => { const s = SERIES[0]; abrirModal(s.slug, s.nome, null); }}
-                      className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                      <Edit3 className="w-3.5 h-3.5" />
+                      className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] cursor-pointer flex items-center justify-center gap-1.5">
+                      <Edit3 className="w-4 h-4" />
                       Contribuir com preços
                     </button>
-                    <div className="ml-auto"><WhatsAppShare nome={escola.nome} slug={slug} /></div>
+                    <WhatsAppShare nome={escola.nome} slug={slug} />
                   </div>
                 </>
               ) : (
@@ -558,17 +558,12 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             </div>
 
             {/* Avaliações — mobile only */}
-            <div className="bg-surface border border-border/60 rounded-2xl shadow-sm p-5">
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-surface border border-border/60 rounded-2xl shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
                   <Star className="w-3.5 h-3.5 text-amber-400" />
                   Avaliações
                 </h3>
-                <Link href={`/escola/${slug}/avaliar`}
-                  className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:underline">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  Avaliar
-                </Link>
               </div>
               {mediasAvaliacoes && mediasAvaliacoes.total_avaliacoes > 0 ? (
                 <div className="space-y-2">
@@ -600,6 +595,11 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               ) : (
                 <p className="text-sm text-text-secondary">Nenhuma avaliação ainda.</p>
               )}
+              <Link href={`/escola/${slug}/avaliar`}
+                className="w-full py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] cursor-pointer flex items-center justify-center gap-1.5">
+                <Star className="w-4 h-4 fill-white" />
+                Avaliar escola
+              </Link>
             </div>
           </div>
 

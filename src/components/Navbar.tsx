@@ -18,7 +18,7 @@ export default function Navbar() {
   if (pathname === "/busca" || authPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border/40">
+    <nav className="hidden md:flex sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border/40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/busca" className="flex items-center gap-2 text-text font-bold text-base hover:text-primary transition-colors">
           <School className="w-5 h-5 text-primary" />
