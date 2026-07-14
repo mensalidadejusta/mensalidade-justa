@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Sun, Moon, User, School } from "lucide-react";
+import { Sun, Moon, User, LogIn, School } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/lib/auth-context";
 
@@ -48,7 +48,7 @@ export default function Navbar() {
               href={`/login?redirectTo=${encodeURIComponent(pathname)}`}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-border text-sm font-medium text-text hover:bg-surface-hover transition-all"
             >
-              <User className="w-3.5 h-3.5" />
+              <LogIn className="w-3.5 h-3.5" />
               Entrar
             </Link>
           )}
