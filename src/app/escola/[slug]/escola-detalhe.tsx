@@ -488,6 +488,121 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             )}
           </header>
 
+          {/* Mensalidades — mobile only */}
+          <div className="lg:hidden space-y-5">
+            <div className="bg-surface border border-border/60 rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-5 pt-5 pb-2">
+                <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
+                  <School className="w-3.5 h-3.5" />
+                  Mensalidades
+                </h3>
+              </div>
+              {isPrivada ? (
+                <>
+                  {precos.length > 0 && gruposComPreco.length > 0 ? (
+                    <div className="divide-y divide-border/10">
+                      {gruposComPreco.slice(0, 4).map((grupo) => {
+                        const series = SERIES.filter((s) => s.grupo === grupo);
+                        const seriesComDados = series.filter((s) => precos.find((p) => p.serie_slug === s.slug && p.qtd_mensalidade > 0));
+                        const Icone = ICONE_GRUPO[grupo] || GraduationCap;
+                        const corBg = COR_GRUPO[grupo]?.split(" ")[0] || "bg-primary/10";
+                        const label = grupo === "Educação Infantil" ? "Infantil" : grupo === "Ensino Fundamental I" ? "Fund. I" : grupo === "Ensino Fundamental II" ? "Fund. II" : "Médio";
+                        if (seriesComDados.length === 0) return null;
+                        return (
+                          <div key={grupo} className="px-5 py-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={`w-5 h-5 rounded flex items-center justify-center ${corBg}`}>
+                                <Icone className="w-3 h-3" />
+                              </div>
+                              <span className="text-xs font-semibold text-text">{label}</span>
+                            </div>
+                            <div className="space-y-1.5">
+                              {seriesComDados.map((s) => {
+                                const p = precos.find((pr) => pr.serie_slug === s.slug);
+                                if (!p) return null;
+                                return (
+                                  <div key={s.slug} className="flex items-center justify-between text-sm">
+                                    <span className="text-text-secondary">{s.nome}</span>
+                                    <span className="font-semibold text-text">{fmtBr(p.media_mensalidade)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="px-5 pb-5">
+                      <p className="text-sm text-text-secondary">Nenhum valor cadastrado ainda.</p>
+                    </div>
+                  )}
+                  <div className="border-t border-border/10 px-5 py-3 flex items-center gap-3">
+                    <button onClick={() => { const s = SERIES[0]; abrirModal(s.slug, s.nome, null); }}
+                      className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Contribuir com preços
+                    </button>
+                    <div className="ml-auto"><WhatsAppShare nome={escola.nome} slug={slug} /></div>
+                  </div>
+                </>
+              ) : (
+                <div className="px-5 pb-5">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 text-center">
+                    <Shield className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
+                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Escola pública gratuita</p>
+                    <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-0.5">Instituições públicas não cobram mensalidade.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Avaliações — mobile only */}
+            <div className="bg-surface border border-border/60 rounded-2xl shadow-sm p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-amber-400" />
+                  Avaliações
+                </h3>
+                <Link href={`/escola/${slug}/avaliar`}
+                  className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:underline">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  Avaliar
+                </Link>
+              </div>
+              {mediasAvaliacoes && mediasAvaliacoes.total_avaliacoes > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-bold text-text">{Number(mediasAvaliacoes.media_geral).toFixed(1)}</span>
+                    <div className="flex items-center gap-0.5">{renderStarRating(Number(mediasAvaliacoes.media_geral), "w-4 h-4")}</div>
+                    <span className="text-xs text-text-tertiary">({mediasAvaliacoes.total_avaliacoes})</span>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      ["Infraestrutura", mediasAvaliacoes.media_infraestrutura],
+                      ["Segurança", mediasAvaliacoes.media_seguranca],
+                      ["Pedagógico", mediasAvaliacoes.media_pedagogico],
+                      ["Acolhimento", mediasAvaliacoes.media_acolhimento],
+                      ["Cursos extras", mediasAvaliacoes.media_cursos_extras],
+                      ["Diversidade", mediasAvaliacoes.media_diversidade],
+                      ["Inclusão", mediasAvaliacoes.media_inclusao],
+                    ].map(([label, valor]) => (
+                      <div key={label as string} className="flex items-center gap-2">
+                        <span className="text-xs text-text-secondary w-24 shrink-0">{label as string}</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-surface-hover overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500" style={{ width: `${((valor as number || 0) / 5) * 100}%` }} />
+                        </div>
+                        <span className="text-xs text-text-tertiary w-6 text-right">{Number(valor || 0).toFixed(1)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-text-secondary">Nenhuma avaliação ainda.</p>
+              )}
+            </div>
+          </div>
+
           {/* Sobre */}
           <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-6">
             <h2 className="text-lg font-bold text-text mb-3">Sobre {nomeFormatado}</h2>
@@ -681,7 +796,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
         </div>
 
         {/* Sidebar */}
-        <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-20 lg:self-start space-y-5 mt-8 lg:mt-0">
+        <aside className="hidden lg:block lg:col-start-2 lg:row-start-1 lg:sticky lg:top-20 lg:self-start space-y-5 mt-8 lg:mt-0">
           {/* 1. Mensalidades — sempre visível */}
           <div className="bg-surface border border-border/60 rounded-2xl shadow-sm overflow-hidden">
             <div className="px-5 pt-5 pb-2">
