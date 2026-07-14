@@ -14,7 +14,8 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  if (pathname === "/busca") return null;
+  const authPaths = ["/login", "/cadastro", "/recuperar-senha", "/alterar-senha", "/atualizar-senha"];
+  if (pathname === "/busca" || authPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border/40">
