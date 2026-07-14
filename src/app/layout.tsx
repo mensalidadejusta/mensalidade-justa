@@ -5,6 +5,7 @@ import ThemeProvider from "@/providers/theme-provider";
 import TabBar from "@/components/TabBar";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import OAuthRedirectHandler from "@/components/OAuthRedirectHandler";
 
 export const metadata: Metadata = {
   title: "Mensalidade Justa",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh md:pl-16">
         <ThemeProvider>
           <AuthProvider>
+            <OAuthRedirectHandler />
             <div className="flex-1 flex flex-col">
               <Navbar />
               <main className="flex-1">{children}</main>
