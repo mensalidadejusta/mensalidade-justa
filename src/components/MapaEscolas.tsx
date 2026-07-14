@@ -302,12 +302,19 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
         precosHtml = `<div style="font-size:11px;color:#888">Sem mensalidades cadastradas</div>`;
       }
       const slug = makeEscolaSlug(e.codigo_inep, e.nome);
+      const isP = e.dependencia_administrativa === "Privada";
+      const waText = encodeURIComponent(`Ol\u00e1! Conhece algu\u00e9m que estuda no ${e.nome}? Acesse https://mensalidadejusta.com.br/escola/${slug} e ajude a cadastrar os valores reais de mensalidade. \u00c9 r\u00e1pido e an\u00f4nimo! Obrigado \u2764\uFE0F`);
       m.bindPopup(`
         <div style="font-family:sans-serif;max-width:300px;background:var(--color-surface);color:var(--color-text);border-radius:12px;padding:8px 12px">
           <div style="font-weight:700;font-size:13px;margin-bottom:2px">${e.nome}</div>
           ${endereco ? `<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">${endereco}</div>` : ""}
           ${precosHtml}
-          <a href="/escola/${slug}" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:6px;padding:6px 0;background:var(--color-surface-hover);border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:var(--color-primary);text-decoration:none">Ver detalhes</a>
+          <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+            ${isP ? `<a href="/contribuir?escola=${e.codigo_inep}" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:#1a73e8;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:#fff;text-decoration:none">Contribuir com pre\u00e7os</a>` : ""}
+            <a href="/escola/${slug}/avaliar" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:#f59e0b;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:#fff;text-decoration:none">Avaliar escola</a>
+            <a href="https://wa.me/?text=${waText}" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:#25D366;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:#fff;text-decoration:none">Compartilhar</a>
+            <a href="/escola/${slug}" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:var(--color-surface-hover);border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:var(--color-primary);text-decoration:none">Ver detalhes</a>
+          </div>
         </div>
       `, { offset: [0, -8], maxWidth: 320, className: "school-popup", closeOnClick: false });
       if (preco) {

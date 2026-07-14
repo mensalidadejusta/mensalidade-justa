@@ -605,7 +605,10 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
 
           {/* Sobre */}
           <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-6">
-            <h2 className="text-lg font-bold text-text mb-3">Sobre {nomeFormatado}</h2>
+            <h2 className="text-base font-bold text-text mb-3 flex items-center gap-2">
+              <Info className="w-4 h-4 text-text-tertiary" />
+              Sobre {nomeFormatado}
+            </h2>
             <div className="text-sm text-text-secondary leading-relaxed space-y-2">
               <p>{nomeFormatado} é uma instituição de ensino {isPrivada ? "privada" : "pública"} localizada em {escola.bairro ? `${escola.bairro}, ` : ""}{escola.municipio} - {escola.uf}.</p>
               {escola.categoria_escola_privada && <p>Enquadra-se na categoria {escola.categoria_escola_privada.toLowerCase()}.</p>}
@@ -621,8 +624,11 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
           </section>
 
           {/* Informações */}
-          <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-5 space-y-2.5">
-            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Informações</h3>
+          <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-6 space-y-3">
+            <h2 className="text-base font-bold text-text flex items-center gap-2">
+              <School className="w-4 h-4 text-text-tertiary" />
+              Informações
+            </h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-text-tertiary">Tipo</span>
@@ -760,38 +766,6 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                 </a>
               </div>
             )}
-          </section>
-          {/* Contato */}
-          <section className="bg-surface border border-border/60 rounded-2xl shadow-sm p-6">
-            <h2 className="text-base font-bold text-text mb-4 flex items-center gap-2">
-              <Phone className="w-4 h-4 text-text-tertiary" />
-              Contato
-            </h2>
-            <div className="space-y-3">
-              {escola.telefone && (
-                <a href={`tel:${escola.telefone}`} className="flex items-center gap-3 bg-bg border border-border/40 rounded-xl p-3 text-sm hover:border-text transition-colors">
-                  <Phone className="w-4 h-4 text-primary shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Telefone</span>
-                    <span className="text-text">{escola.telefone}</span>
-                  </div>
-                </a>
-              )}
-              <div className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex items-center gap-3">
-                <MapPin className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Endereço</span>
-                  <span className="text-text">{escola.endereco || `${escola.municipio} - ${escola.uf}`}</span>
-                </div>
-              </div>
-              <div className="bg-bg border border-border/40 rounded-xl p-3 text-sm flex items-center gap-3">
-                <School className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Código INEP</span>
-                  <span className="text-text font-mono text-xs">{escola.codigo_inep}</span>
-                </div>
-              </div>
-            </div>
           </section>
         </div>
 

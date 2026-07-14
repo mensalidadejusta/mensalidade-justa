@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, LogIn, Map } from "lucide-react";
+import { User, LogIn, Map, Info } from "lucide-react";
 import BotaoTema from "@/components/BotaoTema";
 import { useAuth } from "@/lib/auth-context";
 
@@ -53,6 +53,11 @@ export default function TabBar() {
             Entrar
           </Link>
         )}
+        <Link href="/sobre"
+          className="flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 text-text-tertiary">
+          <Info className="w-[18px] h-[18px]" />
+          Info
+        </Link>
         <div className="flex-1 flex flex-col items-center py-2 text-[10px] gap-0.5 text-text-tertiary">
           <BotaoTema />
           <span>Tema</span>
