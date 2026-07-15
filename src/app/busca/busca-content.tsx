@@ -91,6 +91,19 @@ export default function BuscaContent({
   const [zoomMode, setZoomMode] = useState<"estado" | "cidade" | "escola">("estado");
   const [isMenuAberto, setIsMenuAberto] = useState(false);
   const [mostrarBanner, setMostrarBanner] = useState(true);
+  const [contador, setContador] = useState(8);
+
+  useEffect(() => {
+    if (!mostrarBanner) return;
+    setContador(8);
+    const timer = setInterval(() => {
+      setContador((c) => {
+        if (c <= 1) { clearInterval(timer); setMostrarBanner(false); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [mostrarBanner]);
   const { user } = useAuth();
 
   async function handleLogout() {
@@ -728,15 +741,19 @@ export default function BuscaContent({
                 <X className="w-5 h-5" />
               </button>
             </div>
+            <h2 className="text-lg font-black text-text tracking-tight">{'AJUDE O PR\u00d3XIMO'}</h2>
             <p className="text-sm text-text-secondary leading-relaxed">
-              Ajude outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea.
+              {'Colabore com outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea.'}
             </p>
-            <button
-              onClick={() => setMostrarBanner(false)}
-              className="w-full py-2.5 rounded-xl bg-fuchsia-600 text-white text-sm font-semibold hover:brightness-110 transition-all active:scale-[0.97]"
-            >
-              Entendi, vou ajudar!
-            </button>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs text-text-tertiary">{'Fechando em ' + contador + 's'}</span>
+              <button
+                onClick={() => setMostrarBanner(false)}
+                className="flex-1 py-2.5 rounded-xl bg-fuchsia-600 text-white text-sm font-semibold hover:brightness-110 transition-all active:scale-[0.97]"
+              >
+                {'Entendi, vou colaborar!'}
+              </button>
+            </div>
           </div>
         </div>
       )}
