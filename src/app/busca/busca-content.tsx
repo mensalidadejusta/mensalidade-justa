@@ -244,7 +244,9 @@ export default function BuscaContent({
 
   function handleLocationSelect(loc: { label: string; slug: string; lat: number; lng: number }) {
     setMapCenter({ lat: loc.lat, lon: loc.lng });
+    setLocalQuery("");
     const novosParams = new URLSearchParams(window.location.search);
+    novosParams.delete("q");
     novosParams.set("cidade", loc.slug);
     novosParams.set("lat", loc.lat.toString());
     novosParams.set("lon", loc.lng.toString());
@@ -269,10 +271,12 @@ export default function BuscaContent({
 
   async function handleLocationChange(filtro: FiltroLocalizacao) {
     setFiltroLoc(filtro);
+    setLocalQuery("");
 
     if (filtro.latitude != null && filtro.longitude != null) {
       setMapCenter({ lat: filtro.latitude, lon: filtro.longitude });
       const novosParams = new URLSearchParams(window.location.search);
+      novosParams.delete("q");
       novosParams.set("lat", filtro.latitude.toString());
       novosParams.set("lon", filtro.longitude.toString());
       if (filtro.cidade) novosParams.set("cidade", filtro.cidade);
@@ -302,6 +306,7 @@ export default function BuscaContent({
 
     if (filtro.cidade && filtro.uf) {
       const novosParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      novosParams.delete("q");
       novosParams.set("uf", filtro.uf);
       novosParams.set("cidade", filtro.cidade);
       novosParams.delete("lat");
@@ -320,6 +325,7 @@ export default function BuscaContent({
       } catch {}
       if (cidade && uf) {
         const novosParams = new URLSearchParams(window.location.search);
+        novosParams.delete("q");
         novosParams.set("uf", uf);
         novosParams.set("cidade", cidade);
         novosParams.delete("lat");
