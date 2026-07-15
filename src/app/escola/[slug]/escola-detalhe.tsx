@@ -414,15 +414,13 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
   }
 
   const gruposDisponiveis = gruposDaEscola();
-  const anoReferencia = useMemo(() => {
-    if (!Array.isArray(precos) || precos.length === 0) return new Date().getFullYear();
-    const anos = [...new Set(precos.map((p: Estatistica) => p.ano_vigencia).filter(Boolean))].sort((a, b) => b - a);
-    return anos[0] || new Date().getFullYear();
-  }, [precos]);
+  const anoReferencia = new Date().getFullYear();
 
   const precosFiltrados = useMemo(() => {
     if (!Array.isArray(precos) || precos.length === 0) return [] as Estatistica[];
-    return precos.filter((p: Estatistica) => p.ano_vigencia === anoReferencia);
+    const anos = [...new Set(precos.map((p: Estatistica) => p.ano_vigencia).filter(Boolean))].sort((a, b) => b - a);
+    const anoDados = anos[0] || anoReferencia;
+    return precos.filter((p: Estatistica) => p.ano_vigencia === anoDados);
   }, [precos, anoReferencia]);
 
   const gruposComPreco = MACRO_GRUPOS.filter((g) => {
