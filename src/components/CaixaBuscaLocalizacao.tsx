@@ -151,10 +151,24 @@ export default function CaixaBuscaLocalizacao({
     if (isCep) {
       await buscarCep(trimmed, () => active);
     } else {
-      await Promise.all([
+      const [nominatimResults, escolasResults] = await Promise.all([
         buscarNominatim(trimmed, () => active),
         buscarEscolas(trimmed, () => active),
       ]);
+      if (!active) return;
+      const escolas = Array.isArray(escolasResults) ? escolasResults : [];
+      const locais = Array.isArray(nominatimResults) ? nominatimResults : [];
+      const combinadas = [...escolas, ...locais];
+      const vistos = new Set<string>();
+      const lista = combinadas.filter((item) => {
+        const key = item.id || item.label;
+        if (vistos.has(key)) return false;
+        vistos.add(key);
+        return true;
+      });
+      setSugestoes(lista);
+      setDropdownAberto(lista.length > 0);
+      setBuscouSemResultados(lista.length === 0);
     }
 
     if (active) {
@@ -218,16 +232,16 @@ export default function CaixaBuscaLocalizacao({
     }
   }
 
-  async function buscarNominatim(query: string, isActive: () => boolean) {
+  async function buscarNominatim(query: string, isActive: () => boolean): Promise<any[]> {
     try {
       const res = await fetchComTimeout(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&addressdetails=1&limit=5&accept-language=pt-BR`,
         { headers: { "User-Agent": NOMINATIM_UA } }
       );
-      if (!isActive()) return;
+      if (!isActive()) return [];
       if (!res.ok) throw new Error("Nominatim error");
       const data = await res.json();
-      if (!isActive()) return;
+      if (!isActive()) return [];
 
       if (Array.isArray(data) && data.length > 0) {
         const mapeados = data.map((item: any, idx: number) => {
@@ -254,31 +268,19 @@ export default function CaixaBuscaLocalizacao({
           };
         });
         const vistos = new Set<string>();
-        const lista = mapeados.filter((item) => {
+        return mapeados.filter((item) => {
           if (vistos.has(item.label)) return false;
           vistos.add(item.label);
           return true;
         });
-        setSugestoes(lista);
-        setDropdownAberto(true);
-        setBuscouSemResultados(false);
-        setHighlightIndex(-1);
-      } else {
-        setSugestoes([]);
-        setDropdownAberto(true);
-        setBuscouSemResultados(true);
-        setHighlightIndex(-1);
       }
+      return [];
     } catch {
-      if (!isActive()) return;
-      setSugestoes([]);
-      setDropdownAberto(true);
-      setBuscouSemResultados(true);
-      setHighlightIndex(-1);
+      return [];
     }
   }
 
-  async function buscarEscolas(query: string, isActive: () => boolean) {
+  async function buscarEscolas(query: string, isActive: () => boolean): Promise<any[]> {
     try {
       const supabase = createClient();
       const { data } = await supabase
@@ -287,9 +289,9 @@ export default function CaixaBuscaLocalizacao({
         .ilike("nome", `%${query}%`)
         .order("nome")
         .limit(5);
-      if (!isActive()) return;
+      if (!isActive()) return [];
       if (data && data.length > 0) {
-        const escolas = data.map((item: any) => ({
+        return data.map((item: any) => ({
           id: `esc-${item.id}`,
           textoExibicao: `${item.nome} - ${item.municipio}, ${item.uf}`,
           label: item.nome,
@@ -299,20 +301,9 @@ export default function CaixaBuscaLocalizacao({
           _codigoInep: item.codigo_inep,
           _nome: item.nome,
         }));
-        setSugestoes((prev) => {
-          const combinadas = [...escolas, ...prev];
-          const vistos = new Set<string>();
-          return combinadas.filter((item) => {
-            const key = item.id || item.label;
-            if (vistos.has(key)) return false;
-            vistos.add(key);
-            return true;
-          });
-        });
-        setDropdownAberto(true);
-        setBuscouSemResultados(false);
       }
-    } catch {}
+      return [];
+    } catch { return []; }
   }
 
   function selecionarSugestao(sugestao: any) {
