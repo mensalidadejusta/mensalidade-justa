@@ -646,6 +646,13 @@ export default function BuscaContent({
             )}
           </div>
         </div>
+
+        {/* Banner marquee flutuando sobre o mapa na parte inferior */}
+        <div className="absolute bottom-0 left-0 right-0 z-[550] overflow-hidden pointer-events-none" style={{ marginBottom: '48px' }}>
+          <div className="animate-marquee whitespace-nowrap text-sm font-semibold text-fuchsia-400/90 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)] tracking-wide">
+            {'Ajude outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea. \u00a0\u00a0\u00a0\u2022\u00a0\u00a0\u00a0'}
+          </div>
+        </div>
       </div>
 
       {/* Loading indicator sobre o mapa */}
@@ -675,13 +682,6 @@ export default function BuscaContent({
           <BuscaResults resultados={sortedResultados || []} hoveredId={hoveredId} onHover={handleHover} serieSlug={serieSlug} />
         </div>
       )}
-
-      {/* Banner informativo - marquee */}
-      <div className="w-full overflow-hidden bg-surface/50 border-t border-border/20 py-2.5 pb-16 md:pb-2.5">
-        <div className="animate-marquee whitespace-nowrap text-xs text-text-tertiary/70 font-medium">
-          {'Ajude outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea. \u00a0\u00a0\u00a0\u2022\u00a0\u00a0\u00a0'}
-        </div>
-      </div>
 
       {/* SEO: invisível para humanos, visível para o Googlebot */}
       <SchemaEscolas escolas={dadosExibir || []} />
