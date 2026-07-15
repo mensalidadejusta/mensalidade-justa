@@ -141,6 +141,7 @@ export default function CaixaBuscaLocalizacao({
     setBuscouSemResultados(false);
     setHighlightIndex(-1);
     inputRef.current?.focus();
+    onLocationChange({ buscaRaw: "" });
   }
 
   async function buscar(query: string) {

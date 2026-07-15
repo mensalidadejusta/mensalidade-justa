@@ -273,6 +273,14 @@ export default function BuscaContent({
     setFiltroLoc(filtro);
     setLocalQuery("");
 
+    if (filtro.buscaRaw === "") {
+      router.replace(pathname, { scroll: false });
+      setNavTick((n) => n + 1);
+      setResultadosCoordenadas(null);
+      setUserLocation(null);
+      return;
+    }
+
     if (filtro.latitude != null && filtro.longitude != null) {
       setMapCenter({ lat: filtro.latitude, lon: filtro.longitude });
       const novosParams = new URLSearchParams(window.location.search);
