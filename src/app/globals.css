@@ -109,7 +109,7 @@
 }
 
 .animate-marquee {
-  animation: marquee 20s linear 3;
+  animation: marquee 25s linear infinite;
 }
 
 @keyframes mitoseExplosion {
