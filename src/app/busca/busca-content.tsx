@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, GraduationCap, MapPin, Crosshair, Loader2, User, LogIn, LogOut, Info } from "lucide-react";
+import { DollarSign, GraduationCap, MapPin, Crosshair, Loader2, User, LogIn, LogOut, Info, X, Heart } from "lucide-react";
 import MapaEscolas from "@/components/MapaEscolas";
 import { createClient } from "@/lib/supabase";
 import { makeEscolaSlug } from "@/lib/utils";
@@ -90,6 +90,7 @@ export default function BuscaContent({
   const [layersOpen, setLayersOpen] = useState(false);
   const [zoomMode, setZoomMode] = useState<"estado" | "cidade" | "escola">("estado");
   const [isMenuAberto, setIsMenuAberto] = useState(false);
+  const [mostrarBanner, setMostrarBanner] = useState(true);
   const { user } = useAuth();
 
   async function handleLogout() {
@@ -647,12 +648,6 @@ export default function BuscaContent({
           </div>
         </div>
 
-        {/* Banner marquee flutuando sobre o mapa na parte inferior */}
-        <div className="absolute bottom-0 left-0 right-0 z-[550] overflow-hidden pointer-events-none" style={{ marginBottom: '48px' }}>
-          <div className="animate-marquee whitespace-nowrap text-sm font-semibold text-fuchsia-400/90 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)] tracking-wide">
-            {'Ajude outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea. \u00a0\u00a0\u00a0\u2022\u00a0\u00a0\u00a0'}
-          </div>
-        </div>
       </div>
 
       {/* Loading indicator sobre o mapa */}
@@ -717,6 +712,34 @@ export default function BuscaContent({
           ))}
         </ul>
       </section>
+
+      {/* Banner central de boas-vindas */}
+      {mostrarBanner && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border/60 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-slide-up">
+            <div className="flex items-start justify-between gap-4">
+              <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 flex items-center justify-center shrink-0">
+                <Heart className="w-5 h-5 text-fuchsia-500" />
+              </div>
+              <button
+                onClick={() => setMostrarBanner(false)}
+                className="p-1.5 rounded-lg text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              Ajude outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea.
+            </p>
+            <button
+              onClick={() => setMostrarBanner(false)}
+              className="w-full py-2.5 rounded-xl bg-fuchsia-600 text-white text-sm font-semibold hover:brightness-110 transition-all active:scale-[0.97]"
+            >
+              Entendi, vou ajudar!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
