@@ -548,7 +548,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                                       <span className="text-text-secondary">{s.nome}</span>
                                       <span className="font-semibold text-text">{p.min_mensalidade != null && p.max_mensalidade != null ? `${fmtBr(p.min_mensalidade)} - ${fmtBr(p.max_mensalidade)}` : p.media_mensalidade != null ? fmtBr(p.media_mensalidade) : "\u2014"}</span>
                                     </div>
-                                    {p.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{p.qtd_mensalidade} contribui\u00e7\u00e3o{p.qtd_mensalidade !== 1 ? "es" : ""} \u2022 {anoReferencia}</div>}
+                                    {p.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">({p.qtd_mensalidade}) Ref. {anoReferencia}</div>}
                                   </div>
                                 );
                               })}
@@ -833,7 +833,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                                     <span className="text-xs text-text-secondary">{s.nome}</span>
                                     <span className="text-xs font-semibold text-text">{stat.min_mensalidade != null && stat.max_mensalidade != null ? `${fmtBr(stat.min_mensalidade)} - ${fmtBr(stat.max_mensalidade)}` : stat.media_mensalidade != null ? fmtBr(stat.media_mensalidade) : "\u2014"}</span>
                                   </div>
-                                  {stat.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""} \u2022 {anoReferencia}</div>}
+                                  {stat.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">({stat.qtd_mensalidade}) Ref. {anoReferencia}</div>}
                                 </div>
                               );
                             })}
@@ -1057,7 +1057,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                                       <span className="text-text-secondary">{s.nome}</span>
                                       <span className="font-medium text-text">{stat.min_mensalidade != null && stat.max_mensalidade != null ? `${fmtBr(stat.min_mensalidade)} - ${fmtBr(stat.max_mensalidade)}` : stat.media_mensalidade != null ? fmtBr(stat.media_mensalidade) : "\u2014"}</span>
                                     </div>
-                                    {stat.qtd_mensalidade > 0 && <div className="text-[9px] text-text-tertiary/60 text-right">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""} \u2022 {anoReferencia}</div>}
+                                    {stat.qtd_mensalidade > 0 && <div className="text-[9px] text-text-tertiary/60 text-right">({stat.qtd_mensalidade}) Ref. {anoReferencia}</div>}
                                   </div>
                                 ) : null;
                               })}
