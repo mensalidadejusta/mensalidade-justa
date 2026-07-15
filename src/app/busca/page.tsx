@@ -106,6 +106,10 @@ export default async function BuscaPage({ searchParams }: Props) {
     .map((r: any) => r.municipio)
     .filter(Boolean);
 
+  const { count: totalEscolas } = await supabase
+    .from("escolas_bruta")
+    .select("*", { count: "exact", head: true });
+
   let resultados: EscolaResult[] | null = null;
   if (uf && cidade) {
     const { data } = await supabase.rpc("buscar_escolas_com_precos_detalhado", {
@@ -121,7 +125,7 @@ export default async function BuscaPage({ searchParams }: Props) {
 
   return (
     <Suspense fallback={<div className="p-12 text-center text-sm text-text-tertiary font-medium animate-pulse bg-bg min-h-dvh">Iniciando...</div>}>
-      <BuscaContent ufs={ufs} cidades={cidades} resultados={resultados} />
+      <BuscaContent ufs={ufs} cidades={cidades} resultados={resultados} totalEscolas={totalEscolas ?? 0} />
     </Suspense>
   );
 }

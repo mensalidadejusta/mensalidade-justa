@@ -57,12 +57,14 @@ type Props = {
   ufs: string[];
   cidades: string[];
   resultados: EscolaResult[] | null;
+  totalEscolas: number;
 };
 
 export default function BuscaContent({
   ufs: initialUfs,
   cidades: initialCidades,
   resultados,
+  totalEscolas,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -739,7 +741,7 @@ export default function BuscaContent({
             <div className="text-sm text-text-secondary leading-relaxed space-y-2">
               <p>{'Colabore com outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas.'}</p>
               <p className="font-medium text-text/80">{'Esse projeto depende de voc\u00ea.'}</p>
-              <p className="text-xs text-text-tertiary">{'H\u00e1 milhares de escolas no Brasil.'}</p>
+              <p className="text-xs text-text-tertiary">{'H\u00e1 ' + totalEscolas.toLocaleString('pt-BR') + ' escolas no Brasil.'}</p>
             </div>
             <button
               onClick={() => setMostrarBanner(false)}
