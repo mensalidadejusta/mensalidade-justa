@@ -676,6 +676,11 @@ export default function BuscaContent({
         </div>
       )}
 
+      {/* Banner informativo */}
+      <div className="text-center px-4 py-3 pb-16 md:pb-3 text-xs text-text-tertiary/70 leading-relaxed max-w-2xl mx-auto">
+        Ajude outros pais e respons\u00e1veis deixando um valor de mensalidade e uma avalia\u00e7\u00e3o escolar. Esse projeto depende de voc\u00ea.
+      </div>
+
       {/* SEO: invisível para humanos, visível para o Googlebot */}
       <SchemaEscolas escolas={dadosExibir || []} />
 

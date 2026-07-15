@@ -153,11 +153,13 @@ function ModalContribuicao({
   const mediaAtual = valoresAtuais?.media_mensalidade != null ? Number(valoresAtuais.media_mensalidade) : null;
   const temDiscrepancia = !erroFaixa && valorNum != null && mediaAtual != null && mediaAtual > 0 &&
     (valorNum < mediaAtual * 0.5 || valorNum > mediaAtual * 1.5);
-  const podeSalvar = !salvando && !erroFaixa && (!temDiscrepancia || discrepanciaConfirmada);
+  const podeSalvar = !salvando && selectedSlug && !erroFaixa && (!temDiscrepancia || discrepanciaConfirmada);
 
   async function handleSalvar(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
+    if (!selectedSlug) { setErro("Selecione uma s\u00e9rie."); return; }
+    if (!mensalidade.trim()) { setErro("Informe o valor da mensalidade."); return; }
     if (erroFaixa) { setErro("O valor da mensalidade deve estar entre R$ 100 e R$ 15.000."); return; }
     setSalvando(true);
     try {
@@ -209,6 +211,7 @@ function ModalContribuicao({
           <div className="relative">
             <select value={selectedSlug} onChange={(e) => handleSerieChange(e.target.value)}
               className="w-full appearance-none bg-bg border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:border-text transition-colors pr-10">
+              <option value="">Selecione a s\u00e9rie</option>
               {grupos.map((grupo) => (
                 <optgroup key={grupo} label={grupo}>
                   {SERIES.filter((s) => s.grupo === grupo).map((s) => (
@@ -349,6 +352,14 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
   }
 
   useEffect(() => { carregarAvaliacoes(); }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("contribuir") === "1" && !modalAberto) {
+      abrirModal("", "", null);
+    }
+  }, []);
 
   function abrirModal(serieSlug: string, serieNome: string, stats: Estatistica | null) {
     setModalSerieSlug(serieSlug); setModalSerieNome(serieNome); setModalStats(stats); setModalAberto(true);

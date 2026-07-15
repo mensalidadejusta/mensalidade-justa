@@ -310,7 +310,7 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
           ${endereco ? `<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">${endereco}</div>` : ""}
           ${precosHtml}
           <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
-            ${isP ? `<a href="/contribuir?escola=${e.codigo_inep}" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:#1a73e8;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:#fff;text-decoration:none">Contribuir com pre\u00e7os</a>` : ""}
+            ${isP ? `<a href="/escola/${slug}?contribuir=1" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:#1a73e8;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:#fff;text-decoration:none">Contribuir com pre\u00e7os</a>` : ""}
             <a href="/escola/${slug}/avaliar" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:#f59e0b;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:#fff;text-decoration:none">Avaliar escola</a>
             <a href="https://wa.me/?text=${waText}" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:#25D366;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:#fff;text-decoration:none">Compartilhar</a>
             <a href="/escola/${slug}" target="_blank" rel="noopener noreferrer" style="display:block;padding:6px 0;background:var(--color-surface-hover);border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:var(--color-primary);text-decoration:none">Ver detalhes</a>
