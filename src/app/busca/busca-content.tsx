@@ -688,7 +688,7 @@ export default function BuscaContent({
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[600] pointer-events-none">
           <div className="flex flex-col items-center gap-3 bg-bg/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            <p className="text-sm text-text-tertiary">Buscando escolas pr\u00f3ximas...</p>
+            <p className="text-sm text-text-tertiary">{'Buscando escolas pr\u00f3ximas...'}</p>
           </div>
         </div>
       )}
@@ -726,12 +726,12 @@ export default function BuscaContent({
                     ? `Localizada no bairro ${escola.bairro}, na cidade de ${escola.municipio} - ${escola.uf}.`
                     : `Localizada na cidade de ${escola.municipio} - ${escola.uf}.`}
                 </p>
-                <p>Tipo de institui\u00e7\u00e3o: Escola {escola.dependencia_administrativa}.</p>
+                <p>{'Tipo de institui\u00e7\u00e3o: Escola ' + escola.dependencia_administrativa + '.'}</p>
                 {Array.isArray(escola.series_precos) && escola.series_precos.length > 0 && (
                   <ul>
                     {escola.series_precos.map((sp: any) => (
                       <li key={sp.serie_slug}>
-                        S\u00e9rie: {sp.serie_nome}
+                        {'S\u00e9rie: ' + sp.serie_nome}
                         {sp.valor_mensalidade != null
                           ? ` - Mensalidade: R$ ${sp.valor_mensalidade.toFixed(2).replace(".", ",")}`
                           : " - Mensalidade: n\u00e3o informada"}
