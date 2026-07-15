@@ -93,6 +93,7 @@ export default function BuscaContent({
   const [zoomMode, setZoomMode] = useState<"estado" | "cidade" | "escola">("estado");
   const [isMenuAberto, setIsMenuAberto] = useState(false);
   const [mostrarBanner, setMostrarBanner] = useState(true);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
   const [contador, setContador] = useState(10);
 
   useEffect(() => {
@@ -474,6 +475,7 @@ export default function BuscaContent({
           serieSlug={serieSlug}
           mapCenter={mapCenter}
           activeTile={activeTile}
+          selectedSchoolId={selectedSchoolId}
           onBoundsChange={handleMapBoundsChange}
           showPrivada={showPrivada}
           showPublica={showPublica}
@@ -534,11 +536,13 @@ export default function BuscaContent({
             <CaixaBuscaLocalizacao
             onLocationChange={handleLocationChange}
             onLocationSelect={handleLocationSelect}
-            onSchoolSelect={(_slug, nome, lat, lng) => {
+            onSchoolSelect={(_slug, nome, lat, lng, escolaId) => {
               setLocalQuery(nome);
               updateFilters({ q: nome });
               if (lat && lng) {
                 setMapCenter({ lat, lon: lng });
+                setSelectedSchoolId(escolaId);
+                setTimeout(() => setSelectedSchoolId(null), 4000);
               }
             }}
             className="w-full md:w-96 shadow-lg"

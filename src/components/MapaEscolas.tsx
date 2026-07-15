@@ -8,7 +8,7 @@ import { makeEscolaSlug } from "@/lib/utils";
 
 type SeriePreco = { serie_slug: string; serie_nome: string; valor_mensalidade: number | null; valor_matricula: number | null; valor_material: number | null; qtd: number };
 type Escola = { id: number; nome: string; bairro: string | null; municipio: string; uf: string; latitude: number | null; longitude: number | null; dependencia_administrativa: string; codigo_inep: string; series_precos: SeriePreco[] };
-type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void; showPrivada?: boolean; showPublica?: boolean; onZoomModeChange?: (mode: "estado" | "cidade" | "escola") => void };
+type Props = { escolas: Escola[]; userLocation?: { lat: number; lon: number } | null; hoveredId?: number | null; selectedSchoolId?: number | null; serieSlug?: string; mapCenter?: { lat: number; lon: number } | null; activeTile?: string; onBoundsChange?: (bounds: { minLat: number; minLon: number; maxLat: number; maxLon: number }) => void; showPrivada?: boolean; showPublica?: boolean; onZoomModeChange?: (mode: "estado" | "cidade" | "escola") => void };
 
 type MediaEstado = { uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number; total_infantil?: number; publicas_infantil?: number; privadas_infantil?: number; total_fundamental?: number; publicas_fundamental?: number; privadas_fundamental?: number; total_medio?: number; publicas_medio?: number; privadas_medio?: number };
 type MediaCidade = { cidade_id: string; nome: string; uf: string; latitude: number; longitude: number; media_mensalidade: number | null; total_escolas: number; publicas: number; privadas: number; total_infantil?: number; publicas_infantil?: number; privadas_infantil?: number; total_fundamental?: number; publicas_fundamental?: number; privadas_fundamental?: number; total_medio?: number; publicas_medio?: number; privadas_medio?: number; distanciaCentro?: number };
@@ -85,7 +85,7 @@ function calcCidadeDiameter(total: number): number {
   return Math.round(min + scale * (max - min));
 }
 
-export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlug, mapCenter, activeTile, onBoundsChange, showPrivada = true, showPublica = true, onZoomModeChange }: Props) {
+export default function MapaEscolas({ escolas, userLocation, hoveredId, selectedSchoolId, serieSlug, mapCenter, activeTile, onBoundsChange, showPrivada = true, showPublica = true, onZoomModeChange }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const state = useRef<any>(null);
   const aggMarkersRef = useRef<any>(null);
@@ -542,12 +542,38 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, serieSlu
   }, [escolas, userLocation, hoveredId, serieSlug, showPrivada, showPublica]);
 
   useEffect(() => {
+    if (!selectedSchoolId || !state.current) return;
+    const s = state.current;
+    const abrir = () => {
+      s.map.eachLayer((layer: any) => {
+        if (layer._eid === selectedSchoolId && layer.getPopup && !layer.getPopup().isOpen()) {
+          s.map.openPopup(layer.getPopup());
+        }
+      });
+    };
+    abrir();
+    const id = setInterval(abrir, 500);
+    setTimeout(() => clearInterval(id), 6000);
+    return () => clearInterval(id);
+  }, [selectedSchoolId, escolas]);
+
+  useEffect(() => {
     if (!mapCenter || !state.current) return;
     const key = `${mapCenter.lat.toFixed(4)}-${mapCenter.lon.toFixed(4)}`;
     if (key === lastMapCenterKey.current) return;
     lastMapCenterKey.current = key;
     state.current.map.flyTo([mapCenter.lat, mapCenter.lon], 14, { duration: 2 });
   }, [mapCenter]);
+
+  useEffect(() => {
+    if (!selectedSchoolId || !state.current) return;
+    const s = state.current;
+    s.map.eachLayer((layer: any) => {
+      if (layer._eid === selectedSchoolId && layer.getPopup) {
+        s.map.openPopup(layer.getPopup());
+      }
+    });
+  }, [selectedSchoolId]);
 
   useEffect(() => {
     const s = state.current;

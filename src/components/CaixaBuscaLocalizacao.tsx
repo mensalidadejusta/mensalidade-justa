@@ -79,7 +79,7 @@ export interface FiltroLocalizacao {
 interface CaixaBuscaLocalizacaoProps {
   onLocationChange: (filtro: FiltroLocalizacao) => void;
   onLocationSelect?: (loc: LocalizacaoResult) => void;
-  onSchoolSelect?: (slug: string, nome: string, lat: number, lng: number) => void;
+  onSchoolSelect?: (slug: string, nome: string, lat: number, lng: number, escolaId: number) => void;
   initialValue?: string;
   className?: string;
 }
@@ -158,7 +158,9 @@ export default function CaixaBuscaLocalizacao({
       if (!active) return;
       const escolas = Array.isArray(escolasResults) ? escolasResults : [];
       const locais = Array.isArray(nominatimResults) ? nominatimResults : [];
-      const combinadas = [...escolas, ...locais];
+      const cidades = locais.filter((l: any) => l._cls === "boundary" || l._type === "city" || l._type === "town" || l._type === "village" || l._type === "municipality");
+      const ruas = locais.filter((l: any) => !cidades.includes(l));
+      const combinadas = [...cidades, ...escolas, ...ruas];
       const vistos = new Set<string>();
       const lista = combinadas.filter((item) => {
         const key = item.id || item.label;
@@ -300,6 +302,7 @@ export default function CaixaBuscaLocalizacao({
           _tipo: "escola",
           _codigoInep: item.codigo_inep,
           _nome: item.nome,
+          _escolaId: item.id,
         }));
       }
       return [];
@@ -315,7 +318,7 @@ export default function CaixaBuscaLocalizacao({
       setHighlightIndex(-1);
       inputRef.current?.blur();
       if (onSchoolSelect && sugestao._codigoInep) {
-        onSchoolSelect(makeEscolaSlug(sugestao._codigoInep, sugestao._nome), sugestao._nome, sugestao.lat, sugestao.lng);
+        onSchoolSelect(makeEscolaSlug(sugestao._codigoInep, sugestao._nome), sugestao._nome, sugestao.lat, sugestao.lng, sugestao._escolaId);
       }
       return;
     }
