@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase";
 import GraficoIdeb from "@/components/GraficoIdeb";
 
 type Estatistica = {
-  serie_slug: string; serie_nome: string;
+  serie_slug: string; serie_nome: string; ano_vigencia: number;
   media_mensalidade: number | null; min_mensalidade: number | null; max_mensalidade: number | null; qtd_mensalidade: number;
   media_matricula: number | null; min_matricula: number | null; max_matricula: number | null; qtd_matricula: number;
   media_material: number | null; min_material: number | null; max_material: number | null; qtd_material: number;
@@ -388,7 +388,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
     let max: number | null = null;
     let temDados = false;
     for (const s of series) {
-      const stat = precos.find((p) => p.serie_slug === s.slug);
+      const stat = precosFiltrados.find((p: Estatistica) => p.serie_slug === s.slug);
       if (stat && stat.qtd_mensalidade > 0 && stat.media_mensalidade != null) {
         temDados = true;
         if (min == null || stat.media_mensalidade < min) min = stat.media_mensalidade;
@@ -414,6 +414,17 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
   }
 
   const gruposDisponiveis = gruposDaEscola();
+  const anoReferencia = useMemo(() => {
+    if (!Array.isArray(precos) || precos.length === 0) return new Date().getFullYear();
+    const anos = [...new Set(precos.map((p: Estatistica) => p.ano_vigencia).filter(Boolean))].sort((a, b) => b - a);
+    return anos[0] || new Date().getFullYear();
+  }, [precos]);
+
+  const precosFiltrados = useMemo(() => {
+    if (!Array.isArray(precos) || precos.length === 0) return [] as Estatistica[];
+    return precos.filter((p: Estatistica) => p.ano_vigencia === anoReferencia);
+  }, [precos, anoReferencia]);
+
   const gruposComPreco = MACRO_GRUPOS.filter((g) => {
     const { temDados } = getPrecoGrupo(g);
     return temDados;
@@ -510,11 +521,11 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               </div>
               {isPrivada ? (
                 <>
-                  {precos.length > 0 && gruposComPreco.length > 0 ? (
+                  {precosFiltrados.length > 0 && gruposComPreco.length > 0 ? (
                     <div className="divide-y divide-border/10">
                       {gruposComPreco.slice(0, 4).map((grupo) => {
                         const series = SERIES.filter((s) => s.grupo === grupo);
-                        const seriesComDados = series.filter((s) => precos.find((p) => p.serie_slug === s.slug && p.qtd_mensalidade > 0));
+                        const seriesComDados = series.filter((s) => precosFiltrados.find((p) => p.serie_slug === s.slug && p.qtd_mensalidade > 0));
                         const Icone = ICONE_GRUPO[grupo] || GraduationCap;
                         const corBg = COR_GRUPO[grupo]?.split(" ")[0] || "bg-primary/10";
                         const label = grupo === "Educação Infantil" ? "Infantil" : grupo === "Ensino Fundamental I" ? "Fund. I" : grupo === "Ensino Fundamental II" ? "Fund. II" : "Médio";
@@ -529,7 +540,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                             </div>
                             <div className="space-y-1.5">
                               {seriesComDados.map((s) => {
-                                const p = precos.find((pr) => pr.serie_slug === s.slug);
+                                const p = precosFiltrados.find((pr) => pr.serie_slug === s.slug);
                                 if (!p) return null;
                                 return (
                                   <div key={s.slug}>
@@ -537,7 +548,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                                       <span className="text-text-secondary">{s.nome}</span>
                                       <span className="font-semibold text-text">{p.min_mensalidade != null && p.max_mensalidade != null ? `${fmtBr(p.min_mensalidade)} - ${fmtBr(p.max_mensalidade)}` : p.media_mensalidade != null ? fmtBr(p.media_mensalidade) : "\u2014"}</span>
                                     </div>
-                                    {p.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{p.qtd_mensalidade} contribui\u00e7\u00e3o{p.qtd_mensalidade !== 1 ? "es" : ""}</div>}
+                                    {p.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{p.qtd_mensalidade} contribui\u00e7\u00e3o{p.qtd_mensalidade !== 1 ? "es" : ""} \u2022 {anoReferencia}</div>}
                                   </div>
                                 );
                               })}
@@ -795,11 +806,11 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             </div>
             {isPrivada ? (
               <>
-                {precos.length > 0 && gruposComPreco.length > 0 ? (
+                {precosFiltrados.length > 0 && gruposComPreco.length > 0 ? (
                   <div className="divide-y divide-border/10">
                     {gruposComPreco.slice(0, 4).map((grupo) => {
                       const series = SERIES.filter((s) => s.grupo === grupo);
-                      const seriesComDados = series.filter((s) => precos.find((p) => p.serie_slug === s.slug && p.qtd_mensalidade > 0));
+                      const seriesComDados = series.filter((s) => precosFiltrados.find((p) => p.serie_slug === s.slug && p.qtd_mensalidade > 0));
                       const Icone = ICONE_GRUPO[grupo] || GraduationCap;
                       const corBg = COR_GRUPO[grupo]?.split(" ")[0] || "bg-primary/10";
                       const label = grupo === "Educação Infantil" ? "Infantil" : grupo === "Ensino Fundamental I" ? "Fund. I" : grupo === "Ensino Fundamental II" ? "Fund. II" : "Médio";
@@ -814,7 +825,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                           </div>
                           <div className="space-y-1.5 pl-7">
                             {seriesComDados.map((s) => {
-                              const stat = precos.find((p) => p.serie_slug === s.slug);
+                              const stat = precosFiltrados.find((p) => p.serie_slug === s.slug);
                               if (!stat) return null;
                               return (
                                 <div key={s.slug}>
@@ -822,7 +833,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                                     <span className="text-xs text-text-secondary">{s.nome}</span>
                                     <span className="text-xs font-semibold text-text">{stat.min_mensalidade != null && stat.max_mensalidade != null ? `${fmtBr(stat.min_mensalidade)} - ${fmtBr(stat.max_mensalidade)}` : stat.media_mensalidade != null ? fmtBr(stat.media_mensalidade) : "\u2014"}</span>
                                   </div>
-                                  {stat.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""}</div>}
+                                  {stat.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""} \u2022 {anoReferencia}</div>}
                                 </div>
                               );
                             })}
@@ -1002,7 +1013,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
               <p className="text-sm text-text-tertiary mt-1">Valores colaborativos compartilhados por outros pais e responsáveis.</p>
             </div>
 
-            {precos.length === 0 ? (
+            {precosFiltrados.length === 0 ? (
               <div className="text-center space-y-4 py-8">
                 <p className="text-sm text-text-tertiary">Nenhum valor cadastrado ainda para esta escola.</p>
                 <button onClick={() => { const s = SERIES[0]; abrirModal("", "", null); }}
@@ -1018,7 +1029,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                   const { min, max, temDados } = getPrecoGrupo(grupo);
                   const Icone = ICONE_GRUPO[grupo] || GraduationCap;
                   const cor = COR_GRUPO[grupo] || "";
-                  const seriesComPreco = series.filter((s) => precos.find((p) => p.serie_slug === s.slug && p.qtd_mensalidade > 0));
+                  const seriesComPreco = series.filter((s) => precosFiltrados.find((p) => p.serie_slug === s.slug && p.qtd_mensalidade > 0));
                   return (
                     <section key={grupo} aria-label={grupo} className="bg-bg border border-border/60 rounded-2xl p-5 shadow-sm flex flex-col">
                       <header className="flex items-center gap-3 mb-4">
@@ -1039,14 +1050,14 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                           </div>
                           <div className="border-t border-border/20 pt-2 space-y-1">
                               {seriesComPreco.slice(0, 3).map((s) => {
-                                const stat = precos.find((p) => p.serie_slug === s.slug);
+                                const stat = precosFiltrados.find((p) => p.serie_slug === s.slug);
                                 return stat ? (
                                   <div key={s.slug}>
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-text-secondary">{s.nome}</span>
                                       <span className="font-medium text-text">{stat.min_mensalidade != null && stat.max_mensalidade != null ? `${fmtBr(stat.min_mensalidade)} - ${fmtBr(stat.max_mensalidade)}` : stat.media_mensalidade != null ? fmtBr(stat.media_mensalidade) : "\u2014"}</span>
                                     </div>
-                                    {stat.qtd_mensalidade > 0 && <div className="text-[9px] text-text-tertiary/60 text-right">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""}</div>}
+                                    {stat.qtd_mensalidade > 0 && <div className="text-[9px] text-text-tertiary/60 text-right">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""} \u2022 {anoReferencia}</div>}
                                   </div>
                                 ) : null;
                               })}
