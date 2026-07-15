@@ -91,11 +91,11 @@ export default function BuscaContent({
   const [zoomMode, setZoomMode] = useState<"estado" | "cidade" | "escola">("estado");
   const [isMenuAberto, setIsMenuAberto] = useState(false);
   const [mostrarBanner, setMostrarBanner] = useState(true);
-  const [contador, setContador] = useState(8);
+  const [contador, setContador] = useState(10);
 
   useEffect(() => {
     if (!mostrarBanner) return;
-    setContador(8);
+    setContador(10);
     const timer = setInterval(() => {
       setContador((c) => {
         if (c <= 1) { clearInterval(timer); setMostrarBanner(false); return 0; }
@@ -729,31 +729,25 @@ export default function BuscaContent({
       {/* Banner central de boas-vindas */}
       {mostrarBanner && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border/60 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-slide-up">
-            <div className="flex items-start justify-between gap-4">
-              <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 flex items-center justify-center shrink-0">
-                <Heart className="w-5 h-5 text-fuchsia-500" />
+          <div className="bg-surface border border-border/60 rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-5 animate-slide-up text-center">
+            <div className="flex justify-center">
+              <div className="w-12 h-12 rounded-full bg-fuchsia-500/20 flex items-center justify-center">
+                <Heart className="w-6 h-6 text-fuchsia-500" />
               </div>
-              <button
-                onClick={() => setMostrarBanner(false)}
-                className="p-1.5 rounded-lg text-text-tertiary hover:text-text hover:bg-surface-hover transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
             <h2 className="text-lg font-black text-text tracking-tight">{'AJUDE O PR\u00d3XIMO'}</h2>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              {'Colabore com outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea.'}
-            </p>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-text-tertiary">{'Fechando em ' + contador + 's'}</span>
-              <button
-                onClick={() => setMostrarBanner(false)}
-                className="flex-1 py-2.5 rounded-xl bg-fuchsia-600 text-white text-sm font-semibold hover:brightness-110 transition-all active:scale-[0.97]"
-              >
-                {'Entendi, vou colaborar!'}
-              </button>
+            <div className="text-sm text-text-secondary leading-relaxed space-y-2">
+              <p>{'Colabore com outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas.'}</p>
+              <p className="font-medium text-text/80">{'Esse projeto depende de voc\u00ea.'}</p>
+              <p className="text-xs text-text-tertiary">{'H\u00e1 milhares de escolas no Brasil.'}</p>
             </div>
+            <button
+              onClick={() => setMostrarBanner(false)}
+              className="w-full py-3 rounded-xl bg-fuchsia-600 text-white text-sm font-semibold hover:brightness-110 transition-all active:scale-[0.97]"
+            >
+              {'Entendi, vou colaborar!'}
+            </button>
+            <p className="text-xs text-text-tertiary/60">{'Fechando em ' + contador + 's'}</p>
           </div>
         </div>
       )}
