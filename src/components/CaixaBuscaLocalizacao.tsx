@@ -48,6 +48,7 @@ const CATEGORIA_CORES: Record<string, string> = {
 };
 
 function classificarTipo(item: any): string {
+  if (item._tipo === "escola") return "Escola";
   if (item._tipo === "cep") return "CEP";
   const cls = item._cls || "";
   const typ = item._type || "";

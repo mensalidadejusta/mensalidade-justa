@@ -532,9 +532,12 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                                 const p = precos.find((pr) => pr.serie_slug === s.slug);
                                 if (!p) return null;
                                 return (
-                                  <div key={s.slug} className="flex items-center justify-between text-sm">
-                                    <span className="text-text-secondary">{s.nome}</span>
-                                    <span className="font-semibold text-text">{fmtBr(p.media_mensalidade)}</span>
+                                  <div key={s.slug}>
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-text-secondary">{s.nome}</span>
+                                      <span className="font-semibold text-text">{p.min_mensalidade != null && p.max_mensalidade != null ? `${fmtBr(p.min_mensalidade)} - ${fmtBr(p.max_mensalidade)}` : p.media_mensalidade != null ? fmtBr(p.media_mensalidade) : "\u2014"}</span>
+                                    </div>
+                                    {p.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{p.qtd_mensalidade} contribui\u00e7\u00e3o{p.qtd_mensalidade !== 1 ? "es" : ""}</div>}
                                   </div>
                                 );
                               })}
@@ -549,7 +552,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                     </div>
                   )}
                   <div className="border-t border-border/10 px-5 py-3 space-y-2">
-                    <button onClick={() => { const s = SERIES[0]; abrirModal(s.slug, s.nome, null); }}
+                    <button onClick={() => abrirModal("", "", null)}
                       className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] cursor-pointer flex items-center justify-center gap-1.5">
                       <Edit3 className="w-4 h-4" />
                       Contribuir com preços
@@ -814,9 +817,12 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                               const stat = precos.find((p) => p.serie_slug === s.slug);
                               if (!stat) return null;
                               return (
-                                <div key={s.slug} className="flex items-center justify-between">
-                                  <span className="text-xs text-text-secondary">{s.nome}</span>
-                                  <span className="text-xs font-semibold text-text">{fmtBr(stat.media_mensalidade)}</span>
+                                <div key={s.slug}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-text-secondary">{s.nome}</span>
+                                    <span className="text-xs font-semibold text-text">{stat.min_mensalidade != null && stat.max_mensalidade != null ? `${fmtBr(stat.min_mensalidade)} - ${fmtBr(stat.max_mensalidade)}` : stat.media_mensalidade != null ? fmtBr(stat.media_mensalidade) : "\u2014"}</span>
+                                  </div>
+                                  {stat.qtd_mensalidade > 0 && <div className="text-[10px] text-text-tertiary/60 text-right -mt-0.5">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""}</div>}
                                 </div>
                               );
                             })}
@@ -832,7 +838,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                 )}
                 <div className="px-5 pb-5 space-y-2">
                   <button
-                    onClick={() => { const s = SERIES[0]; abrirModal(s.slug, s.nome, null); }}
+                    onClick={() => abrirModal("", "", null)}
                     className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4 inline mr-1.5" />
@@ -999,7 +1005,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
             {precos.length === 0 ? (
               <div className="text-center space-y-4 py-8">
                 <p className="text-sm text-text-tertiary">Nenhum valor cadastrado ainda para esta escola.</p>
-                <button onClick={() => { const s = SERIES[0]; abrirModal(s.slug, s.nome, null); }}
+                <button onClick={() => { const s = SERIES[0]; abrirModal("", "", null); }}
                   className="inline-flex items-center gap-2 bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:brightness-110 transition-all active:scale-[0.97]">
                   <Edit3 className="w-4 h-4" /> Seja o primeiro a contribuir
                 </button>
@@ -1032,21 +1038,24 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                             )}
                           </div>
                           <div className="border-t border-border/20 pt-2 space-y-1">
-                            {seriesComPreco.slice(0, 3).map((s) => {
-                              const stat = precos.find((p) => p.serie_slug === s.slug);
-                              return stat ? (
-                                <div key={s.slug} className="flex items-center justify-between text-xs">
-                                  <span className="text-text-secondary">{s.nome}</span>
-                                  <span className="font-medium text-text">{fmtBr(stat.media_mensalidade)}</span>
-                                </div>
-                              ) : null;
-                            })}
+                              {seriesComPreco.slice(0, 3).map((s) => {
+                                const stat = precos.find((p) => p.serie_slug === s.slug);
+                                return stat ? (
+                                  <div key={s.slug}>
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-text-secondary">{s.nome}</span>
+                                      <span className="font-medium text-text">{stat.min_mensalidade != null && stat.max_mensalidade != null ? `${fmtBr(stat.min_mensalidade)} - ${fmtBr(stat.max_mensalidade)}` : stat.media_mensalidade != null ? fmtBr(stat.media_mensalidade) : "\u2014"}</span>
+                                    </div>
+                                    {stat.qtd_mensalidade > 0 && <div className="text-[9px] text-text-tertiary/60 text-right">{stat.qtd_mensalidade} contribui\u00e7\u00e3o{stat.qtd_mensalidade !== 1 ? "es" : ""}</div>}
+                                  </div>
+                                ) : null;
+                              })}
                           </div>
                         </div>
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-center py-6 space-y-2">
                           <p className="text-xs text-text-tertiary">Nenhum valor cadastrado</p>
-                          <button onClick={() => abrirModal(series[0].slug, series[0].nome, null)}
+                          <button onClick={() => abrirModal("", "", null)}
                             className="text-xs font-medium text-primary hover:underline cursor-pointer">
                             + Adicionar preço
                           </button>
@@ -1055,7 +1064,7 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
 
                       <footer className="mt-4 pt-3 border-t border-border/20">
                         <button
-                          onClick={() => abrirModal(seriesComPreco[0]?.slug || series[0].slug, seriesComPreco[0]?.nome || series[0].nome, null)}
+                          onClick={() => abrirModal("", "", null)}
                           className="w-full py-2 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
                         >
                           <PenLine className="w-3 h-3 inline mr-1" />
