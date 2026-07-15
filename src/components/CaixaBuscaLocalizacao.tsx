@@ -158,7 +158,7 @@ export default function CaixaBuscaLocalizacao({
       if (!active) return;
       const escolas = Array.isArray(escolasResults) ? escolasResults : [];
       const locais = Array.isArray(nominatimResults) ? nominatimResults : [];
-      const cidades = locais.filter((l: any) => l._cls === "boundary" || l._type === "city" || l._type === "town" || l._type === "village" || l._type === "municipality");
+      const cidades = locais.filter((l: any) => l._cls === "place" || l._type === "city" || l._type === "town" || l._type === "village" || l._type === "municipality" || l._type === "administrative");
       const ruas = locais.filter((l: any) => !cidades.includes(l));
       const combinadas = [...cidades, ...escolas, ...ruas];
       const vistos = new Set<string>();

@@ -544,16 +544,20 @@ export default function MapaEscolas({ escolas, userLocation, hoveredId, selected
   useEffect(() => {
     if (!selectedSchoolId || !state.current) return;
     const s = state.current;
+    let tentativas = 0;
     const abrir = () => {
+      tentativas++;
       s.map.eachLayer((layer: any) => {
-        if (layer._eid === selectedSchoolId && layer.getPopup && !layer.getPopup().isOpen()) {
-          s.map.openPopup(layer.getPopup());
+        if (layer._eid === selectedSchoolId && layer.getPopup) {
+          const popup = layer.getPopup();
+          if (popup && !popup.isOpen()) {
+            s.map.openPopup(popup);
+          }
         }
       });
+      if (tentativas >= 12) clearInterval(id);
     };
-    abrir();
     const id = setInterval(abrir, 500);
-    setTimeout(() => clearInterval(id), 6000);
     return () => clearInterval(id);
   }, [selectedSchoolId, escolas]);
 
