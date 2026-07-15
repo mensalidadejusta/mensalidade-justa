@@ -20,16 +20,36 @@ async function getEscola(slug: string) {
 
   const { data: precos } = await supabase.rpc("get_estatisticas_escola", { p_escola_id: escola.id });
 
-  return { ...escola, precos: precos || [] };
+  const anoRef = new Date().getFullYear();
+
+  const { data: idebEscola } = await supabase
+    .from("ideb_escolas")
+    .select("etapa, ano, ideb, meta_ideb")
+    .eq("escola_id", escola.id)
+    .order("ano", { ascending: false });
+
+  const { data: idebCidade } = await supabase
+    .from("ideb_escolas")
+    .select("sg_uf, etapa, ano, ideb")
+    .eq("sg_uf", escola.uf)
+    .eq("ano", 2023)
+    .limit(1000);
+
+  return {
+    ...escola,
+    precos: precos || [],
+    ideb: idebEscola || [],
+    idebCidade: idebCidade || [],
+  };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const escola = await getEscola(slug);
-  if (!escola) return { title: "Escola não encontrada | Mensalidade Justa" };
+  if (!escola) return { title: "Escola n\u00e3o encontrada | Mensalidade Justa" };
 
   const title = `Mensalidade ${escola.nome} em ${escola.municipio}/${escola.uf} | Mensalidade Justa`;
-  const description = `Veja a média de preços de mensalidade, matrícula e material para o ${escola.nome} no bairro ${escola.bairro || escola.municipio}. Informações colaborativas e confidenciais.`;
+  const description = `Veja a m\u00e9dia de pre\u00e7os de mensalidade, matr\u00edcula e material para o ${escola.nome} no bairro ${escola.bairro || escola.municipio}. Informa\u00e7\u00f5es colaborativas e confidenciais.`;
 
   return {
     title,
@@ -61,14 +81,14 @@ export default async function EscolaPage({ params }: Props) {
       name: `Mensalidade - ${escola.nome}`,
       description: `Mensalidade escolar no bairro ${escola.bairro || escola.municipio}`,
       category: "Mensalidade Escolar",
-      offers: { "@type": "AggregateOffer", priceCurrency: "BRL", lowPrice: "—", highPrice: "—" },
+      offers: { "@type": "AggregateOffer", priceCurrency: "BRL", lowPrice: "\u2014", highPrice: "\u2014" },
     },
   };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <EscolaDetalhe escola={escola} slug={slug} precos={escola.precos} />
+      <EscolaDetalhe escola={escola} slug={slug} precos={escola.precos} ideb={escola.ideb} idebCidade={escola.idebCidade} />
     </>
   );
 }

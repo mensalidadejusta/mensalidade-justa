@@ -32,6 +32,15 @@ export default function TabBar() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-20">
       <div className="max-w-lg mx-auto flex items-center">
+        <Link href="/sobre"
+          className="flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 text-text-tertiary">
+          <Info className="w-[18px] h-[18px]" />
+          Info
+        </Link>
+        <div className="flex-1 flex flex-col items-center py-2 text-[10px] gap-0.5 text-text-tertiary">
+          <BotaoTema />
+          <span>Tema</span>
+        </div>
         <button onClick={handleMapToggle}
           className={`flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 ${
             pathname === "/busca" ? "text-primary" : "text-text-tertiary"
@@ -53,15 +62,6 @@ export default function TabBar() {
             Entrar
           </Link>
         )}
-        <Link href="/sobre"
-          className="flex-1 flex flex-col items-center py-2 text-[10px] font-medium transition-colors duration-300 gap-0.5 text-text-tertiary">
-          <Info className="w-[18px] h-[18px]" />
-          Info
-        </Link>
-        <div className="flex-1 flex flex-col items-center py-2 text-[10px] gap-0.5 text-text-tertiary">
-          <BotaoTema />
-          <span>Tema</span>
-        </div>
       </div>
     </nav>
   );

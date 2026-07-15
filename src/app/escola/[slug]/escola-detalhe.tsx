@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Edit3, PenLine, AlertTriangle, X, LogIn,
   ChevronDown, ChevronRight, Star, School,
-  MapPin, Phone, Building2, Expand, Info, GraduationCap,
+  MapPin, Phone, Building2, Expand, Info, GraduationCap, DollarSign,
   Baby, BookOpen, Dumbbell, Monitor, Accessibility,
   Wifi, Users, Heart, Shield, Check,
   FlaskConical, MessageSquare, TrendingUp,
@@ -310,7 +310,9 @@ function WhatsAppShare({ nome, slug }: { nome: string; slug: string }) {
   );
 }
 
-export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola; slug: string; precos: Estatistica[] }) {
+type IdebRow = { sg_uf?: string; etapa: string; ano: number; ideb: number | null; meta_ideb?: number | null };
+
+export default function EscolaDetalhe({ escola, slug, precos, ideb, idebCidade }: { escola: Escola; slug: string; precos: Estatistica[]; ideb: IdebRow[]; idebCidade: IdebRow[] }) {
   const { user } = useAuth();
   const isPrivada = escola.categoria_administrativa === "Privada";
 
@@ -368,6 +370,16 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
   function fecharModal() { setModalAberto(false); }
 
   const nomeFormatado = capitalizarNome(escola.nome);
+
+  const idebEscola = Array.isArray(ideb) ? ideb.filter((r) => r.ideb != null) : [];
+  const melhorIdeb = idebEscola.length > 0 ? idebEscola.reduce((a, b) => (a.ideb! > b.ideb! ? a : b)) : null;
+  const idebCidadeMedia = useMemo(() => {
+    if (!Array.isArray(idebCidade) || idebCidade.length === 0) return null;
+    const vals = idebCidade.filter((r) => r.ideb != null && r.sg_uf === escola.uf);
+    if (vals.length === 0) return null;
+    return vals.reduce((s, r) => s + r.ideb!, 0) / vals.length;
+  }, [idebCidade, escola.uf]);
+
   const infraestrutura = extrairInfraestrutura(escola.etapas_modalidades);
 
   const subCriterios: [string, number][] = mediasAvaliacoes?.total_avaliacoes > 0
@@ -422,6 +434,13 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
     const anoDados = anos[0] || anoReferencia;
     return precos.filter((p: Estatistica) => p.ano_vigencia === anoDados);
   }, [precos, anoReferencia]);
+
+  const mediaMensalidadeCidade = useMemo(() => {
+    if (!Array.isArray(precosFiltrados) || precosFiltrados.length === 0) return null;
+    const vals = precosFiltrados.filter((p: Estatistica) => p.media_mensalidade != null);
+    if (vals.length === 0) return null;
+    return vals.reduce((s: number, p: Estatistica) => s + p.media_mensalidade!, 0) / vals.length;
+  }, [precosFiltrados]);
 
   const gruposComPreco = MACRO_GRUPOS.filter((g) => {
     const { temDados } = getPrecoGrupo(g);
@@ -505,6 +524,29 @@ export default function EscolaDetalhe({ escola, slug, precos }: { escola: Escola
                 <Building2 className="w-3 h-3" />
                 {escola.endereco}
               </p>
+            )}
+
+            {mediaMensalidadeCidade != null && (
+              <div className="flex items-center gap-1 mt-2 text-xs text-text-tertiary">
+                <DollarSign className="w-3 h-3" />
+                M\u00e9dia mensalidade na cidade: {fmtBr(mediaMensalidadeCidade)}
+              </div>
+            )}
+
+            {melhorIdeb && (
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-text">
+                  <TrendingUp className="w-3 h-3 text-text-tertiary" />
+                  IDEB: {melhorIdeb.ideb!.toFixed(1)}
+                  {melhorIdeb.meta_ideb != null && ` (meta: ${melhorIdeb.meta_ideb!.toFixed(1)})`}
+                </span>
+                {idebCidadeMedia != null && (
+                  <span className="text-xs text-text-tertiary">
+                    M\u00e9dia {escola.uf}: {idebCidadeMedia.toFixed(1)}
+                    {melhorIdeb.ideb! > idebCidadeMedia ? " \u2191 Acima" : melhorIdeb.ideb! < idebCidadeMedia ? " \u2193 Abaixo" : ""}
+                  </span>
+                )}
+              </div>
             )}
           </header>
 
