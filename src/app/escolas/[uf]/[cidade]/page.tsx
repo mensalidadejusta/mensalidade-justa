@@ -154,11 +154,13 @@ export default async function EscolasCidadePage({ params }: Props) {
                         <span className="text-xs text-text-tertiary">{escola.bairro}</span>
                       )}
                       {escola.mediaMensalidade != null && (
-                        <span className="text-xs font-medium text-primary">{fmtBr(escola.mediaMensalidade)}</span>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                          {fmtBr(escola.mediaMensalidade)}
+                        </span>
                       )}
                       {escola.ideb != null && (
-                        <span className="text-xs text-text-tertiary">
-                          {'IDEB: ' + escola.ideb.toFixed(1)}
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                          {'IDEB ' + escola.ideb.toFixed(1)}
                         </span>
                       )}
                     </div>

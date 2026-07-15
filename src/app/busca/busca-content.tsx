@@ -676,9 +676,11 @@ export default function BuscaContent({
         </div>
       )}
 
-      {/* Banner informativo */}
-      <div className="text-center px-4 py-3 pb-16 md:pb-3 text-xs text-text-tertiary/70 leading-relaxed max-w-2xl mx-auto">
-        Ajude outros pais e respons\u00e1veis deixando um valor de mensalidade e uma avalia\u00e7\u00e3o escolar. Esse projeto depende de voc\u00ea.
+      {/* Banner informativo - marquee */}
+      <div className="w-full overflow-hidden bg-surface/50 border-t border-border/20 py-2.5 pb-16 md:pb-2.5">
+        <div className="animate-marquee whitespace-nowrap text-xs text-text-tertiary/70 font-medium">
+          {'Ajude outros pais e respons\u00e1veis, cadastrando valores de mensalidades e avaliando escolas. Esse projeto depende de voc\u00ea. \u00a0\u00a0\u00a0\u2022\u00a0\u00a0\u00a0'}
+        </div>
       </div>
 
       {/* SEO: invisível para humanos, visível para o Googlebot */}

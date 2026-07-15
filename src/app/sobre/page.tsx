@@ -45,7 +45,7 @@ export default function SobrePage() {
                 <h2 className="text-lg font-semibold text-text">O Problema</h2>
               </div>
               <p className="text-sm text-text-secondary leading-relaxed">
-                {A(0x00C9)} uma informa{A(0x00E7)}{A(0x00E3)}o valiosa que fica escondida atr{A(0x00E1)}s do balc{A(0x00E3)}o da secretaria.
+                A mensalidade {A(0x00E9)} uma informa{A(0x00E7)}{A(0x00E3)}o valiosa que fica escondida atr{A(0x00E1)}s do balc{A(0x00E3)}o da secretaria.
                 As escolas divulgam os pre{A(0x00E7)}os de forma isolada. Cada pai paga o seu boleto e fica sem saber se o
                 valor {A(0x00E9)} justo ou se est{A(0x00E1)} acima da m{A(0x00E9)}dia.
               </p>
